@@ -165,23 +165,15 @@ main { display: grid; grid-template-columns: 1fr 3fr 1.2fr 1fr; gap: 16px; heigh
 .top-count { font-weight: 800; color: var(--accent); font-size: 12px; }
 
 /* =========================================================
-   МОДАЛКИ (УВЕЛИЧЕНЫ)
+   МОДАЛКИ
    ========================================================= */
 .modal { display: none; position: fixed; inset: 0; z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
 .modal.active { display: flex; }
 .modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.85); }
-
-.modal-content {
-  position: relative; background: var(--bg-panel); border: 1px solid var(--accent); border-radius: var(--r-xl);
-  width: 100%; max-width: 800px; /* Увеличено с 640px */
-  max-height: 90vh; /* Увеличено с 80vh */
-  padding: 24px; box-shadow: 0 0 50px var(--bg-glow-1); z-index: 1;
-  min-height: 300px; display: flex; flex-direction: column;
-}
-
+.modal-content { position: relative; background: var(--bg-panel); border: 1px solid var(--accent); border-radius: var(--r-xl); width: 100%; max-width: 800px; max-height: 90vh; padding: 24px; box-shadow: 0 0 50px var(--bg-glow-1); z-index: 1; min-height: 300px; display: flex; flex-direction: column; }
 .modal-content.spinning > :not(.modal-spin) { display: none !important; }
-.modal-spin { flex: 1; display: flex; align-items: center; justify-content: center; padding: 10px; }
-.spin-view { width: 100%; max-width: 600px; /* Сделано чуть шире для игр */ }
+.modal-spin { flex: 1; display: flex; align-items: center; justify-content: center; padding: 10px; width: 100%; overflow: hidden; }
+.spin-view { width: 100%; max-width: 600px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 
 .settings-modal-content { max-width: 600px; min-height: 0; padding: 0; }
 .settings-modal-content .modal-header { padding: 20px 20px 0; margin-bottom: 10px; }
@@ -202,6 +194,38 @@ main { display: grid; grid-template-columns: 1fr 3fr 1.2fr 1fr; gap: 16px; heigh
 @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
 .modal-header h2 { font-size: 14px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px; }
 .winner-name { font-size: 28px; font-weight: 900; color: var(--accent); text-shadow: 0 0 20px var(--accent); word-break: break-word; }
+
+/* НОВЫЕ СТИЛИ ДЛЯ ПЛАШКИ ПОДПИСКИ */
+.winner-sub-status {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.winner-sub-status.sub-new {
+  background: var(--success);
+  color: #fff;
+  box-shadow: 0 0 15px var(--success);
+  animation: pulseGreen 2s infinite;
+}
+@keyframes pulseGreen {
+  0% { box-shadow: 0 0 0 0 rgba(58, 158, 58, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(58, 158, 58, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(58, 158, 58, 0); }
+}
+.winner-sub-status.sub-old {
+  background: rgba(230, 56, 88, 0.15);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+.winner-sub-status.sub-none {
+  color: var(--text-muted);
+  background: rgba(0,0,0,0.2);
+  border: 1px solid var(--border);
+}
 
 .modal-timer { position: absolute; top: 20px; right: 20px; z-index: 2; font-family: 'SF Mono', monospace; font-size: 18px; font-weight: 800; padding: 6px 12px; border-radius: var(--r-md); background: rgba(0,0,0,0.4); border: 1px solid var(--accent); color: var(--accent); box-shadow: inset 0 1px 0 rgba(255,255,255,0.1); }
 .modal-timer.timer-done { color: var(--success); border-color: var(--success); text-shadow: 0 0 10px var(--success); }
@@ -227,20 +251,20 @@ main { display: grid; grid-template-columns: 1fr 3fr 1.2fr 1fr; gap: 16px; heigh
 /* =========================================================
    МИНИ-ИГРЫ
    ========================================================= */
-.spin-roulette-name { font-size: 34px; font-weight: 900; color: var(--accent); text-align: center; padding: 40px 20px; background: var(--bg-tertiary); border-radius: var(--r-lg); word-break: break-word; overflow-wrap: anywhere; line-height: 1.2; }
+.spin-roulette-name { font-size: 34px; font-weight: 900; color: var(--accent); text-align: center; padding: 40px 20px; background: var(--bg-tertiary); border-radius: var(--r-lg); word-break: break-word; overflow-wrap: anywhere; line-height: 1.2; max-width: 100%; }
 .spin-roulette-name.spin-name-long { font-size: 22px; }
 .spin-roulette-name.spin-name-xlong { font-size: 16px; }
 .spin-roulette-name.spin-name-final { color: var(--success); animation: finalPop 0.4s; }
 @keyframes finalPop { 0% { transform: scale(0.8); opacity: 0.4; } 100% { transform: scale(1); opacity: 1; } }
 
-.drum-container { position: relative; height: 320px; overflow: hidden; border-radius: var(--r-lg); background: var(--bg-primary); }
+.drum-container { position: relative; height: 320px; overflow: hidden; border-radius: var(--r-lg); background: var(--bg-primary); width: 100%; max-width: 500px; }
 .drum-center-line { position: absolute; top: 50%; left: 0; right: 0; height: 64px; transform: translateY(-50%); border-top: 2px solid var(--accent); border-bottom: 2px solid var(--accent); background: rgba(255,255,255,0.05); z-index: 2; }
 .drum-strip { display: flex; flex-direction: column; }
 .drum-item { height: 64px; display: flex; align-items: center; gap: 14px; padding: 0 24px; border-bottom: 1px solid var(--border); }
 .drum-avatar { width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 17px; color: #fff; flex-shrink: 0; }
 .drum-name { font-size: 18px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
 
-.case-container { position: relative; height: 148px; overflow: hidden; border-radius: var(--r-lg); background: var(--bg-primary); }
+.case-container { position: relative; height: 148px; overflow: hidden; border-radius: var(--r-lg); background: var(--bg-primary); width: 100%; max-width: 600px; }
 .case-marker { position: absolute; top: 0; bottom: 0; left: 50%; width: 3px; background: var(--accent); box-shadow: 0 0 20px var(--accent); z-index: 2; }
 .case-strip { display: flex; gap: 8px; padding: 12px 0; height: 100%; }
 .case-item { flex-shrink: 0; width: 120px; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; background: var(--bg-tertiary); border: 2px solid var(--border); border-radius: 10px; overflow: hidden; }
@@ -258,44 +282,21 @@ main { display: grid; grid-template-columns: 1fr 3fr 1.2fr 1fr; gap: 16px; heigh
 .wheel-pointer { position: absolute; top: -4px; left: 50%; transform: translateX(-50%); border-left: 16px solid transparent; border-right: 16px solid transparent; border-top: 26px solid var(--accent); }
 .wheel-center-dot { position: absolute; top: 50%; left: 50%; width: 30px; height: 30px; background: var(--bg-panel); border: 2px solid var(--accent); border-radius: 50%; transform: translate(-50%, -50%); }
 
-.cards-header {
-  text-align: center;
-  font-size: 14px;
-  color: var(--text-muted);
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  margin-bottom: 16px;
-}
-
-.cards-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
-.pick-card { position: relative; aspect-ratio: 3 / 4; perspective: 800px; cursor: pointer; }
+.cards-header { text-align: center; font-size: 14px; color: var(--text-muted); font-weight: 800; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 16px; width: 100%; }
+.cards-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; width: 100%; max-width: 600px; }
+.pick-card { position: relative; aspect-ratio: 3 / 4; perspective: 800px; cursor: pointer; min-width: 0; }
 .pick-card-face { position: absolute; inset: 0; backface-visibility: hidden; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bg-tertiary); border: 2px solid var(--border); transition: transform 0.4s; box-shadow: 0 4px 8px rgba(0,0,0,0.3); overflow: hidden; }
 .pick-card-front { background: var(--bg-primary); z-index: 2; }
 .pick-card-back { transform: rotateY(180deg); }
 .pick-card-flipped .pick-card-front { transform: rotateY(-180deg); }
 .pick-card-flipped .pick-card-back { transform: rotateY(0deg); }
 .pick-card-avatar { width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px; color: #fff; margin-bottom: 5px; flex-shrink: 0; }
-
-/* Защита от длинных ников в картах */
-.pick-card-name {
-  font-size: 11px; font-weight: 700; color: var(--text); text-align: center; word-break: break-word;
-  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; /* Максимум 3 строки */
-  padding: 0 4px; line-height: 1.2; max-height: 3.6em;
-}
-
+.pick-card-name { font-size: 11px; font-weight: 700; color: var(--text); text-align: center; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; padding: 0 4px; line-height: 1.2; max-height: 3.6em; }
 .pick-card-winner .pick-card-back { border-color: var(--accent); box-shadow: 0 0 30px var(--accent); }
 
-/* ИСПРАВЛЕННОЕ БИНГО */
-.bingo-grid {
-  display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; width: 100%; max-width: 500px; margin: 0 auto;
-}
-.bingo-cell {
-  aspect-ratio: 1; background: var(--bg-tertiary); border: 2px solid var(--border); border-radius: var(--r-sm);
-  display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.3s ease;
-  padding: 4px; overflow: hidden;
-}
+.bingo-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; width: 100%; max-width: min(500px, 65vh); margin: 0 auto; }
+.bingo-cell { aspect-ratio: 1; background: var(--bg-tertiary); border: 2px solid var(--border); border-radius: var(--r-sm); display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.3s ease; padding: 4px; overflow: hidden; min-width: 0; }
 .bingo-cell.crossed { opacity: 0.15; transform: scale(0.85); filter: grayscale(1); }
-.bingo-cell.winner { border-color: var(--accent); box-shadow: 0 0 20px var(--accent); opacity: 1; transform: scale(1.1); background: var(--bg-glow-1); z-index: 2; }
+.bingo-cell.winner { border-color: var(--accent); box-shadow: 0 0 20px var(--accent); opacity: 1; transform: scale(1.05); background: var(--bg-glow-1); z-index: 2; }
 .bingo-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; color: #fff; flex-shrink: 0; margin-bottom: 4px; }
 .bingo-name { font-size: 9px; font-weight: 600; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
