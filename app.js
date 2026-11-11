@@ -1058,7 +1058,8 @@ function playGun(winnerLogin, winnerName) {
     container.style.transform = 'rotate(0deg)';
     void container.offsetHeight;
 
-    const targetRotation = 360 * 3 + 90; 
+    // ИСПРАВЛЕНО: -90 градусов, чтобы патрон (0-й элемент) оказался наверху под бойком
+    const targetRotation = 360 * 3 - 90; 
     const duration = 3000;
     const start = performance.now();
 
