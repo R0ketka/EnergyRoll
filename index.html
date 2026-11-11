@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⚡ EnergyRoll</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <span class="logo-icon">⚡</span>
+      <span class="logo-text">EnergyRoll</span>
+    </div>
+
+    <div class="keyword-box">
+      <span class="keyword-label">🔑 Ключевое слово:</span>
+      <input type="text" id="keyword-input" class="keyword-input" placeholder="!roll" maxlength="50" autocomplete="off" spellcheck="false" />
+    </div>
+
+    <div id="auth-section">
+      <a id="login-btn" href="#" class="btn btn-twitch" hidden>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/>
+        </svg>
+        Войти через Twitch
+      </a>
+      <div id="user-info" class="user-info" hidden>
+        <div class="user-name-row">
+          <span class="user-dot"></span>
+          <span id="user-name"></span>
+        </div>
+        <div class="user-buttons">
+          <button id="settings-btn" class="btn btn-ghost btn-icon" title="Настройки">⚙️</button>
+          <button id="logout-btn" class="btn btn-ghost">Выйти</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div id="app">
+    <main>
+      <section id="minigames-panel" class="panel minigames-panel">
+        <div class="panel-header">
+          <h2>🎮 Мини-игра</h2>
+        </div>
+        <div class="minigames-list">
+          <button class="minigame-item active" data-mode="instant">
+            <span class="minigame-icon">⚡</span>
+            <div class="minigame-info">
+              <div class="minigame-title">Мгновенный</div>
+              <div class="minigame-desc">Без анимации</div>
+            </div>
+            <span class="minigame-check">✓</span>
+          </button>
+
+          <button class="minigame-item" data-mode="roulette">
+            <span class="minigame-icon">🎡</span>
+            <div class="minigame-info">
+              <div class="minigame-title">Рулетка</div>
+              <div class="minigame-desc">Прокрутка имён</div>
+            </div>
+            <span class="minigame-check">✓</span>
+          </button>
+
+          <button class="minigame-item" data-mode="drum">
+            <span class="minigame-icon">🎰</span>
+            <div class="minigame-info">
+              <div class="minigame-title">Барабан</div>
+              <div class="minigame-desc">С аватарками</div>
+            </div>
+            <span class="minigame-check">✓</span>
+          </button>
+
+          <button class="minigame-item" data-mode="case">
+            <span class="minigame-icon">🎁</span>
+            <div class="minigame-info">
+              <div class="minigame-title">Кейс</div>
+              <div class="minigame-desc">Как в CS</div>
+            </div>
+            <span class="minigame-check">✓</span>
+          </button>
+
+          <button class="minigame-item" data-mode="cards">
+            <span class="minigame-icon">🃏</span>
+            <div class="minigame-info">
+              <div class="minigame-title">Карты</div>
+              <div class="minigame-desc">Выбери одну</div>
+            </div>
+            <span class="minigame-check">✓</span>
+          </button>
+
+          <button class="minigame-item" data-mode="wheel">
+            <span class="minigame-icon">🎯</span>
+            <div class="minigame-info">
+              <div class="minigame-title">Колесо</div>
+              <div class="minigame-desc">Стрелка на победителе</div>
+            </div>
+            <span class="minigame-check">✓</span>
+          </button>
+
+          <div class="top-mode-divider"></div>
+
+          <button id="top-mode-toggle" class="top-mode-btn">
+            <span class="top-mode-icon">🔥</span>
+            <span class="top-mode-text">Топ-10 по сообщениям</span>
+            <span id="top-mode-state" class="top-mode-state">Выкл</span>
+          </button>
+        </div>
+      </section>
+
+      <section id="chat-panel" class="panel">
+        <div class="panel-header">
+          <h2>💬 Чат</h2>
+          <span id="status-text" class="status status-off">Не подключён</span>
+        </div>
+        <div id="chat-messages" class="chat-messages">
+          <div class="chat-empty">Войдите через Twitch, чтобы подключиться к чату</div>
+        </div>
+      </section>
+
+      <aside id="control-panel" class="panel">
+        <div class="panel-header">
+          <h2>⚙️ Управление</h2>
+        </div>
+        <div class="control-body">
+          <button id="pick-winner" class="btn btn-primary btn-large" disabled>
+            🏆 Выбрать победителя
+          </button>
+
+          <div class="winner-history">
+            <h3>Победители</h3>
+            <div id="winners-history" class="winners-list">
+              <div class="empty">Пока никого</div>
+            </div>
+          </div>
+
+          <div class="top-chatters">
+            <h3>🔥 Топ по сообщениям</h3>
+            <div id="top-chatters-list" class="top-list">
+              <div class="empty">Пока никого</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <section id="participants-panel" class="panel participants-panel">
+        <div class="panel-header">
+          <h2>👥 Участники <span id="participant-count" class="participants-badge">0</span></h2>
+          <button id="clear-collect" class="btn-clear" title="Очистить список участников" disabled>✕</button>
+        </div>
+        <div class="add-participant-row">
+          <input
+            type="text"
+            id="add-participant-input"
+            class="add-participant-input"
+            placeholder="Добавить по нику…"
+            maxlength="50"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button id="add-participant-btn" class="add-participant-btn" title="Добавить участника">+</button>
+        </div>
+        <div id="participants-list" class="participants-list">
+          <div class="empty">Напишите ключевое слово в чат, чтобы участвовать</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Модалка победителя -->
+  <div id="winner-modal" class="modal">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content" id="modal-content">
+      <div class="modal-spin" id="modal-spin" hidden>
+        <div class="spin-view" id="spin-roulette" hidden>
+          <div class="spin-roulette-name" id="spin-roulette-name">—</div>
+        </div>
+
+        <div class="spin-view" id="spin-drum" hidden>
+          <div class="drum-container">
+            <div class="drum-center-line"></div>
+            <div class="drum-strip" id="drum-strip"></div>
+          </div>
+        </div>
+
+        <div class="spin-view" id="spin-case" hidden>
+          <div class="case-container" id="case-container">
+            <div class="case-marker"></div>
+            <div class="case-strip" id="case-strip"></div>
+          </div>
+        </div>
+
+        <div class="spin-view" id="spin-cards" hidden>
+          <div class="cards-header" id="cards-header">Выберите карту</div>
+          <div class="cards-grid" id="cards-grid"></div>
+        </div>
+
+        <div class="spin-view" id="spin-wheel" hidden>
+          <div class="wheel-container">
+            <svg viewBox="-150 -150 300 300" class="wheel-svg">
+              <circle cx="0" cy="0" r="143" fill="none" stroke="#7a3838" stroke-width="4"/>
+              <g class="wheel-rotating" id="wheel-rotating"></g>
+            </svg>
+            <div class="wheel-pointer"></div>
+            <div class="wheel-center-dot"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-timer" id="winner-timer">0:00</div>
+
+      <div class="modal-header">
+        <div class="trophy">🏆</div>
+        <h2>Победитель</h2>
+        <div id="winner-name" class="winner-name">—</div>
+      </div>
+      <div class="modal-body">
+        <h3>Сообщения кандидата</h3>
+        <div id="winner-messages" class="winner-messages"></div>
+      </div>
+
+      <div class="modal-payout-section">
+        <span class="modal-payout-label">💰 Вывод:</span>
+        <input type="text" id="modal-payout-input" class="modal-payout-input" placeholder="0" inputmode="numeric" autocomplete="off" spellcheck="false" />
+        <span class="modal-payout-currency">₽</span>
+        <button id="modal-payout-btn" class="modal-payout-btn">Добавить</button>
+      </div>
+
+      <div class="modal-actions">
+        <button id="reroll-btn" class="btn btn-primary">🔄 Рерол</button>
+        <button id="close-modal" class="btn btn-secondary">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модалка настроек -->
+  <div id="settings-modal" class="modal">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content settings-modal-content">
+      <div class="modal-header">
+        <div class="settings-icon">⚙️</div>
+        <h2>Настройки</h2>
+      </div>
+      <div class="settings-body">
+        <h3>🎨 Стиль сайта</h3>
+        <div class="theme-list" id="theme-list">
+          <button class="theme-option" data-theme-value="red-light">
+            <div class="theme-preview theme-preview-red-light"></div>
+            <span class="theme-name">Светло-красный</span>
+          </button>
+          <button class="theme-option" data-theme-value="red-dark">
+            <div class="theme-preview theme-preview-red-dark"></div>
+            <span class="theme-name">Тёмно-красный</span>
+          </button>
+          <button class="theme-option" data-theme-value="purple">
+            <div class="theme-preview theme-preview-purple"></div>
+            <span class="theme-name">Фиолетовый</span>
+          </button>
+          <button class="theme-option" data-theme-value="orange">
+            <div class="theme-preview theme-preview-orange"></div>
+            <span class="theme-name">Оранжевый</span>
+          </button>
+          <button class="theme-option" data-theme-value="blue">
+            <div class="theme-preview theme-preview-blue"></div>
+            <span class="theme-name">Синий</span>
+          </button>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button id="close-settings" class="btn btn-secondary">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+  <script src="dev-mode.js"></script>
+</body>
+</html>
