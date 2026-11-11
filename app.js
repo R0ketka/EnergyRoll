@@ -385,19 +385,17 @@ function handleConnectClick() {
    📨 Парсинг IRC
    ========================================================= */
 function handleIrcLine(line, ws) {
-  // 1. Отвечаем на проверку связи
   if (line.startsWith('PING')) {
     ws.send('PONG :tmi.twitch.tv');
     return;
   }
 
-  // 2. Нас интересуют только сообщения (PRIVMSG)
   if (line.indexOf('PRIVMSG') === -1) return;
 
   let tags = {};
   let rest = line;
 
-  // 3. Извлекаем теги (там хранится точный ник)
+  // 1. Извлекаем теги
   if (line.startsWith('@')) {
     const spaceIdx = line.indexOf(' ');
     const tagsStr = line.substring(1, spaceIdx);
@@ -410,21 +408,28 @@ function handleIrcLine(line, ws) {
     rest = line.substring(spaceIdx + 1);
   }
 
-  // 4. Извлекаем текст сообщения (он всегда начинается после " :")
+  // 2. Извлекаем логин из префикса (например, из ":pixel_107!pixel_107@...")
+  let login = '';
+  if (rest.startsWith(':')) {
+    const endPrefix = rest.indexOf('!');
+    if (endPrefix !== -1) {
+      login = rest.substring(1, endPrefix); // Получаем "pixel_107"
+    } else {
+      login = rest.substring(1, rest.indexOf(' ')); // Запасной вариант
+    }
+  }
+
+  if (!login) return;
+
+  const displayName = tags['display-name'] || login;
+
+  // 3. Извлекаем текст сообщения (все, что идет после " :")
   const msgIdx = rest.indexOf(' :');
   if (msgIdx === -1) return;
   const message = rest.substring(msgIdx + 2);
 
-  // 5. Получаем ник
-  const login = tags['login'];
-  const displayName = tags['display-name'] || login;
-
-  // 6. Отрисовываем
-  if (login && message) {
-    addMessage(login, displayName, message);
-  } else {
-    console.log('❌ Не удалось распарсить сообщение:', line);
-  }
+  // 4. Отправляем в чат
+  addMessage(login, displayName, message);
 }
 
 /* =========================================================
