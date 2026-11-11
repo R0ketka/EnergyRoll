@@ -322,7 +322,7 @@ function addParticipantByLogin() {
 }
 
 /* =========================================================
-   📡 Подключение и Отключение
+   📡 Подключение к чату
    ========================================================= */
 function connectChatAnonymously(channelName) {
   if (state.ws) {
@@ -1175,6 +1175,51 @@ function renderWinnersHistory() {
 }
 
 /* =========================================================
+   🪄 ВИЗУАЛЬНЫЕ ЭФФЕКТЫ (3D и Ripple)
+   ========================================================= */
+function initTilt() {
+  const cards = document.querySelectorAll('.minigame-item');
+  cards.forEach(card => {
+    card.addEventListener('mousemove', (e) => {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+      const rotateX = ((y - centerY) / centerY) * -15;
+      const rotateY = ((x - centerX) / centerX) * 15;
+      card.style.transform = `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.05)`;
+    });
+
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = 'perspective(800px) rotateX(0deg) rotateY(0deg) scale(1)';
+    });
+  });
+}
+
+function initRipple() {
+  const buttons = document.querySelectorAll('.btn');
+  buttons.forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      const rect = this.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      const ripple = document.createElement('span');
+      ripple.classList.add('ripple');
+      
+      const size = Math.max(rect.width, rect.height);
+      ripple.style.width = ripple.style.height = `${size}px`;
+      ripple.style.left = `${x - size / 2}px`;
+      ripple.style.top = `${y - size / 2}px`;
+
+      this.appendChild(ripple);
+      setTimeout(() => ripple.remove(), 600);
+    });
+  });
+}
+
+/* =========================================================
    ⚙️ Обработчики и Старт
    ========================================================= */
 els.keywordInput.addEventListener('input', (e) => { state.keyword = e.target.value; });
@@ -1225,6 +1270,8 @@ document.addEventListener('keydown', (e) => {
 function init() {
   initTheme();
   initMinigames();
+  initTilt();
+  initRipple();
   updateTopModeButton();
   renderTopChatters();
 
