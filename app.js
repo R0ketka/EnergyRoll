@@ -385,16 +385,19 @@ function handleConnectClick() {
    📨 Парсинг IRC
    ========================================================= */
 function handleIrcLine(line, ws) {
+  // 1. Отвечаем на проверку связи
   if (line.startsWith('PING')) {
     ws.send('PONG :tmi.twitch.tv');
     return;
   }
 
+  // 2. Нас интересуют только сообщения (PRIVMSG)
   if (line.indexOf('PRIVMSG') === -1) return;
 
   let tags = {};
   let rest = line;
 
+  // 3. Извлекаем теги (там хранится точный ник)
   if (line.startsWith('@')) {
     const spaceIdx = line.indexOf(' ');
     const tagsStr = line.substring(1, spaceIdx);
@@ -407,15 +410,20 @@ function handleIrcLine(line, ws) {
     rest = line.substring(spaceIdx + 1);
   }
 
+  // 4. Извлекаем текст сообщения (он всегда начинается после " :")
   const msgIdx = rest.indexOf(' :');
   if (msgIdx === -1) return;
   const message = rest.substring(msgIdx + 2);
 
+  // 5. Получаем ник
   const login = tags['login'];
   const displayName = tags['display-name'] || login;
 
+  // 6. Отрисовываем
   if (login && message) {
     addMessage(login, displayName, message);
+  } else {
+    console.log('❌ Не удалось распарсить сообщение:', line);
   }
 }
 
