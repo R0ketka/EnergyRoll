@@ -65,18 +65,6 @@
             <div class="minigame-info"><div class="minigame-title">Колесо</div></div>
             <span class="minigame-check">✓</span>
           </button>
-          
-          <!-- НОВЫЕ ИГРЫ -->
-          <button class="minigame-item" data-mode="gun">
-            <span class="minigame-icon">🔫</span>
-            <div class="minigame-info"><div class="minigame-title">Русская рулетка</div></div>
-            <span class="minigame-check">✓</span>
-          </button>
-          <button class="minigame-item" data-mode="darts">
-            <span class="minigame-icon">🎯</span>
-            <div class="minigame-info"><div class="minigame-title">Дартс</div></div>
-            <span class="minigame-check">✓</span>
-          </button>
           <button class="minigame-item" data-mode="bingo">
             <span class="minigame-icon">🔢</span>
             <div class="minigame-info"><div class="minigame-title">Бинго</div></div>
@@ -151,7 +139,6 @@
     <div class="modal-backdrop"></div>
     <div class="modal-content" id="modal-content">
       <div class="modal-spin" id="modal-spin" hidden>
-        <!-- Старые игры -->
         <div class="spin-view" id="spin-roulette" hidden>
           <div class="spin-roulette-name" id="spin-roulette-name">—</div>
         </div>
@@ -181,26 +168,9 @@
             <div class="wheel-center-dot"></div>
           </div>
         </div>
-
-        <!-- НОВЫЕ ИГРЫ -->
-        <div class="spin-view" id="spin-gun" hidden>
-          <div class="gun-container">
-            <div class="gun-chambers" id="gun-chambers"></div>
-            <div class="gun-pin"></div>
-          </div>
-        </div>
-
-        <div class="spin-view" id="spin-darts" hidden>
-          <div class="dartboard-container" id="dartboard-container">
-            <div class="dartboard" id="dartboard"></div>
-            <div class="dart" id="dart"></div>
-          </div>
-        </div>
-
         <div class="spin-view" id="spin-bingo" hidden>
           <div class="bingo-grid" id="bingo-grid"></div>
         </div>
-
       </div>
 
       <div class="modal-timer" id="winner-timer">0:00</div>
