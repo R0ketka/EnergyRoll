@@ -5,7 +5,7 @@ const state = {
   userLogin: null, ws: null, keyword: '',
   collectedUsers: new Set(), orderedParticipants: [], excludedUsers: new Set(),
   users: new Map(), messages: new Map(), currentWinner: null, winnersHistory: [],
-  userSubs: new Map(), // Хранилище для подписок (бейджи и события)
+  userSubs: new Map(), // login -> { months, isNew }
   miniGame: 'instant', topModeEnabled: false, theme: 'red-light',
   winnerSelectedAt: null, winnerHasResponded: false, timerInterval: null, isSpinning: false
 };
@@ -14,6 +14,7 @@ let spinCancel = false;
 let winnerIdCounter = 0;
 let cardsCancelFn = null;
 let topChattersScheduled = false;
+let reconnectAttempts = 0; // Счетчик попыток подключения
 
 const topElements = new Map();
 const avatarCache = new Map();
@@ -218,26 +219,54 @@ function addParticipantByLogin() {
 function connectChatAnonymously(channelName) {
   if (state.ws) { state.ws.onclose = null; state.ws.close(); }
   const channel = channelName.toLowerCase().trim().replace(/^#/, '').replace(/[^a-z0-9_]/g, '');
-  if (!channel) { addSystemMessage('⚠ Введите корректное имя канала.'); return; }
+  if (!channel) { addSystemMessage('⚠ Введите корректное имя канала.'); setStatus('Введите имя канала', 'off'); return; }
+  
   localStorage.setItem('energyroll_channel', channel); state.userLogin = channel;
   setStatus('Подключение...', 'wait');
+  
   const ws = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
   state.ws = ws;
+  
   ws.onopen = () => {
+    reconnectAttempts = 0; // Сброс счетчика при успехе
     const anonNick = 'justinfan' + Math.floor(Math.random() * 99999);
     ws.send('CAP REQ :twitch.tv/tags twitch.tv/commands');
-    ws.send('PASS schmoopiie'); ws.send('NICK ' + anonNick); ws.send('JOIN #' + channel);
-    setStatus('В чате: #' + channel, 'ok'); addSystemMessage('✅ Подключено к #' + channel);
-    els.connectBtn.disabled = true; els.disconnectBtn.disabled = false;
+    
+    // Небольшая задержка перед отправкой NICK и JOIN, чтобы Twitch не заблокировал
+    setTimeout(() => {
+      if (state.ws === ws) {
+        ws.send('PASS SCHMOOPIIE');
+        ws.send('NICK ' + anonNick);
+        ws.send('JOIN #' + channel);
+        setStatus('В чате: #' + channel, 'ok'); 
+        addSystemMessage('✅ Подключено к #' + channel);
+        els.connectBtn.disabled = true; els.disconnectBtn.disabled = false;
+      }
+    }, 200);
   };
-  ws.onmessage = (event) => { const lines = event.data.split('\r\n'); for (const line of lines) { if (line) handleIrcLine(line, ws); } };
-  ws.onclose = () => {
+  
+  ws.onmessage = (event) => { 
+    const lines = event.data.split('\r\n'); 
+    for (const line of lines) { if (line) handleIrcLine(line, ws); } 
+  };
+  
+  ws.onclose = (event) => {
+    console.log("WS Closed:", event.code, event.reason); // Логируем причину закрытия
     if (state.ws === ws) {
-      setStatus('Переподключение...', 'wait');
+      reconnectAttempts++;
+      if (reconnectAttempts > 5) {
+        setStatus('Ошибка подключения', 'off');
+        addSystemMessage('❌ Twitch отклоняет подключение. Попробуйте перезагрузить страницу.');
+        return;
+      }
+      setStatus('Переподключение (' + reconnectAttempts + '/5)...', 'wait');
       setTimeout(() => { if (state.ws === ws) connectChatAnonymously(channel); }, 3000);
     }
   };
-  ws.onerror = () => { if (state.ws === ws) setStatus('Ошибка соединения', 'off'); };
+  
+  ws.onerror = () => { 
+    if (state.ws === ws) setStatus('Ошибка сети', 'off'); 
+  };
 }
 
 function disconnectChat() {
@@ -418,7 +447,7 @@ function fillWinnerInfo(login) {
 }
 
 /* =========================================================
-   Мини-игры (сокращенно для ответа, но в файле они все есть)
+   Мини-игры
    ========================================================= */
 function initMinigames() {
   const known = ['instant', 'roulette', 'drum', 'case', 'cards', 'wheel', 'bingo'];
