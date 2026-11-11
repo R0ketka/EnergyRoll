@@ -367,10 +367,10 @@ function playWheel(pool, winnerLogin, winnerName) {
     const N = wheelLogins.length; const segAngle = 360 / N; const winnerIdx = wheelLogins.indexOf(winnerLogin);
     const svgNS = 'http://www.w3.org/2000/svg'; const g = els.wheelRotating; g.innerHTML = '';
     
-    // Берем цвета из переменных темы
+    // Используем цвета темы для секторов
     const c1 = getComputedStyle(document.documentElement).getPropertyValue('--bg-tertiary').trim() || '#3c1a1a';
     const c2 = getComputedStyle(document.documentElement).getPropertyValue('--bg-elevated').trim() || '#4d2222';
-    const c3 = getComputedStyle(document.documentElement).getPropertyValue('--bg-panel').trim() || '#2e1212';
+    const c3 = getComputedStyle(document.documentElement).getPropertyValue('--bg-secondary').trim() || '#260f0f';
     const themeColors = [c1, c2, c3];
 
     for (let i = 0; i < N; i++) {
