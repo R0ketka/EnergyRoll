@@ -359,7 +359,50 @@ function playCase(winnerLogin, winnerName) { return new Promise((resolve) => { e
 async function shuffleCardsWithFlip(grid) { return new Promise((resolve) => { const cards = Array.from(grid.children); const firstRects = new Map(); cards.forEach((c) => firstRects.set(c, c.getBoundingClientRect())); const shuffled = [...cards].sort(() => Math.random() - 0.5); shuffled.forEach((c) => grid.appendChild(c)); shuffled.forEach((c) => { const first = firstRects.get(c); const last = c.getBoundingClientRect(); const dx = first.left - last.left; const dy = first.top - last.top; if (dx || dy) { c.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'translate(0, 0)' }], { duration: 320, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' }); } }); setTimeout(resolve, 360); }); }
 function playCards(pool) { return new Promise((resolve) => { els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = false; els.spinWheel.hidden = true; els.spinBingo.hidden = true; const grid = els.cardsGrid; grid.innerHTML = ''; const shuffled = [...pool].sort(() => Math.random() - 0.5).slice(0, Math.min(10, pool.length)); const cardData = shuffled.map((login) => { const name = state.users.get(login) || login; const card = document.createElement('div'); card.className = 'pick-card'; card.dataset.login = login; const front = document.createElement('div'); front.className = 'pick-card-face pick-card-front'; const back = document.createElement('div'); back.className = 'pick-card-face pick-card-back'; const avatar = document.createElement('div'); avatar.className = 'pick-card-avatar'; avatar.style.background = avatarGradient(login); avatar.textContent = (name || '?').charAt(0).toUpperCase(); const nameEl = document.createElement('div'); nameEl.className = 'pick-card-name'; nameEl.textContent = name; back.appendChild(avatar); back.appendChild(nameEl); card.appendChild(front); card.appendChild(back); card.classList.add('pick-card-flipped'); grid.appendChild(card); return { card, login }; }); let picked = null; const clickHandler = (e) => { if (picked) return; const card = e.target.closest('.pick-card'); if (!card) return; picked = card; cardData.forEach(({ card: c }) => { c.removeEventListener('click', clickHandler); c.dataset.clickable = 'false'; }); card.classList.add('pick-card-flipped'); card.classList.add('pick-card-winner'); setTimeout(() => { cardsCancelFn = null; resolve(card.dataset.login); }, 900); }; cardsCancelFn = () => { cardData.forEach(({ card }) => card.removeEventListener('click', clickHandler)); cardsCancelFn = null; resolve(null); }; (async () => { await sleep(1500); if (spinCancel || picked) return; cardData.forEach(({ card }) => card.classList.remove('pick-card-flipped')); await sleep(450); if (spinCancel) return; for (let i = 0; i < 3; i++) { if (spinCancel) return; await shuffleCardsWithFlip(grid); await sleep(80); } if (spinCancel) return; cardData.forEach(({ card }) => { card.dataset.clickable = 'true'; card.addEventListener('click', clickHandler); }); })(); }); }
 
-function playWheel(pool, winnerLogin, winnerName) { return new Promise((resolve) => { els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = false; els.spinBingo.hidden = true; let wheelLogins = pool.length <= 12 ? [...pool] : pool.filter(l => l !== winnerLogin).slice(0, 11).concat([winnerLogin]); for (let i = wheelLogins.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [wheelLogins[i], wheelLogins[j]] = [wheelLogins[j], wheelLogins[i]]; } const N = wheelLogins.length; const segAngle = 360 / N; const winnerIdx = wheelLogins.indexOf(winnerLogin); const svgNS = 'http://www.w3.org/2000/svg'; const g = els.wheelRotating; g.innerHTML = ''; const themeColors = [getComputedStyle(document.documentElement).getPropertyValue('--bg-panel').trim() || '#2e1212', getComputedStyle(document.documentElement).getPropertyValue('--bg-tertiary').trim() || '#3c1a1a', getComputedStyle(document.documentElement).getPropertyValue('--bg-secondary').trim() || '#260f0f']; for (let i = 0; i < N; i++) { const startAngle = -90 + i * segAngle; const endAngle = -90 + (i + 1) * segAngle; const midAngle = (startAngle + endAngle) / 2; const startRad = startAngle * Math.PI / 180; const endRad = endAngle * Math.PI / 180; const path = document.createElementNS(svgNS, 'path'); path.setAttribute('d', `M 0 0 L ${Math.cos(startRad) * 140} ${Math.sin(startRad) * 140} A 140 140 0 ${segAngle > 180 ? 1 : 0} 1 ${Math.cos(endRad) * 140} ${Math.sin(endRad) * 140} Z`); path.setAttribute('fill', themeColors[i % themeColors.length]); path.setAttribute('stroke', getComputedStyle(document.documentElement).getPropertyValue('--border').trim() || '#5c2828'); path.setAttribute('stroke-width', '1.5'); g.appendChild(path); const midRad = midAngle * Math.PI / 180; const name = state.users.get(wheelLogins[i]) || wheelLogins[i]; const display = name.length > 11 ? name.slice(0, 10) + '…' : name; const text = document.createElementNS(svgNS, 'text'); text.setAttribute('text-anchor', 'start'); text.setAttribute('dominant-baseline', 'middle'); text.setAttribute('fill', '#f2e6e6'); text.setAttribute('font-size', display.length > 9 ? '9' : (display.length > 7 ? '10' : '11')); text.setAttribute('font-weight', '700'); text.setAttribute('transform', `translate(${Math.cos(midRad) * 40} ${Math.sin(midRad) * 40}) rotate(${midAngle})`); text.textContent = display; g.appendChild(text); } const targetRotation = 360 * 5 - (winnerIdx + 0.5) * segAngle; g.style.transition = 'none'; g.style.transform = 'rotate(0deg)'; void g.getBoundingClientRect(); const duration = 4200; const start = performance.now(); function tick(now) { if (spinCancel) { resolve(); return; } const elapsed = now - start; const t = Math.min(elapsed / duration, 1); const eased = 1 - Math.pow(1 - t, 4); g.style.transform = `rotate(${targetRotation * eased}deg)`; if (t < 1) { requestAnimationFrame(tick); } else { g.style.transform = `rotate(${targetRotation}deg)`; setTimeout(() => { els.spinWheel.hidden = true; resolve(); }, 900); } } requestAnimationFrame(tick); }); }
+function playWheel(pool, winnerLogin, winnerName) {
+  return new Promise((resolve) => {
+    els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = false; els.spinBingo.hidden = true;
+    let wheelLogins = pool.length <= 12 ? [...pool] : pool.filter(l => l !== winnerLogin).slice(0, 11).concat([winnerLogin]);
+    for (let i = wheelLogins.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [wheelLogins[i], wheelLogins[j]] = [wheelLogins[j], wheelLogins[i]]; }
+    const N = wheelLogins.length; const segAngle = 360 / N; const winnerIdx = wheelLogins.indexOf(winnerLogin);
+    const svgNS = 'http://www.w3.org/2000/svg'; const g = els.wheelRotating; g.innerHTML = '';
+    
+    // Берем цвета из переменных темы
+    const c1 = getComputedStyle(document.documentElement).getPropertyValue('--bg-tertiary').trim() || '#3c1a1a';
+    const c2 = getComputedStyle(document.documentElement).getPropertyValue('--bg-elevated').trim() || '#4d2222';
+    const c3 = getComputedStyle(document.documentElement).getPropertyValue('--bg-panel').trim() || '#2e1212';
+    const themeColors = [c1, c2, c3];
+
+    for (let i = 0; i < N; i++) {
+      const startAngle = -90 + i * segAngle; const endAngle = -90 + (i + 1) * segAngle; const midAngle = (startAngle + endAngle) / 2;
+      const startRad = startAngle * Math.PI / 180; const endRad = endAngle * Math.PI / 180;
+      const path = document.createElementNS(svgNS, 'path');
+      path.setAttribute('d', `M 0 0 L ${Math.cos(startRad) * 140} ${Math.sin(startRad) * 140} A 140 140 0 ${segAngle > 180 ? 1 : 0} 1 ${Math.cos(endRad) * 140} ${Math.sin(endRad) * 140} Z`);
+      path.setAttribute('fill', themeColors[i % themeColors.length]);
+      path.setAttribute('stroke', getComputedStyle(document.documentElement).getPropertyValue('--border').trim() || '#5c2828');
+      path.setAttribute('stroke-width', '1.5');
+      g.appendChild(path);
+      const midRad = midAngle * Math.PI / 180; const name = state.users.get(wheelLogins[i]) || wheelLogins[i];
+      const display = name.length > 11 ? name.slice(0, 10) + '…' : name;
+      const text = document.createElementNS(svgNS, 'text');
+      text.setAttribute('text-anchor', 'start'); text.setAttribute('dominant-baseline', 'middle'); text.setAttribute('fill', '#f2e6e6');
+      text.setAttribute('font-size', display.length > 9 ? '9' : (display.length > 7 ? '10' : '11')); text.setAttribute('font-weight', '700');
+      text.setAttribute('transform', `translate(${Math.cos(midRad) * 40} ${Math.sin(midRad) * 40}) rotate(${midAngle})`); text.textContent = display;
+      g.appendChild(text);
+    }
+
+    const targetRotation = 360 * 5 - (winnerIdx + 0.5) * segAngle;
+    g.style.transition = 'none'; g.style.transform = 'rotate(0deg)'; void g.getBoundingClientRect();
+    const duration = 4200; const start = performance.now();
+    function tick(now) {
+      if (spinCancel) { resolve(); return; }
+      const elapsed = now - start; const t = Math.min(elapsed / duration, 1); const eased = 1 - Math.pow(1 - t, 4);
+      g.style.transform = `rotate(${targetRotation * eased}deg)`;
+      if (t < 1) { requestAnimationFrame(tick); } else { g.style.transform = `rotate(${targetRotation}deg)`; setTimeout(() => { els.spinWheel.hidden = true; resolve(); }, 900); }
+    }
+    requestAnimationFrame(tick);
+  });
+}
 
 function playBingo(pool, winnerLogin, winnerName) {
   return new Promise((resolve) => {
