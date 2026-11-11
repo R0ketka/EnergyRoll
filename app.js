@@ -2,7 +2,7 @@
    Состояние
    ========================================================= */
 const state = {
-  userLogin: null, // Теперь тут хранится имя канала
+  userLogin: null,
   ws: null,
   keyword: '',
   collectedUsers: new Set(),
@@ -98,7 +98,6 @@ function initTheme() {
   let saved = 'red-light';
   try { saved = localStorage.getItem('energyroll_theme') || 'red-light'; } catch (e) {}
   applyTheme(saved);
-
   if (els.themeList) {
     els.themeList.addEventListener('click', (e) => {
       const btn = e.target.closest('.theme-option');
@@ -108,16 +107,8 @@ function initTheme() {
   }
 }
 
-/* =========================================================
-   ⚙️ МОДАЛКА НАСТРОЕК
-   ========================================================= */
-function openSettings() {
-  els.settingsModal.classList.add('active');
-}
-
-function closeSettings() {
-  els.settingsModal.classList.remove('active');
-}
+function openSettings() { els.settingsModal.classList.add('active'); }
+function closeSettings() { els.settingsModal.classList.remove('active'); }
 
 /* =========================================================
    Утилиты
@@ -187,11 +178,7 @@ function avatarGradient(login) {
 function getTopByMessages(n = 10) {
   const arr = [];
   for (const [login, msgs] of state.messages) {
-    arr.push({
-      login,
-      name: state.users.get(login) || login,
-      count: msgs.length
-    });
+    arr.push({ login, name: state.users.get(login) || login, count: msgs.length });
   }
   arr.sort((a, b) => b.count - a.count);
   return arr.slice(0, n);
@@ -200,19 +187,7 @@ function getTopByMessages(n = 10) {
 function createTopItemEl() {
   const row = document.createElement('div');
   row.className = 'top-item';
-
-  const rank = document.createElement('span');
-  rank.className = 'top-rank';
-
-  const name = document.createElement('span');
-  name.className = 'top-name';
-
-  const count = document.createElement('span');
-  count.className = 'top-count';
-
-  row.appendChild(rank);
-  row.appendChild(name);
-  row.appendChild(count);
+  row.innerHTML = '<span class="top-rank"></span><span class="top-name"></span><span class="top-count"></span>';
   return row;
 }
 
@@ -221,8 +196,7 @@ function renderTopChatters() {
   const list = els.topChattersList;
 
   if (top.length === 0) {
-    const hasEmpty = list.querySelector('.empty');
-    if (!hasEmpty) {
+    if (!list.querySelector('.empty')) {
       list.innerHTML = '<div class="empty">Пока никого</div>';
       topElements.clear();
     }
@@ -247,16 +221,13 @@ function renderTopChatters() {
       el = createTopItemEl();
       topElements.set(item.login, el);
     }
-
     el.children[0].textContent = String(i + 1);
     el.children[1].textContent = item.name;
     el.children[1].title = item.name;
     el.children[2].textContent = String(item.count);
 
     const target = list.children[i];
-    if (target !== el) {
-      list.insertBefore(el, target || null);
-    }
+    if (target !== el) list.insertBefore(el, target || null);
   });
 }
 
@@ -270,12 +241,7 @@ function scheduleTopChattersRender() {
 }
 
 function getActiveWinnerPool() {
-  let pool;
-  if (state.topModeEnabled) {
-    pool = getTopByMessages(10).map((x) => x.login);
-  } else {
-    pool = state.orderedParticipants;
-  }
+  let pool = state.topModeEnabled ? getTopByMessages(10).map((x) => x.login) : state.orderedParticipants;
   if (state.excludedUsers.size === 0) return pool;
   return pool.filter((login) => !state.excludedUsers.has(login));
 }
@@ -301,11 +267,8 @@ function schedulePickWinnerUpdate() {
 }
 
 function toggleExcludeParticipant(login) {
-  if (state.excludedUsers.has(login)) {
-    state.excludedUsers.delete(login);
-  } else {
-    state.excludedUsers.add(login);
-  }
+  if (state.excludedUsers.has(login)) state.excludedUsers.delete(login);
+  else state.excludedUsers.add(login);
   updateParticipantVisual(login);
   updatePickWinnerButton();
 }
@@ -317,10 +280,8 @@ function updateParticipantVisual(login) {
     if (it.dataset.login === login) { target = it; break; }
   }
   if (!target) return;
-
   const excluded = state.excludedUsers.has(login);
   target.classList.toggle('participant-excluded', excluded);
-
   const btn = target.querySelector('.participant-exclude-btn');
   if (btn) {
     btn.textContent = excluded ? '↺' : '✕';
@@ -334,15 +295,13 @@ function updateParticipantVisual(login) {
 function addParticipantByLogin() {
   const raw = els.addParticipantInput.value.trim();
   if (!raw) return;
-
   const displayName = raw.replace(/^@/, '').trim();
   if (!displayName) return;
   const login = displayName.toLowerCase().replace(/\s+/g, '');
 
   if (state.collectedUsers.has(login)) {
-    addSystemMessage('⚠ ' + displayName + ' уже в списке участников.');
+    addSystemMessage('⚠ ' + displayName + ' уже в списке.');
     els.addParticipantInput.value = '';
-    els.addParticipantInput.focus();
     return;
   }
 
@@ -361,14 +320,11 @@ function addParticipantByLogin() {
 }
 
 /* =========================================================
-   Подключение к чату (анонимно)
+   📡 Подключение к чату (Анонимно)
    ========================================================= */
 function connectChatAnonymously(channelName) {
-  // 1. Отключаем старый сокет, чтобы избежать бесконечного цикла
   if (state.ws) {
-    state.ws.onclose = null; // Отключаем триггер переподключения
-    state.ws.onerror = null;
-    state.ws.onmessage = null;
+    state.ws.onclose = null; 
     state.ws.close();
   }
 
@@ -380,11 +336,9 @@ function connectChatAnonymously(channelName) {
 
   localStorage.setItem('energyroll_channel', channel);
   state.userLogin = channel;
-
   setStatus('Подключение...', 'wait');
-  
-  // Создаем НОВЫЙ сокет и сохраняем его в переменную ws
-  const ws = new WebSocket(CONFIG.CHAT_WS_URL);
+
+  const ws = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
   state.ws = ws;
 
   ws.onopen = () => {
@@ -394,17 +348,17 @@ function connectChatAnonymously(channelName) {
     ws.send('NICK ' + anonNick);
     ws.send('JOIN #' + channel);
     setStatus('В чате: #' + channel, 'ok');
+    addSystemMessage('✅ Подключено к #' + channel);
   };
 
   ws.onmessage = (event) => {
     const lines = event.data.split('\r\n');
     for (const line of lines) {
-      if (line) handleIrcLine(line, ws); // Передаем ws внутрь парсера
+      if (line) handleIrcLine(line, ws);
     }
   };
 
   ws.onclose = () => {
-    // Переподключаемся только если это тот же самый сокет
     if (state.ws === ws) {
       setStatus('Переподключение...', 'wait');
       setTimeout(() => {
@@ -418,88 +372,58 @@ function connectChatAnonymously(channelName) {
   };
 }
 
-function handleIrcLine(line, ws) {
-  if (line.startsWith('PING')) {
-    ws.send('PONG :tmi.twitch.tv'); // Отвечаем в конкретный сокет
+function handleConnectClick() {
+  const channel = els.channelInput.value.trim();
+  if (!channel) {
+    addSystemMessage('⚠ Введите имя канала.');
     return;
   }
-  let rest = line;
-  let tags = {};
-  if (rest.startsWith('@')) {
-    const sp = rest.indexOf(' ');
-    tags = parseTags(rest.substring(1, sp));
-    rest = rest.substring(sp + 1);
-  }
-  if (rest.startsWith(':')) {
-    rest = rest.substring(rest.indexOf(' ') + 1);
-  }
-  const sp = rest.indexOf(' ');
-  const command = sp === -1 ? rest : rest.substring(0, sp);
-  const params = sp === -1 ? '' : rest.substring(sp + 1);
-  if (command !== 'PRIVMSG') return;
+  connectChatAnonymously(channel);
+}
 
-  const sep = params.indexOf(' :');
-  if (sep === -1) return;
-  const message = params.substring(sep + 2);
+/* =========================================================
+   📨 Парсинг IRC
+   ========================================================= */
+function handleIrcLine(line, ws) {
+  if (line.startsWith('PING')) {
+    ws.send('PONG :tmi.twitch.tv');
+    return;
+  }
+
+  if (line.indexOf('PRIVMSG') === -1) return;
+
+  let tags = {};
+  let rest = line;
+
+  if (line.startsWith('@')) {
+    const spaceIdx = line.indexOf(' ');
+    const tagsStr = line.substring(1, spaceIdx);
+    tagsStr.split(';').forEach(pair => {
+      const eqIdx = pair.indexOf('=');
+      if (eqIdx !== -1) {
+        tags[pair.substring(0, eqIdx)] = pair.substring(eqIdx + 1);
+      }
+    });
+    rest = line.substring(spaceIdx + 1);
+  }
+
+  const msgIdx = rest.indexOf(' :');
+  if (msgIdx === -1) return;
+  const message = rest.substring(msgIdx + 2);
 
   const login = tags['login'];
   const displayName = tags['display-name'] || login;
-  
-  // Если логин есть, добавляем сообщение
-  if (login) {
+
+  if (login && message) {
     addMessage(login, displayName, message);
   }
 }
 
 /* =========================================================
-   Парсинг IRC
-   ========================================================= */
-function parseTags(raw) {
-  const tags = {};
-  if (!raw) return tags;
-  for (const pair of raw.split(';')) {
-    const idx = pair.indexOf('=');
-    if (idx === -1) continue;
-    tags[pair.slice(0, idx)] = pair.slice(idx + 1);
-  }
-  return tags;
-}
-
-function handleIrcLine(line) {
-  if (line.startsWith('PING')) {
-    state.ws.send('PONG :tmi.twitch.tv');
-    return;
-  }
-  let rest = line;
-  let tags = {};
-  if (rest.startsWith('@')) {
-    const sp = rest.indexOf(' ');
-    tags = parseTags(rest.substring(1, sp));
-    rest = rest.substring(sp + 1);
-  }
-  if (rest.startsWith(':')) {
-    rest = rest.substring(rest.indexOf(' ') + 1);
-  }
-  const sp = rest.indexOf(' ');
-  const command = sp === -1 ? rest : rest.substring(0, sp);
-  const params = sp === -1 ? '' : rest.substring(sp + 1);
-  if (command !== 'PRIVMSG') return;
-
-  const sep = params.indexOf(' :');
-  if (sep === -1) return;
-  const message = params.substring(sep + 2);
-
-  const login = tags['login'];
-  const displayName = tags['display-name'] || login;
-  if (login) addMessage(login, displayName, message);
-}
-
-/* =========================================================
-   Сообщения
+   💬 Сообщения
    ========================================================= */
 function addMessage(login, displayName, text) {
   const time = new Date();
-
   state.users.set(login, displayName);
   if (!state.messages.has(login)) state.messages.set(login, []);
   state.messages.get(login).push({ text, time });
@@ -515,11 +439,7 @@ function addMessage(login, displayName, text) {
     }
   }
 
-  if (
-    state.currentWinner === login &&
-    els.modal.classList.contains('active') &&
-    !state.isSpinning
-  ) {
+  if (state.currentWinner === login && els.modal.classList.contains('active') && !state.isSpinning) {
     appendWinnerMessage({ text, time }, true);
     if (!state.winnerHasResponded) {
       state.winnerHasResponded = true;
@@ -528,7 +448,6 @@ function addMessage(login, displayName, text) {
   }
 
   renderChatMessage(login, displayName, text);
-
   scheduleTopChattersRender();
   schedulePickWinnerUpdate();
 }
@@ -556,21 +475,13 @@ function renderParticipant(login, displayName, isNew = false) {
   excludeBtn.className = 'participant-exclude-btn';
   excludeBtn.type = 'button';
   excludeBtn.textContent = state.excludedUsers.has(login) ? '↺' : '✕';
-  excludeBtn.title = state.excludedUsers.has(login)
-    ? 'Вернуть в розыгрыш'
-    : 'Исключить из розыгрыша';
-  excludeBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    toggleExcludeParticipant(login);
-  });
+  excludeBtn.title = state.excludedUsers.has(login) ? 'Вернуть' : 'Исключить';
+  excludeBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleExcludeParticipant(login); });
 
   el.appendChild(avatar);
   el.appendChild(name);
   el.appendChild(excludeBtn);
-
-  if (state.excludedUsers.has(login)) {
-    el.classList.add('participant-excluded');
-  }
+  if (state.excludedUsers.has(login)) el.classList.add('participant-excluded');
 
   els.participantsList.appendChild(el);
   els.participantsList.scrollTop = els.participantsList.scrollHeight;
@@ -591,7 +502,6 @@ function renderChatMessage(login, displayName, text) {
   avatar.className = 'chat-msg-avatar';
   avatar.style.background = avatarGradient(login);
   avatar.textContent = (displayName || '?').charAt(0).toUpperCase();
-  avatar.title = displayName;
 
   const body = document.createElement('div');
   body.className = 'chat-msg-body';
@@ -599,10 +509,8 @@ function renderChatMessage(login, displayName, text) {
   const author = document.createElement('span');
   author.className = 'chat-author';
   author.textContent = displayName;
-  author.title = displayName;
 
   const sep = document.createTextNode(': ');
-
   const textSpan = document.createElement('span');
   textSpan.className = 'chat-text';
   textSpan.textContent = text;
@@ -610,11 +518,10 @@ function renderChatMessage(login, displayName, text) {
   body.appendChild(author);
   body.appendChild(sep);
   body.appendChild(textSpan);
-
   el.appendChild(avatar);
   el.appendChild(body);
-  els.chatMessages.appendChild(el);
 
+  els.chatMessages.appendChild(el);
   while (els.chatMessages.children.length > 100) {
     els.chatMessages.removeChild(els.chatMessages.firstChild);
   }
@@ -629,10 +536,12 @@ function addSystemMessage(text) {
   els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
 }
 
+/* =========================================================
+   ⏱ Таймер
+   ========================================================= */
 function startWinnerTimer() {
   els.winnerTimer.classList.remove('timer-done');
   els.winnerTimer.textContent = '0:00';
-
   const startTime = state.winnerSelectedAt;
   state.timerInterval = setInterval(() => {
     els.winnerTimer.textContent = formatDuration(Date.now() - startTime);
@@ -658,13 +567,9 @@ function clearWinnerTimer() {
 function appendWinnerMessage(msg, isNew) {
   const empty = els.winnerMessages.querySelector('.empty');
   if (empty) empty.remove();
-
   const el = document.createElement('div');
   el.className = 'winner-msg' + (isNew ? ' winner-msg-new' : ' winner-msg-dim');
-  el.innerHTML =
-    '<span class="winner-msg-time">' + formatTime(msg.time) + '</span>' +
-    escapeHtml(msg.text);
-
+  el.innerHTML = '<span class="winner-msg-time">' + formatTime(msg.time) + '</span>' + escapeHtml(msg.text);
   if (isNew) {
     els.winnerMessages.prepend(el);
     els.winnerMessages.scrollTop = 0;
@@ -676,10 +581,8 @@ function appendWinnerMessage(msg, isNew) {
 function fillWinnerInfo(login) {
   const messages = state.messages.get(login) || [];
   const recent = messages.slice(-100);
-
   if (recent.length === 0) {
-    els.winnerMessages.innerHTML =
-      '<div class="empty">У победителя пока нет сообщений в этой сессии</div>';
+    els.winnerMessages.innerHTML = '<div class="empty">У победителя пока нет сообщений в этой сессии</div>';
   } else {
     for (const msg of recent) appendWinnerMessage(msg, false);
   }
@@ -687,11 +590,13 @@ function fillWinnerInfo(login) {
   startWinnerTimer();
 }
 
+/* =========================================================
+   🎮 Мини-игры
+   ========================================================= */
 function initMinigames() {
   const known = ['instant', 'roulette', 'drum', 'case', 'cards', 'wheel'];
   let saved = localStorage.getItem('energyroll_minigame');
   if (!known.includes(saved)) saved = 'instant';
-
   state.miniGame = saved;
 
   const buttons = document.querySelectorAll('.minigame-item');
@@ -728,7 +633,6 @@ function playRoulette(displayName) {
 
     const tick = () => {
       if (spinCancel) { resolve(); return; }
-
       const elapsed = performance.now() - start;
       if (elapsed >= duration) {
         updateRouletteName(displayName);
@@ -740,14 +644,11 @@ function playRoulette(displayName) {
         }, 500);
         return;
       }
-
       updateRouletteName(randomParticipantName());
-
       const progress = elapsed / duration;
       const interval = 45 + progress * 160;
       setTimeout(tick, interval);
     };
-
     tick();
   });
 }
@@ -761,18 +662,13 @@ const DRUM_DURATION      = 3800;
 function createDrumItem(login, name) {
   const item = document.createElement('div');
   item.className = 'drum-item';
-
   const avatar = document.createElement('div');
   avatar.className = 'drum-avatar';
   avatar.style.background = avatarGradient(login);
   avatar.textContent = (name || '?').charAt(0).toUpperCase();
-  avatar.title = name;
-
   const nameEl = document.createElement('div');
   nameEl.className = 'drum-name';
   nameEl.textContent = name;
-  nameEl.title = name;
-
   item.appendChild(avatar);
   item.appendChild(nameEl);
   return item;
@@ -793,43 +689,31 @@ function playDrum(winnerLogin, winnerName) {
     for (let i = 0; i < DRUM_TOTAL_ITEMS; i++) {
       let login, name;
       if (i === DRUM_WINNER_INDEX) {
-        login = winnerLogin;
-        name = winnerName;
+        login = winnerLogin; name = winnerName;
       } else {
-        login = randomParticipantLogin();
-        name = state.users.get(login) || login;
+        login = randomParticipantLogin(); name = state.users.get(login) || login;
       }
       strip.appendChild(createDrumItem(login, name));
     }
 
     void strip.offsetHeight;
-
     const centerIndex = Math.floor(DRUM_VISIBLE_ITEMS / 2);
     const targetTranslate = -(DRUM_WINNER_INDEX - centerIndex) * DRUM_ITEM_HEIGHT;
-
     const start = performance.now();
 
     const tick = (now) => {
       if (spinCancel) { resolve(); return; }
-
       const elapsed = now - start;
       const t = Math.min(elapsed / DRUM_DURATION, 1);
       const eased = 1 - Math.pow(1 - t, 3);
-      const current = targetTranslate * eased;
-
-      strip.style.transform = `translateY(${current}px)`;
-
+      strip.style.transform = `translateY(${targetTranslate * eased}px)`;
       if (t < 1) {
         requestAnimationFrame(tick);
       } else {
         strip.style.transform = `translateY(${targetTranslate}px)`;
-        setTimeout(() => {
-          els.spinDrum.hidden = true;
-          resolve();
-        }, 700);
+        setTimeout(() => { els.spinDrum.hidden = true; resolve(); }, 700);
       }
     };
-
     requestAnimationFrame(tick);
   });
 }
@@ -851,72 +735,49 @@ function playCase(winnerLogin, winnerName) {
     const strip = els.caseStrip;
     strip.innerHTML = '';
     strip.style.transform = 'translateX(0)';
-
     const rarities = ['common', 'uncommon', 'rare', 'epic'];
 
     for (let i = 0; i < CASE_TOTAL_ITEMS; i++) {
       let login, name, rarity;
       if (i === CASE_WINNER_IDX) {
-        login = winnerLogin;
-        name = winnerName;
-        rarity = 'legendary';
+        login = winnerLogin; name = winnerName; rarity = 'legendary';
       } else {
-        login = randomParticipantLogin();
-        name = state.users.get(login) || login;
+        login = randomParticipantLogin(); name = state.users.get(login) || login;
         rarity = rarities[Math.floor(Math.random() * rarities.length)];
       }
-
       const item = document.createElement('div');
       item.className = 'case-item case-rarity-' + rarity;
-
       const avatar = document.createElement('div');
       avatar.className = 'case-avatar';
       avatar.style.background = avatarGradient(login);
       avatar.textContent = (name || '?').charAt(0).toUpperCase();
-      avatar.title = name;
-
       const nameEl = document.createElement('div');
       nameEl.className = 'case-name';
       nameEl.textContent = name;
-      nameEl.title = name;
-
       item.appendChild(avatar);
       item.appendChild(nameEl);
       strip.appendChild(item);
     }
 
     void strip.offsetHeight;
-
     const containerWidth = els.caseContainer.clientWidth;
-    const winnerPos = CASE_WINNER_IDX * (CASE_ITEM_WIDTH + CASE_ITEM_GAP);
-    const targetX = containerWidth / 2 - CASE_ITEM_WIDTH / 2 - winnerPos;
-
+    const targetX = containerWidth / 2 - CASE_ITEM_WIDTH / 2 - (CASE_WINNER_IDX * (CASE_ITEM_WIDTH + CASE_ITEM_GAP));
     const start = performance.now();
 
     function tick(now) {
       if (spinCancel) { resolve(); return; }
-
       const elapsed = now - start;
       const t = Math.min(elapsed / CASE_DURATION, 1);
       const eased = 1 - Math.pow(1 - t, 4);
-      const current = targetX * eased;
-
-      strip.style.transform = `translateX(${current}px)`;
-
+      strip.style.transform = `translateX(${targetX * eased}px)`;
       if (t < 1) {
         requestAnimationFrame(tick);
       } else {
         strip.style.transform = `translateX(${targetX}px)`;
-        const winnerEl = strip.children[CASE_WINNER_IDX];
-        winnerEl.classList.add('case-item-winner');
-
-        setTimeout(() => {
-          els.spinCase.hidden = true;
-          resolve();
-        }, 900);
+        strip.children[CASE_WINNER_IDX].classList.add('case-item-winner');
+        setTimeout(() => { els.spinCase.hidden = true; resolve(); }, 900);
       }
     }
-
     requestAnimationFrame(tick);
   });
 }
@@ -926,23 +787,17 @@ async function shuffleCardsWithFlip(grid) {
     const cards = Array.from(grid.children);
     const firstRects = new Map();
     cards.forEach((c) => firstRects.set(c, c.getBoundingClientRect()));
-
     const shuffled = [...cards].sort(() => Math.random() - 0.5);
     shuffled.forEach((c) => grid.appendChild(c));
-
     shuffled.forEach((c) => {
       const first = firstRects.get(c);
       const last = c.getBoundingClientRect();
       const dx = first.left - last.left;
       const dy = first.top - last.top;
       if (dx || dy) {
-        c.animate(
-          [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'translate(0, 0)' }],
-          { duration: 320, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' }
-        );
+        c.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'translate(0, 0)' }], { duration: 320, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' });
       }
     });
-
     setTimeout(resolve, 360);
   });
 }
@@ -957,92 +812,62 @@ function playCards(pool) {
 
     const grid = els.cardsGrid;
     grid.innerHTML = '';
-
-    const cardsCount = Math.min(10, pool.length);
-    const shuffled = [...pool].sort(() => Math.random() - 0.5).slice(0, cardsCount);
+    const shuffled = [...pool].sort(() => Math.random() - 0.5).slice(0, Math.min(10, pool.length));
 
     const cardData = shuffled.map((login) => {
       const name = state.users.get(login) || login;
-
       const card = document.createElement('div');
       card.className = 'pick-card';
       card.dataset.login = login;
-
       const front = document.createElement('div');
       front.className = 'pick-card-face pick-card-front';
-
       const back = document.createElement('div');
       back.className = 'pick-card-face pick-card-back';
-
       const avatar = document.createElement('div');
       avatar.className = 'pick-card-avatar';
       avatar.style.background = avatarGradient(login);
       avatar.textContent = (name || '?').charAt(0).toUpperCase();
-      avatar.title = name;
-
       const nameEl = document.createElement('div');
       nameEl.className = 'pick-card-name';
       nameEl.textContent = name;
-      nameEl.title = name;
-
       back.appendChild(avatar);
       back.appendChild(nameEl);
       card.appendChild(front);
       card.appendChild(back);
-
       card.classList.add('pick-card-flipped');
       grid.appendChild(card);
-
-      return { card, login, name };
+      return { card, login };
     });
 
     let picked = null;
-
     const clickHandler = (e) => {
       if (picked) return;
       const card = e.target.closest('.pick-card');
       if (!card) return;
-
       picked = card;
-
-      cardData.forEach(({ card: c }) => {
-        c.removeEventListener('click', clickHandler);
-        c.dataset.clickable = 'false';
-      });
-
+      cardData.forEach(({ card: c }) => { c.removeEventListener('click', clickHandler); c.dataset.clickable = 'false'; });
       card.classList.add('pick-card-flipped');
       card.classList.add('pick-card-winner');
-
-      setTimeout(() => {
-        cardsCancelFn = null;
-        resolve(card.dataset.login);
-      }, 900);
+      setTimeout(() => { cardsCancelFn = null; resolve(card.dataset.login); }, 900);
     };
 
     cardsCancelFn = () => {
-      cardData.forEach(({ card }) => {
-        card.removeEventListener('click', clickHandler);
-      });
-      cardsCancelFn = null;
-      resolve(null);
+      cardData.forEach(({ card }) => card.removeEventListener('click', clickHandler));
+      cardsCancelFn = null; resolve(null);
     };
 
     (async () => {
       await sleep(1500);
       if (spinCancel || picked) return;
-
       cardData.forEach(({ card }) => card.classList.remove('pick-card-flipped'));
       await sleep(450);
       if (spinCancel) return;
-
       for (let i = 0; i < 3; i++) {
         if (spinCancel) return;
         await shuffleCardsWithFlip(grid);
         await sleep(80);
       }
-
       if (spinCancel) return;
-
       cardData.forEach(({ card }) => {
         card.dataset.clickable = 'true';
         card.addEventListener('click', clickHandler);
@@ -1059,21 +884,7 @@ function playWheel(pool, winnerLogin, winnerName) {
     els.spinCards.hidden = true;
     els.spinWheel.hidden = false;
 
-    const MAX = 12;
-    let wheelLogins;
-
-    if (pool.length <= MAX) {
-      wheelLogins = [...pool];
-    } else {
-      const others = pool.filter((l) => l !== winnerLogin);
-      for (let i = others.length - 1; i > 0; i--) {
-        const j = secureRandomInt(i + 1);
-        [others[i], others[j]] = [others[j], others[i]];
-      }
-      wheelLogins = others.slice(0, MAX - 1);
-      wheelLogins.push(winnerLogin);
-    }
-
+    let wheelLogins = pool.length <= 12 ? [...pool] : pool.filter(l => l !== winnerLogin).slice(0, 11).concat([winnerLogin]);
     for (let i = wheelLogins.length - 1; i > 0; i--) {
       const j = secureRandomInt(i + 1);
       [wheelLogins[i], wheelLogins[j]] = [wheelLogins[j], wheelLogins[i]];
@@ -1082,7 +893,6 @@ function playWheel(pool, winnerLogin, winnerName) {
     const N = wheelLogins.length;
     const segAngle = 360 / N;
     const winnerIdx = wheelLogins.indexOf(winnerLogin);
-
     const svgNS = 'http://www.w3.org/2000/svg';
     const g = els.wheelRotating;
     g.innerHTML = '';
@@ -1092,104 +902,66 @@ function playWheel(pool, winnerLogin, winnerName) {
       getComputedStyle(document.documentElement).getPropertyValue('--bg-tertiary').trim() || '#3c1a1a',
       getComputedStyle(document.documentElement).getPropertyValue('--bg-secondary').trim() || '#260f0f'
     ];
-    const segColors = [themeColors[0], themeColors[1], themeColors[2]];
 
     for (let i = 0; i < N; i++) {
       const startAngle = -90 + i * segAngle;
       const endAngle = -90 + (i + 1) * segAngle;
       const midAngle = (startAngle + endAngle) / 2;
-
       const startRad = startAngle * Math.PI / 180;
       const endRad = endAngle * Math.PI / 180;
-      const x1 = Math.cos(startRad) * 140;
-      const y1 = Math.sin(startRad) * 140;
-      const x2 = Math.cos(endRad) * 140;
-      const y2 = Math.sin(endRad) * 140;
-
-      const largeArc = segAngle > 180 ? 1 : 0;
-
       const path = document.createElementNS(svgNS, 'path');
-      path.setAttribute('d', `M 0 0 L ${x1} ${y1} A 140 140 0 ${largeArc} 1 ${x2} ${y2} Z`);
-      path.setAttribute('fill', segColors[i % segColors.length]);
+      path.setAttribute('d', `M 0 0 L ${Math.cos(startRad) * 140} ${Math.sin(startRad) * 140} A 140 140 0 ${segAngle > 180 ? 1 : 0} 1 ${Math.cos(endRad) * 140} ${Math.sin(endRad) * 140} Z`);
+      path.setAttribute('fill', themeColors[i % themeColors.length]);
       path.setAttribute('stroke', getComputedStyle(document.documentElement).getPropertyValue('--border').trim() || '#5c2828');
       path.setAttribute('stroke-width', '1.5');
       g.appendChild(path);
 
       const midRad = midAngle * Math.PI / 180;
-      const ax = Math.cos(midRad) * 40;
-      const ay = Math.sin(midRad) * 40;
-
       const name = state.users.get(wheelLogins[i]) || wheelLogins[i];
-      const MAX_CHARS = 11;
-      const display = name.length > MAX_CHARS
-        ? name.slice(0, MAX_CHARS - 1) + '…'
-        : name;
-
-      let fontSize = '11';
-      if (display.length > 9) fontSize = '9';
-      else if (display.length > 7) fontSize = '10';
-
+      const display = name.length > 11 ? name.slice(0, 10) + '…' : name;
       const text = document.createElementNS(svgNS, 'text');
       text.setAttribute('text-anchor', 'start');
       text.setAttribute('dominant-baseline', 'middle');
       text.setAttribute('fill', '#f2e6e6');
-      text.setAttribute('font-size', fontSize);
+      text.setAttribute('font-size', display.length > 9 ? '9' : (display.length > 7 ? '10' : '11'));
       text.setAttribute('font-weight', '700');
-      text.setAttribute('transform', `translate(${ax} ${ay}) rotate(${midAngle})`);
+      text.setAttribute('transform', `translate(${Math.cos(midRad) * 40} ${Math.sin(midRad) * 40}) rotate(${midAngle})`);
       text.textContent = display;
-
-      const titleEl = document.createElementNS(svgNS, 'title');
-      titleEl.textContent = name;
-      text.appendChild(titleEl);
-
       g.appendChild(text);
     }
 
     const targetRotation = 360 * 5 - (winnerIdx + 0.5) * segAngle;
-
     g.style.transition = 'none';
     g.style.transform = 'rotate(0deg)';
     void g.getBoundingClientRect();
-
     const duration = 4200;
     const start = performance.now();
 
     function tick(now) {
       if (spinCancel) { resolve(); return; }
-
       const elapsed = now - start;
       const t = Math.min(elapsed / duration, 1);
       const eased = 1 - Math.pow(1 - t, 4);
-      const current = targetRotation * eased;
-
-      g.style.transform = `rotate(${current}deg)`;
-
+      g.style.transform = `rotate(${targetRotation * eased}deg)`;
       if (t < 1) {
         requestAnimationFrame(tick);
       } else {
         g.style.transform = `rotate(${targetRotation}deg)`;
-        setTimeout(() => {
-          els.spinWheel.hidden = true;
-          resolve();
-        }, 900);
+        setTimeout(() => { els.spinWheel.hidden = true; resolve(); }, 900);
       }
     }
-
     requestAnimationFrame(tick);
   });
 }
 
+/* =========================================================
+   🏆 Выбор победителя
+   ========================================================= */
 async function pickWinner() {
   if (state.isSpinning) return;
-
   const basePool = getActiveWinnerPool();
-
   if (basePool.length === 0) {
-    addSystemMessage(
-      state.topModeEnabled
-        ? '⚠ Нет активных в чате (или все исключены).'
-        : '⚠ Нет участников (или все исключены).'
-    );
+    addSystemMessage(state.topModeEnabled ? '⚠ Нет активных в чате.' : '⚠ Нет участников.');
     return;
   }
   const pool = basePool.filter((login) => login !== state.currentWinner);
@@ -1197,69 +969,55 @@ async function pickWinner() {
     addSystemMessage('⚠ Нет других участников для рерола.');
     return;
   }
-
   if (state.miniGame === 'cards') {
     await showCardsPick(pool);
     return;
   }
-
   const winnerLogin = pool[secureRandomInt(pool.length)];
   await showWinnerWithSpin(winnerLogin);
 }
 
 async function showWinnerWithSpin(login) {
   clearWinnerTimer();
-
   state.currentWinner = login;
   state.winnerHasResponded = false;
   state.isSpinning = true;
   spinCancel = false;
 
   const displayName = state.users.get(login) || login;
-
   els.modal.classList.add('active');
   els.modalContent.classList.add('spinning');
-
   els.winnerName.textContent = displayName;
-  els.winnerName.title = displayName;
   els.winnerMessages.innerHTML = '';
   els.winnerTimer.textContent = '0:00';
   els.winnerTimer.classList.remove('timer-done');
   els.modalPayoutInput.value = '';
-
   els.modalSpin.hidden = false;
 
-  if (state.miniGame === 'roulette') {
-    await playRoulette(displayName);
-  } else if (state.miniGame === 'drum') {
-    await playDrum(login, displayName);
-  } else if (state.miniGame === 'case') {
-    await playCase(login, displayName);
-  } else if (state.miniGame === 'wheel') {
+  if (state.miniGame === 'roulette') await playRoulette(displayName);
+  else if (state.miniGame === 'drum') await playDrum(login, displayName);
+  else if (state.miniGame === 'case') await playCase(login, displayName);
+  else if (state.miniGame === 'wheel') {
     const basePool = getActiveWinnerPool().filter((l) => l !== login);
     const wheelPool = [...new Set([...basePool, login])];
     await playWheel(wheelPool, login, displayName);
   }
 
   els.modalSpin.hidden = true;
-
   if (spinCancel) {
     els.modal.classList.remove('active');
     els.modalContent.classList.remove('spinning');
     state.isSpinning = false;
     return;
   }
-
   els.modalContent.classList.remove('spinning');
   state.isSpinning = false;
   state.winnerSelectedAt = Date.now();
-
   fillWinnerInfo(login);
 }
 
 async function showCardsPick(pool) {
   clearWinnerTimer();
-
   state.winnerHasResponded = false;
   state.isSpinning = true;
   spinCancel = false;
@@ -1267,12 +1025,10 @@ async function showCardsPick(pool) {
 
   els.modal.classList.add('active');
   els.modalContent.classList.add('spinning');
-
   els.winnerMessages.innerHTML = '';
   els.winnerTimer.textContent = '0:00';
   els.winnerTimer.classList.remove('timer-done');
   els.modalPayoutInput.value = '';
-
   els.modalSpin.hidden = false;
 
   const pickedLogin = await playCards(pool);
@@ -1285,16 +1041,11 @@ async function showCardsPick(pool) {
     state.isSpinning = false;
     return;
   }
-
   state.currentWinner = pickedLogin;
   state.winnerSelectedAt = Date.now();
-
   const displayName = state.users.get(pickedLogin) || pickedLogin;
   els.winnerName.textContent = displayName;
-  els.winnerName.title = displayName;
-
   await sleep(700);
-
   if (spinCancel) {
     els.modal.classList.remove('active');
     els.modalContent.classList.remove('spinning');
@@ -1304,26 +1055,19 @@ async function showCardsPick(pool) {
     state.isSpinning = false;
     return;
   }
-
   els.modalContent.classList.remove('spinning');
   els.modalSpin.hidden = true;
   els.spinCards.hidden = true;
   state.isSpinning = false;
-
   fillWinnerInfo(pickedLogin);
 }
 
 function commitCurrentWinner() {
   if (!state.currentWinner) return;
-
   const payout = els.modalPayoutInput.value.trim();
   const displayName = state.users.get(state.currentWinner) || state.currentWinner;
-
   addWinnerToHistory(displayName, payout);
-
-  const msg = '🏆 Победитель: ' + displayName + (payout ? ' — ' + payout + ' ₽' : '');
-  addSystemMessage(msg);
-
+  addSystemMessage('🏆 Победитель: ' + displayName + (payout ? ' — ' + payout + ' ₽' : ''));
   closeWinnerModal();
 }
 
@@ -1347,11 +1091,7 @@ function closeWinnerModal() {
 }
 
 function addWinnerToHistory(displayName, payout = '') {
-  state.winnersHistory.unshift({
-    id: ++winnerIdCounter,
-    name: displayName,
-    payout: payout
-  });
+  state.winnersHistory.unshift({ id: ++winnerIdCounter, name: displayName, payout: payout });
   renderWinnersHistory();
 }
 
@@ -1360,21 +1100,16 @@ function renderWinnersHistory() {
     els.winnersHistory.innerHTML = '<div class="empty">Пока никого</div>';
     return;
   }
-
   els.winnersHistory.innerHTML = '';
-
   for (const w of state.winnersHistory) {
     const row = document.createElement('div');
     row.className = 'winner-item';
-
     const nameEl = document.createElement('span');
     nameEl.className = 'winner-item-name';
     nameEl.textContent = w.name;
     nameEl.title = w.name;
-
     const wrap = document.createElement('div');
     wrap.className = 'winner-payout-wrap';
-
     const input = document.createElement('input');
     input.type = 'text';
     input.className = 'winner-payout-input';
@@ -1382,17 +1117,13 @@ function renderWinnersHistory() {
     input.value = w.payout || '';
     input.inputMode = 'numeric';
     input.autocomplete = 'off';
-    input.spellcheck = false;
-
     input.addEventListener('input', (e) => {
       const item = state.winnersHistory.find((x) => x.id === w.id);
       if (item) item.payout = e.target.value;
     });
-
     const cur = document.createElement('span');
     cur.className = 'winner-payout-currency';
     cur.textContent = '₽';
-
     wrap.appendChild(input);
     wrap.appendChild(cur);
 
@@ -1400,12 +1131,11 @@ function renderWinnersHistory() {
     del.className = 'winner-delete-btn';
     del.type = 'button';
     del.textContent = '✕';
-    del.title = 'Удалить из победителей';
+    del.title = 'Удалить';
     del.addEventListener('click', () => {
       state.winnersHistory = state.winnersHistory.filter((x) => x.id !== w.id);
       renderWinnersHistory();
     });
-
     row.appendChild(nameEl);
     row.appendChild(wrap);
     row.appendChild(del);
@@ -1414,18 +1144,12 @@ function renderWinnersHistory() {
 }
 
 /* =========================================================
-   Обработчики
+   ⚙️ Обработчики и Старт
    ========================================================= */
-els.keywordInput.addEventListener('input', (e) => {
-  state.keyword = e.target.value;
-});
-
+els.keywordInput.addEventListener('input', (e) => { state.keyword = e.target.value; });
 els.addParticipantBtn.addEventListener('click', addParticipantByLogin);
 els.addParticipantInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    addParticipantByLogin();
-  }
+  if (e.key === 'Enter') { e.preventDefault(); addParticipantByLogin(); }
 });
 
 els.settingsBtn.addEventListener('click', openSettings);
@@ -1439,29 +1163,21 @@ els.clearCollect.addEventListener('click', () => {
   state.currentWinner = null;
   updateParticipantCount();
   updatePickWinnerButton();
-  els.participantsList.innerHTML =
-    '<div class="empty">Напишите ключевое слово в чат, чтобы участвовать</div>';
+  els.participantsList.innerHTML = '<div class="empty">Напишите ключевое слово в чат, чтобы участвовать</div>';
   addSystemMessage('🗑 Список участников очищен.');
 });
 
 els.topModeToggle.addEventListener('click', () => {
   state.topModeEnabled = !state.topModeEnabled;
   updateTopModeButton();
-  addSystemMessage(
-    state.topModeEnabled
-      ? '🔥 Режим Топ-10 по сообщениям ВКЛЮЧЁН.'
-      : '🎲 Выбор снова среди участников ключевого слова.'
-  );
+  addSystemMessage(state.topModeEnabled ? '🔥 Режим Топ-10 ВКЛЮЧЁН.' : '🎲 Выбор среди участников.');
 });
 
 els.pickWinner.addEventListener('click', pickWinner);
 els.rerollBtn.addEventListener('click', pickWinner);
 els.modalPayoutBtn.addEventListener('click', commitCurrentWinner);
 els.modalPayoutInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    commitCurrentWinner();
-  }
+  if (e.key === 'Enter') { e.preventDefault(); commitCurrentWinner(); }
 });
 els.closeModal.addEventListener('click', closeWinnerModal);
 els.modal.querySelector('.modal-backdrop').addEventListener('click', closeWinnerModal);
@@ -1472,9 +1188,6 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-/* =========================================================
-   Старт
-   ========================================================= */
 function init() {
   initTheme();
   initMinigames();
