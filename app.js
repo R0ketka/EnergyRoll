@@ -229,10 +229,11 @@ function connectChatAnonymously(channelName) {
     reconnectAttempts = 0;
     const anonNick = 'justinfan' + Math.floor(Math.random() * 99999);
     
-    // Самая надежная отправка команд одной строкой
-    ws.send('CAP REQ :twitch.tv/tags twitch.tv/commands\r\n' +
-            'NICK ' + anonNick + '\r\n' +
-            'JOIN #' + channel + '\r\n');
+    // Отправляем каждую команду с обязательным переносом строки \r\n
+    ws.send('CAP REQ :twitch.tv/tags twitch.tv/commands\r\n');
+    ws.send('PASS SCHMOOPIIE\r\n');
+    ws.send('NICK ' + anonNick + '\r\n');
+    ws.send('JOIN #' + channel + '\r\n');
     
     setStatus('В чате: #' + channel, 'ok'); 
     addSystemMessage('✅ Подключено к #' + channel);
@@ -286,15 +287,13 @@ function parseTags(raw) {
 }
 
 function handleIrcLine(line, ws) {
-  if (line.startsWith('PING')) { ws.send('PONG :tmi.twitch.tv'); return; }
+  if (line.startsWith('PING')) { ws.send('PONG :tmi.twitch.tv\r\n'); return; }
   
-  // Ищем только сообщения
   if (line.indexOf('PRIVMSG') === -1) return;
 
   let tags = {}; 
   let rest = line;
   
-  // Извлекаем теги
   if (line.startsWith('@')) {
     const spaceIdx = line.indexOf(' ');
     const tagsStr = line.substring(1, spaceIdx);
@@ -305,7 +304,6 @@ function handleIrcLine(line, ws) {
     rest = line.substring(spaceIdx + 1);
   }
   
-  // Извлекаем ник из префикса
   let login = '';
   if (rest.startsWith(':')) { 
     const endPrefix = rest.indexOf('!'); 
