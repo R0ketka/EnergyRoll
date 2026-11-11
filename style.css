@@ -1,7 +1,7 @@
 [hidden] { display: none !important; }
 
 /* =========================================================
-   🎨 БАЗОВАЯ ТЕМА (светло-красный = текущий)
+   🎨 БАЗОВАЯ ТЕМА (светло-красный)
    ========================================================= */
 :root {
   --bg-primary: #1a0808;
@@ -304,11 +304,15 @@ header::after {
     0 0 0 3px rgba(255, 255, 255, 0.06);
 }
 
+/* =========================================================
+   AUTH SECTION (кнопка войти, профиль и настройки)
+   ========================================================= */
 #auth-section {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   margin-left: auto;
+  gap: 12px;
 }
 
 .user-info {
@@ -341,12 +345,6 @@ header::after {
   border-radius: 50%;
   box-shadow: 0 0 10px var(--success), 0 0 3px var(--success);
   flex-shrink: 0;
-}
-
-.user-buttons {
-  display: flex;
-  gap: 6px;
-  align-items: center;
 }
 
 .btn {
@@ -613,22 +611,11 @@ main {
   font-size: 13px;
   font-weight: 700;
   color: var(--text);
-  margin-bottom: 2px;
   letter-spacing: 0.2px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
-.minigame-desc {
-  font-size: 11px;
-  color: var(--text-dim);
-  font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.minigame-item.active .minigame-desc { color: var(--accent-hover); }
 
 .minigame-check {
   color: var(--accent);
@@ -1087,7 +1074,8 @@ main {
   margin-top: 4px;
   display: flex;
   flex-direction: column;
-  flex-shrink: 0;
+  flex: 1; /* 👈 Делаем гибким */
+  min-height: 0; /* 👈 Важно для скролла */
 }
 
 .winner-history h3 {
@@ -1097,13 +1085,15 @@ main {
   letter-spacing: 1px;
   margin-bottom: 12px;
   font-weight: 800;
+  flex-shrink: 0;
 }
 
 .winners-list {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: 260px;
+  flex: 1; /* 👈 Растягиваем на всё доступное место */
+  min-height: 0; /* 👈 Важно для скролла */
   overflow-y: auto;
   padding-right: 2px;
   contain: content;
@@ -1210,15 +1200,15 @@ main {
 }
 
 /* =========================================================
-   🔥 TOP CHATTERS — растягивается на всё доступное место
+   🔥 TOP CHATTERS
    ========================================================= */
 .top-chatters {
   border-top: 1px solid var(--border);
   padding-top: 16px;
-  flex: 1;
-  min-height: 200px;
   display: flex;
   flex-direction: column;
+  flex: 1; /* 👈 Делаем гибким */
+  min-height: 0; /* 👈 Важно для скролла */
 }
 
 .top-chatters h3 {
@@ -1228,17 +1218,18 @@ main {
   letter-spacing: 1px;
   margin-bottom: 12px;
   font-weight: 800;
+  flex-shrink: 0;
 }
 
 .top-list {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  flex: 1;
+  flex: 1; /* 👈 Растягиваем на всё доступное место */
   overflow-y: auto;
   padding-right: 2px;
   contain: content;
-  min-height: 0;
+  min-height: 0; /* 👈 Важно для скролла */
 }
 
 .top-list::-webkit-scrollbar { width: 6px; }
