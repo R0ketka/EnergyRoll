@@ -364,7 +364,11 @@ function addParticipantByLogin() {
    Подключение к чату (анонимно)
    ========================================================= */
 function connectChatAnonymously(channelName) {
+  // 1. Отключаем старый сокет, чтобы избежать бесконечного цикла
   if (state.ws) {
+    state.ws.onclose = null; // Отключаем триггер переподключения
+    state.ws.onerror = null;
+    state.ws.onmessage = null;
     state.ws.close();
   }
 
@@ -378,41 +382,73 @@ function connectChatAnonymously(channelName) {
   state.userLogin = channel;
 
   setStatus('Подключение...', 'wait');
-  state.ws = new WebSocket(CONFIG.CHAT_WS_URL);
+  
+  // Создаем НОВЫЙ сокет и сохраняем его в переменную ws
+  const ws = new WebSocket(CONFIG.CHAT_WS_URL);
+  state.ws = ws;
 
-  state.ws.onopen = () => {
+  ws.onopen = () => {
     const anonNick = 'justinfan' + Math.floor(Math.random() * 99999);
-    
-    state.ws.send('PASS schmoopiie');
-    state.ws.send('NICK ' + anonNick);
-    state.ws.send('CAP REQ :twitch.tv/tags twitch.tv/commands');
-    state.ws.send('JOIN #' + channel);
-    
+    ws.send('CAP REQ :twitch.tv/tags twitch.tv/commands');
+    ws.send('PASS schmoopiie');
+    ws.send('NICK ' + anonNick);
+    ws.send('JOIN #' + channel);
     setStatus('В чате: #' + channel, 'ok');
   };
 
-  state.ws.onmessage = (event) => {
+  ws.onmessage = (event) => {
     const lines = event.data.split('\r\n');
-    for (const line of lines) if (line) handleIrcLine(line);
+    for (const line of lines) {
+      if (line) handleIrcLine(line, ws); // Передаем ws внутрь парсера
+    }
   };
 
-  state.ws.onclose = () => {
-    setStatus('Переподключение...', 'wait');
-    setTimeout(() => connectChatAnonymously(channel), 3000);
+  ws.onclose = () => {
+    // Переподключаемся только если это тот же самый сокет
+    if (state.ws === ws) {
+      setStatus('Переподключение...', 'wait');
+      setTimeout(() => {
+        if (state.ws === ws) connectChatAnonymously(channel);
+      }, 3000);
+    }
   };
 
-  state.ws.onerror = () => {
-    setStatus('Ошибка соединения', 'off');
+  ws.onerror = () => {
+    if (state.ws === ws) setStatus('Ошибка соединения', 'off');
   };
 }
 
-function handleConnectClick() {
-  const channel = els.channelInput.value.trim();
-  if (!channel) {
-    addSystemMessage('⚠ Введите имя канала.');
+function handleIrcLine(line, ws) {
+  if (line.startsWith('PING')) {
+    ws.send('PONG :tmi.twitch.tv'); // Отвечаем в конкретный сокет
     return;
   }
-  connectChatAnonymously(channel);
+  let rest = line;
+  let tags = {};
+  if (rest.startsWith('@')) {
+    const sp = rest.indexOf(' ');
+    tags = parseTags(rest.substring(1, sp));
+    rest = rest.substring(sp + 1);
+  }
+  if (rest.startsWith(':')) {
+    rest = rest.substring(rest.indexOf(' ') + 1);
+  }
+  const sp = rest.indexOf(' ');
+  const command = sp === -1 ? rest : rest.substring(0, sp);
+  const params = sp === -1 ? '' : rest.substring(sp + 1);
+  if (command !== 'PRIVMSG') return;
+
+  const sep = params.indexOf(' :');
+  if (sep === -1) return;
+  const message = params.substring(sep + 2);
+
+  const login = tags['login'];
+  const displayName = tags['display-name'] || login;
+  
+  // Если логин есть, добавляем сообщение
+  if (login) {
+    addMessage(login, displayName, message);
+  }
 }
 
 /* =========================================================
