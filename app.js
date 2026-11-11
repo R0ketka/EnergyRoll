@@ -228,18 +228,15 @@ function connectChatAnonymously(channelName) {
   ws.onopen = () => {
     reconnectAttempts = 0;
     const anonNick = 'justinfan' + Math.floor(Math.random() * 99999);
-    ws.send('CAP REQ :twitch.tv/tags twitch.tv/commands');
     
-    setTimeout(() => {
-      if (state.ws === ws) {
-        ws.send('PASS SCHMOOPIIE');
-        ws.send('NICK ' + anonNick);
-        ws.send('JOIN #' + channel);
-        setStatus('В чате: #' + channel, 'ok'); 
-        addSystemMessage('✅ Подключено к #' + channel);
-        els.connectBtn.disabled = true; els.disconnectBtn.disabled = false;
-      }
-    }, 200);
+    // Самая надежная отправка команд одной строкой
+    ws.send('CAP REQ :twitch.tv/tags twitch.tv/commands\r\n' +
+            'NICK ' + anonNick + '\r\n' +
+            'JOIN #' + channel + '\r\n');
+    
+    setStatus('В чате: #' + channel, 'ok'); 
+    addSystemMessage('✅ Подключено к #' + channel);
+    els.connectBtn.disabled = true; els.disconnectBtn.disabled = false;
   };
   
   ws.onmessage = (event) => { 
@@ -275,7 +272,7 @@ function clearChat() { els.chatMessages.innerHTML = ''; addSystemMessage('🧹 �
 function handleConnectClick() { const channel = els.channelInput.value.trim(); if (!channel) { addSystemMessage('⚠ Введите имя канала.'); return; } connectChatAnonymously(channel); }
 
 /* =========================================================
-   Парсинг IRC (СТАБИЛЬНАЯ ВЕРСИЯ БЕЗ БЕЙДЖЕЙ)
+   Парсинг IRC
    ========================================================= */
 function parseTags(raw) {
   const tags = {};
@@ -291,11 +288,13 @@ function parseTags(raw) {
 function handleIrcLine(line, ws) {
   if (line.startsWith('PING')) { ws.send('PONG :tmi.twitch.tv'); return; }
   
+  // Ищем только сообщения
   if (line.indexOf('PRIVMSG') === -1) return;
 
   let tags = {}; 
   let rest = line;
   
+  // Извлекаем теги
   if (line.startsWith('@')) {
     const spaceIdx = line.indexOf(' ');
     const tagsStr = line.substring(1, spaceIdx);
@@ -306,6 +305,7 @@ function handleIrcLine(line, ws) {
     rest = line.substring(spaceIdx + 1);
   }
   
+  // Извлекаем ник из префикса
   let login = '';
   if (rest.startsWith(':')) { 
     const endPrefix = rest.indexOf('!'); 
