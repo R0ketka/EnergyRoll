@@ -21,8 +21,9 @@
     <div id="auth-section">
       <!-- Блок ручного подключения к чату -->
       <div class="channel-box">
-        <input type="text" id="channel-input" class="keyword-input" placeholder="Имя канала (например, streamer)" autocomplete="off" spellcheck="false" />
+        <input type="text" id="channel-input" class="keyword-input" placeholder="Имя канала" autocomplete="off" spellcheck="false" />
         <button id="connect-btn" class="btn btn-primary">Подключить</button>
+        <button id="disconnect-btn" class="btn btn-secondary" disabled>Отключить</button>
       </div>
 
       <!-- ⚙️ Кнопка настроек всегда снаружи и видна всем -->
@@ -39,49 +40,32 @@
         <div class="minigames-list">
           <button class="minigame-item active" data-mode="instant">
             <span class="minigame-icon">⚡</span>
-            <div class="minigame-info">
-              <div class="minigame-title">Мгновенный</div>
-            </div>
+            <div class="minigame-info"><div class="minigame-title">Мгновенный</div></div>
             <span class="minigame-check">✓</span>
           </button>
-
           <button class="minigame-item" data-mode="roulette">
             <span class="minigame-icon">🎡</span>
-            <div class="minigame-info">
-              <div class="minigame-title">Рулетка</div>
-            </div>
+            <div class="minigame-info"><div class="minigame-title">Рулетка</div></div>
             <span class="minigame-check">✓</span>
           </button>
-
           <button class="minigame-item" data-mode="drum">
             <span class="minigame-icon">🎰</span>
-            <div class="minigame-info">
-              <div class="minigame-title">Барабан</div>
-            </div>
+            <div class="minigame-info"><div class="minigame-title">Барабан</div></div>
             <span class="minigame-check">✓</span>
           </button>
-
           <button class="minigame-item" data-mode="case">
             <span class="minigame-icon">🎁</span>
-            <div class="minigame-info">
-              <div class="minigame-title">Кейс</div>
-            </div>
+            <div class="minigame-info"><div class="minigame-title">Кейс</div></div>
             <span class="minigame-check">✓</span>
           </button>
-
           <button class="minigame-item" data-mode="cards">
             <span class="minigame-icon">🃏</span>
-            <div class="minigame-info">
-              <div class="minigame-title">Карты</div>
-            </div>
+            <div class="minigame-info"><div class="minigame-title">Карты</div></div>
             <span class="minigame-check">✓</span>
           </button>
-
           <button class="minigame-item" data-mode="wheel">
             <span class="minigame-icon">🎯</span>
-            <div class="minigame-info">
-              <div class="minigame-title">Колесо</div>
-            </div>
+            <div class="minigame-info"><div class="minigame-title">Колесо</div></div>
             <span class="minigame-check">✓</span>
           </button>
 
@@ -98,7 +82,10 @@
       <section id="chat-panel" class="panel">
         <div class="panel-header">
           <h2>💬 Чат</h2>
-          <span id="status-text" class="status status-off">Введите имя канала</span>
+          <div class="chat-header-right">
+            <span id="status-text" class="status status-off">Введите имя канала</span>
+            <button id="clear-chat-btn" class="btn-clear" title="Очистить чат">🧹</button>
+          </div>
         </div>
         <div id="chat-messages" class="chat-messages">
           <div class="chat-empty">Подключитесь к каналу, чтобы начать сбор сообщений</div>
@@ -136,15 +123,7 @@
           <button id="clear-collect" class="btn-clear" title="Очистить список участников" disabled>✕</button>
         </div>
         <div class="add-participant-row">
-          <input
-            type="text"
-            id="add-participant-input"
-            class="add-participant-input"
-            placeholder="Добавить по нику…"
-            maxlength="50"
-            autocomplete="off"
-            spellcheck="false"
-          />
+          <input type="text" id="add-participant-input" class="add-participant-input" placeholder="Добавить по нику…" maxlength="50" autocomplete="off" spellcheck="false" />
           <button id="add-participant-btn" class="add-participant-btn" title="Добавить участника">+</button>
         </div>
         <div id="participants-list" class="participants-list">
@@ -162,26 +141,22 @@
         <div class="spin-view" id="spin-roulette" hidden>
           <div class="spin-roulette-name" id="spin-roulette-name">—</div>
         </div>
-
         <div class="spin-view" id="spin-drum" hidden>
           <div class="drum-container">
             <div class="drum-center-line"></div>
             <div class="drum-strip" id="drum-strip"></div>
           </div>
         </div>
-
         <div class="spin-view" id="spin-case" hidden>
           <div class="case-container" id="case-container">
             <div class="case-marker"></div>
             <div class="case-strip" id="case-strip"></div>
           </div>
         </div>
-
         <div class="spin-view" id="spin-cards" hidden>
           <div class="cards-header" id="cards-header">Выберите карту</div>
           <div class="cards-grid" id="cards-grid"></div>
         </div>
-
         <div class="spin-view" id="spin-wheel" hidden>
           <div class="wheel-container">
             <svg viewBox="-150 -150 300 300" class="wheel-svg">
@@ -205,14 +180,12 @@
         <h3>Сообщения кандидата</h3>
         <div id="winner-messages" class="winner-messages"></div>
       </div>
-
       <div class="modal-payout-section">
         <span class="modal-payout-label">💰 Вывод:</span>
         <input type="text" id="modal-payout-input" class="modal-payout-input" placeholder="0" inputmode="numeric" autocomplete="off" spellcheck="false" />
         <span class="modal-payout-currency">₽</span>
         <button id="modal-payout-btn" class="modal-payout-btn">Добавить</button>
       </div>
-
       <div class="modal-actions">
         <button id="reroll-btn" class="btn btn-primary">🔄 Рерол</button>
         <button id="close-modal" class="btn btn-secondary">Закрыть</button>

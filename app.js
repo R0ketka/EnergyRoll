@@ -37,6 +37,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const els = {
   channelInput:      document.getElementById('channel-input'),
   connectBtn:        document.getElementById('connect-btn'),
+  disconnectBtn:     document.getElementById('disconnect-btn'),
+  clearChatBtn:      document.getElementById('clear-chat-btn'),
   settingsBtn:       document.getElementById('settings-btn'),
   keywordInput:      document.getElementById('keyword-input'),
   chatMessages:      document.getElementById('chat-messages'),
@@ -320,7 +322,7 @@ function addParticipantByLogin() {
 }
 
 /* =========================================================
-   📡 Подключение к чату (Анонимно)
+   📡 Подключение и Отключение
    ========================================================= */
 function connectChatAnonymously(channelName) {
   if (state.ws) {
@@ -349,6 +351,9 @@ function connectChatAnonymously(channelName) {
     ws.send('JOIN #' + channel);
     setStatus('В чате: #' + channel, 'ok');
     addSystemMessage('✅ Подключено к #' + channel);
+    
+    els.connectBtn.disabled = true;
+    els.disconnectBtn.disabled = false;
   };
 
   ws.onmessage = (event) => {
@@ -370,6 +375,23 @@ function connectChatAnonymously(channelName) {
   ws.onerror = () => {
     if (state.ws === ws) setStatus('Ошибка соединения', 'off');
   };
+}
+
+function disconnectChat() {
+  if (state.ws) {
+    state.ws.onclose = null;
+    state.ws.close();
+    state.ws = null;
+  }
+  setStatus('Отключено', 'off');
+  els.connectBtn.disabled = false;
+  els.disconnectBtn.disabled = true;
+  addSystemMessage('🔌 Отключено от чата.');
+}
+
+function clearChat() {
+  els.chatMessages.innerHTML = '';
+  addSystemMessage('🧹 Чат очищен.');
 }
 
 function handleConnectClick() {
@@ -395,7 +417,6 @@ function handleIrcLine(line, ws) {
   let tags = {};
   let rest = line;
 
-  // 1. Извлекаем теги
   if (line.startsWith('@')) {
     const spaceIdx = line.indexOf(' ');
     const tagsStr = line.substring(1, spaceIdx);
@@ -408,14 +429,13 @@ function handleIrcLine(line, ws) {
     rest = line.substring(spaceIdx + 1);
   }
 
-  // 2. Извлекаем логин из префикса (например, из ":pixel_107!pixel_107@...")
   let login = '';
   if (rest.startsWith(':')) {
     const endPrefix = rest.indexOf('!');
     if (endPrefix !== -1) {
-      login = rest.substring(1, endPrefix); // Получаем "pixel_107"
+      login = rest.substring(1, endPrefix);
     } else {
-      login = rest.substring(1, rest.indexOf(' ')); // Запасной вариант
+      login = rest.substring(1, rest.indexOf(' '));
     }
   }
 
@@ -423,12 +443,10 @@ function handleIrcLine(line, ws) {
 
   const displayName = tags['display-name'] || login;
 
-  // 3. Извлекаем текст сообщения (все, что идет после " :")
   const msgIdx = rest.indexOf(' :');
   if (msgIdx === -1) return;
   const message = rest.substring(msgIdx + 2);
 
-  // 4. Отправляем в чат
   addMessage(login, displayName, message);
 }
 
@@ -550,7 +568,7 @@ function addSystemMessage(text) {
 }
 
 /* =========================================================
-   ⏱ Таймер
+   ⏱ Таймер и победитель
    ========================================================= */
 function startWinnerTimer() {
   els.winnerTimer.classList.remove('timer-done');
@@ -1168,6 +1186,9 @@ els.addParticipantInput.addEventListener('keydown', (e) => {
 els.settingsBtn.addEventListener('click', openSettings);
 els.closeSettings.addEventListener('click', closeSettings);
 els.settingsModal.querySelector('.modal-backdrop').addEventListener('click', closeSettings);
+
+els.disconnectBtn.addEventListener('click', disconnectChat);
+els.clearChatBtn.addEventListener('click', clearChat);
 
 els.clearCollect.addEventListener('click', () => {
   state.collectedUsers.clear();
