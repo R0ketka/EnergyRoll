@@ -195,38 +195,6 @@ main { display: grid; grid-template-columns: 1fr 3fr 1.2fr 1fr; gap: 16px; heigh
 .modal-header h2 { font-size: 14px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px; }
 .winner-name { font-size: 28px; font-weight: 900; color: var(--accent); text-shadow: 0 0 20px var(--accent); word-break: break-word; }
 
-/* НОВЫЕ СТИЛИ ДЛЯ ПЛАШКИ ПОДПИСКИ */
-.winner-sub-status {
-  display: inline-block;
-  margin-top: 8px;
-  padding: 4px 12px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-}
-.winner-sub-status.sub-new {
-  background: var(--success);
-  color: #fff;
-  box-shadow: 0 0 15px var(--success);
-  animation: pulseGreen 2s infinite;
-}
-@keyframes pulseGreen {
-  0% { box-shadow: 0 0 0 0 rgba(58, 158, 58, 0.7); }
-  70% { box-shadow: 0 0 0 10px rgba(58, 158, 58, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(58, 158, 58, 0); }
-}
-.winner-sub-status.sub-old {
-  background: rgba(230, 56, 88, 0.15);
-  color: var(--accent);
-  border: 1px solid var(--accent);
-}
-.winner-sub-status.sub-none {
-  color: var(--text-muted);
-  background: rgba(0,0,0,0.2);
-  border: 1px solid var(--border);
-}
-
 .modal-timer { position: absolute; top: 20px; right: 20px; z-index: 2; font-family: 'SF Mono', monospace; font-size: 18px; font-weight: 800; padding: 6px 12px; border-radius: var(--r-md); background: rgba(0,0,0,0.4); border: 1px solid var(--accent); color: var(--accent); box-shadow: inset 0 1px 0 rgba(255,255,255,0.1); }
 .modal-timer.timer-done { color: var(--success); border-color: var(--success); text-shadow: 0 0 10px var(--success); }
 

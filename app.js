@@ -5,7 +5,6 @@ const state = {
   userLogin: null, ws: null, keyword: '',
   collectedUsers: new Set(), orderedParticipants: [], excludedUsers: new Set(),
   users: new Map(), messages: new Map(), currentWinner: null, winnersHistory: [],
-  userSubs: new Map(), // login -> { months, isNew }
   miniGame: 'instant', topModeEnabled: false, theme: 'red-light',
   winnerSelectedAt: null, winnerHasResponded: false, timerInterval: null, isSpinning: false
 };
@@ -14,7 +13,7 @@ let spinCancel = false;
 let winnerIdCounter = 0;
 let cardsCancelFn = null;
 let topChattersScheduled = false;
-let reconnectAttempts = 0; // Счетчик попыток подключения
+let reconnectAttempts = 0;
 
 const topElements = new Map();
 const avatarCache = new Map();
@@ -57,7 +56,6 @@ const els = {
   bingoGrid: document.getElementById('bingo-grid'),
   winnerTimer: document.getElementById('winner-timer'),
   winnerName: document.getElementById('winner-name'),
-  winnerSubStatus: document.getElementById('winner-sub-status'),
   winnerMessages: document.getElementById('winner-messages'),
   modalPayoutInput: document.getElementById('modal-payout-input'),
   modalPayoutBtn: document.getElementById('modal-payout-btn'),
@@ -228,11 +226,10 @@ function connectChatAnonymously(channelName) {
   state.ws = ws;
   
   ws.onopen = () => {
-    reconnectAttempts = 0; // Сброс счетчика при успехе
+    reconnectAttempts = 0;
     const anonNick = 'justinfan' + Math.floor(Math.random() * 99999);
     ws.send('CAP REQ :twitch.tv/tags twitch.tv/commands');
     
-    // Небольшая задержка перед отправкой NICK и JOIN, чтобы Twitch не заблокировал
     setTimeout(() => {
       if (state.ws === ws) {
         ws.send('PASS SCHMOOPIIE');
@@ -250,8 +247,7 @@ function connectChatAnonymously(channelName) {
     for (const line of lines) { if (line) handleIrcLine(line, ws); } 
   };
   
-  ws.onclose = (event) => {
-    console.log("WS Closed:", event.code, event.reason); // Логируем причину закрытия
+  ws.onclose = () => {
     if (state.ws === ws) {
       reconnectAttempts++;
       if (reconnectAttempts > 5) {
@@ -279,7 +275,7 @@ function clearChat() { els.chatMessages.innerHTML = ''; addSystemMessage('🧹 �
 function handleConnectClick() { const channel = els.channelInput.value.trim(); if (!channel) { addSystemMessage('⚠ Введите имя канала.'); return; } connectChatAnonymously(channel); }
 
 /* =========================================================
-   Парсинг IRC и Бейджей
+   Парсинг IRC (СТАБИЛЬНАЯ ВЕРСИЯ БЕЗ БЕЙДЖЕЙ)
    ========================================================= */
 function parseTags(raw) {
   const tags = {};
@@ -295,69 +291,35 @@ function parseTags(raw) {
 function handleIrcLine(line, ws) {
   if (line.startsWith('PING')) { ws.send('PONG :tmi.twitch.tv'); return; }
   
+  if (line.indexOf('PRIVMSG') === -1) return;
+
+  let tags = {}; 
   let rest = line;
-  let tags = {};
   
-  if (rest.startsWith('@')) {
-    const sp = rest.indexOf(' ');
-    tags = parseTags(rest.substring(1, sp));
-    rest = rest.substring(sp + 1);
+  if (line.startsWith('@')) {
+    const spaceIdx = line.indexOf(' ');
+    const tagsStr = line.substring(1, spaceIdx);
+    tagsStr.split(';').forEach(pair => { 
+      const eqIdx = pair.indexOf('='); 
+      if (eqIdx !== -1) { tags[pair.substring(0, eqIdx)] = pair.substring(eqIdx + 1); } 
+    });
+    rest = line.substring(spaceIdx + 1);
   }
-
-  if (rest.startsWith(':')) {
-    rest = rest.substring(rest.indexOf(' ') + 1);
+  
+  let login = '';
+  if (rest.startsWith(':')) { 
+    const endPrefix = rest.indexOf('!'); 
+    if (endPrefix !== -1) { login = rest.substring(1, endPrefix); } 
+    else { login = rest.substring(1, rest.indexOf(' ')); } 
   }
-
-  const sp = rest.indexOf(' ');
-  const command = sp === -1 ? rest : rest.substring(0, sp);
-
-  // Обработка подписок
-  if (command === 'USERNOTICE') {
-    const msgId = tags['msg-id'];
-    if (msgId === 'sub' || msgId === 'resub' || msgId === 'subgift') {
-      const login = tags['login'];
-      const months = parseInt(tags['msg-param-cumulative-months'] || tags['msg-param-months'] || '1', 10);
-      if (login) {
-        state.userSubs.set(login, { months: months, isNew: true });
-        if (state.currentWinner === login && els.modal.classList.contains('active')) {
-          updateWinnerSubStatus(login);
-        }
-      }
-    }
-    return;
-  }
-
-  if (command !== 'PRIVMSG') return;
-
-  const sep = rest.indexOf(' :');
-  if (sep === -1) return;
-  const message = rest.substring(sep + 2);
-
-  const login = tags['login'];
-  const displayName = tags['display-name'] || login;
   
   if (!login) return;
-
-  // Парсинг бейджей (подписка)
-  let months = 0;
-  if (tags['badge-info']) {
-    const m = tags['badge-info'].match(/subscriber\/(\d+)/);
-    if (m) months = Math.max(months, parseInt(m[1], 10));
-  }
-  if (tags['badges']) {
-    const m = tags['badges'].match(/(?:subscriber|founder)\/(\d+)/);
-    if (m) months = Math.max(months, parseInt(m[1], 10));
-  }
-
-  if (months > 0) {
-    const existing = state.userSubs.get(login);
-    if (existing) {
-      state.userSubs.set(login, { months: Math.max(existing.months, months), isNew: existing.isNew });
-    } else {
-      state.userSubs.set(login, { months, isNew: false });
-    }
-  }
-
+  
+  const displayName = tags['display-name'] || login;
+  const msgIdx = rest.indexOf(' :'); 
+  if (msgIdx === -1) return;
+  const message = rest.substring(msgIdx + 2);
+  
   addMessage(login, displayName, message);
 }
 
@@ -422,25 +384,7 @@ function appendWinnerMessage(msg, isNew) {
   if (isNew) { els.winnerMessages.prepend(el); els.winnerMessages.scrollTop = 0; } else { els.winnerMessages.appendChild(el); }
 }
 
-function updateWinnerSubStatus(login) {
-  const subInfo = state.userSubs.get(login);
-  if (subInfo) {
-    if (subInfo.isNew) {
-      els.winnerSubStatus.textContent = '⭐ Новый подписчик!';
-      els.winnerSubStatus.className = 'winner-sub-status sub-new';
-    } else {
-      els.winnerSubStatus.textContent = `⭐ Саб на ${subInfo.months} мес.`;
-      els.winnerSubStatus.className = 'winner-sub-status sub-old';
-    }
-  } else {
-    els.winnerSubStatus.textContent = 'Зритель';
-    els.winnerSubStatus.className = 'winner-sub-status sub-none';
-  }
-  els.winnerSubStatus.style.display = 'inline-block';
-}
-
 function fillWinnerInfo(login) {
-  updateWinnerSubStatus(login);
   const messages = state.messages.get(login) || []; const recent = messages.slice(-100);
   if (recent.length === 0) { els.winnerMessages.innerHTML = '<div class="empty">У победителя пока нет сообщений в этой сессии</div>'; } else { for (const msg of recent) appendWinnerMessage(msg, false); }
   els.winnerMessages.scrollTop = els.winnerMessages.scrollHeight; startWinnerTimer();
