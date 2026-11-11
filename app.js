@@ -56,6 +56,8 @@ const els = {
   modal:             document.getElementById('winner-modal'),
   modalContent:      document.getElementById('modal-content'),
   modalSpin:         document.getElementById('modal-spin'),
+  
+  // Старые игры
   spinRoulette:      document.getElementById('spin-roulette'),
   spinRouletteName:  document.getElementById('spin-roulette-name'),
   spinDrum:          document.getElementById('spin-drum'),
@@ -67,6 +69,13 @@ const els = {
   cardsGrid:         document.getElementById('cards-grid'),
   spinWheel:         document.getElementById('spin-wheel'),
   wheelRotating:     document.getElementById('wheel-rotating'),
+
+  // Новые игры
+  spinGun:           document.getElementById('spin-gun'),
+  spinDarts:         document.getElementById('spin-darts'),
+  spinBingo:         document.getElementById('spin-bingo'),
+  bingoGrid:         document.getElementById('bingo-grid'),
+
   winnerTimer:       document.getElementById('winner-timer'),
   winnerName:        document.getElementById('winner-name'),
   winnerMessages:    document.getElementById('winner-messages'),
@@ -506,7 +515,7 @@ function renderParticipant(login, displayName, isNew = false) {
   excludeBtn.className = 'participant-exclude-btn';
   excludeBtn.type = 'button';
   excludeBtn.textContent = state.excludedUsers.has(login) ? '↺' : '✕';
-  excludeBtn.title = state.excludedUsers.has(login) ? 'Вернуть' : 'Исключить';
+  excludeBtn.title = state.excludedUsers.has(login) ? 'Вернуть в розыгрыш' : 'Исключить из розыгрыша';
   excludeBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleExcludeParticipant(login); });
 
   el.appendChild(avatar);
@@ -568,7 +577,7 @@ function addSystemMessage(text) {
 }
 
 /* =========================================================
-   ⏱ Таймер и победитель
+   ⏱ Таймер
    ========================================================= */
 function startWinnerTimer() {
   els.winnerTimer.classList.remove('timer-done');
@@ -622,10 +631,10 @@ function fillWinnerInfo(login) {
 }
 
 /* =========================================================
-   🎮 Мини-игры
+   🎮 Инициализация мини-игр
    ========================================================= */
 function initMinigames() {
-  const known = ['instant', 'roulette', 'drum', 'case', 'cards', 'wheel'];
+  const known = ['instant', 'roulette', 'drum', 'case', 'cards', 'wheel', 'gun', 'darts', 'bingo'];
   let saved = localStorage.getItem('energyroll_minigame');
   if (!known.includes(saved)) saved = 'instant';
   state.miniGame = saved;
@@ -642,6 +651,9 @@ function initMinigames() {
   });
 }
 
+/* =========================================================
+   🎡 Рулетка
+   ========================================================= */
 function updateRouletteName(name) {
   els.spinRouletteName.textContent = name;
   els.spinRouletteName.title = name;
@@ -657,6 +669,9 @@ function playRoulette(displayName) {
     els.spinCase.hidden = true;
     els.spinCards.hidden = true;
     els.spinWheel.hidden = true;
+    els.spinGun.hidden = true;
+    els.spinDarts.hidden = true;
+    els.spinBingo.hidden = true;
     els.spinRouletteName.classList.remove('spin-name-final');
 
     const duration = 2500;
@@ -684,6 +699,9 @@ function playRoulette(displayName) {
   });
 }
 
+/* =========================================================
+   🎰 Барабан
+   ========================================================= */
 const DRUM_ITEM_HEIGHT   = 64;
 const DRUM_VISIBLE_ITEMS = 5;
 const DRUM_TOTAL_ITEMS   = 50;
@@ -712,6 +730,9 @@ function playDrum(winnerLogin, winnerName) {
     els.spinCase.hidden = true;
     els.spinCards.hidden = true;
     els.spinWheel.hidden = true;
+    els.spinGun.hidden = true;
+    els.spinDarts.hidden = true;
+    els.spinBingo.hidden = true;
 
     const strip = els.drumStrip;
     strip.innerHTML = '';
@@ -749,6 +770,9 @@ function playDrum(winnerLogin, winnerName) {
   });
 }
 
+/* =========================================================
+   🎁 Кейс
+   ========================================================= */
 const CASE_ITEM_WIDTH  = 120;
 const CASE_ITEM_GAP    = 8;
 const CASE_TOTAL_ITEMS = 40;
@@ -762,6 +786,9 @@ function playCase(winnerLogin, winnerName) {
     els.spinCase.hidden = false;
     els.spinCards.hidden = true;
     els.spinWheel.hidden = true;
+    els.spinGun.hidden = true;
+    els.spinDarts.hidden = true;
+    els.spinBingo.hidden = true;
 
     const strip = els.caseStrip;
     strip.innerHTML = '';
@@ -813,6 +840,9 @@ function playCase(winnerLogin, winnerName) {
   });
 }
 
+/* =========================================================
+   🃏 Карты
+   ========================================================= */
 async function shuffleCardsWithFlip(grid) {
   return new Promise((resolve) => {
     const cards = Array.from(grid.children);
@@ -840,6 +870,9 @@ function playCards(pool) {
     els.spinCase.hidden = true;
     els.spinCards.hidden = false;
     els.spinWheel.hidden = true;
+    els.spinGun.hidden = true;
+    els.spinDarts.hidden = true;
+    els.spinBingo.hidden = true;
 
     const grid = els.cardsGrid;
     grid.innerHTML = '';
@@ -907,6 +940,9 @@ function playCards(pool) {
   });
 }
 
+/* =========================================================
+   🎯 Колесо
+   ========================================================= */
 function playWheel(pool, winnerLogin, winnerName) {
   return new Promise((resolve) => {
     els.spinRoulette.hidden = true;
@@ -914,6 +950,9 @@ function playWheel(pool, winnerLogin, winnerName) {
     els.spinCase.hidden = true;
     els.spinCards.hidden = true;
     els.spinWheel.hidden = false;
+    els.spinGun.hidden = true;
+    els.spinDarts.hidden = true;
+    els.spinBingo.hidden = true;
 
     let wheelLogins = pool.length <= 12 ? [...pool] : pool.filter(l => l !== winnerLogin).slice(0, 11).concat([winnerLogin]);
     for (let i = wheelLogins.length - 1; i > 0; i--) {
@@ -986,6 +1025,202 @@ function playWheel(pool, winnerLogin, winnerName) {
 }
 
 /* =========================================================
+   🔫 Русская рулетка
+   ========================================================= */
+function playGun(winnerLogin, winnerName) {
+  return new Promise((resolve) => {
+    els.spinRoulette.hidden = true;
+    els.spinDrum.hidden = true;
+    els.spinCase.hidden = true;
+    els.spinCards.hidden = true;
+    els.spinWheel.hidden = true;
+    els.spinGun.hidden = false;
+    els.spinDarts.hidden = true;
+    els.spinBingo.hidden = true;
+
+    const container = document.querySelector('.gun-chambers');
+    container.innerHTML = '';
+    
+    for (let i = 0; i < 6; i++) {
+      const hole = document.createElement('div');
+      hole.className = 'gun-chamber-hole';
+      const angle = (i * 60) * (Math.PI / 180);
+      const radius = 100;
+      const x = 150 + Math.cos(angle) * radius - 25;
+      const y = 150 + Math.sin(angle) * radius - 25;
+      hole.style.left = `${x}px`;
+      hole.style.top = `${y}px`;
+      if (i === 0) hole.classList.add('bullet'); 
+      container.appendChild(hole);
+    }
+
+    container.style.transition = 'none';
+    container.style.transform = 'rotate(0deg)';
+    void container.offsetHeight;
+
+    const targetRotation = 360 * 3 + 90; 
+    const duration = 3000;
+    const start = performance.now();
+
+    function tick(now) {
+      if (spinCancel) { resolve(); return; }
+      const elapsed = now - start;
+      const t = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - t, 4);
+      const currentRotation = targetRotation * eased;
+      container.style.transform = `rotate(${currentRotation}deg)`;
+
+      if (t < 1) {
+        requestAnimationFrame(tick);
+      } else {
+        container.style.transform = `rotate(${targetRotation}deg)`;
+        setTimeout(() => { els.spinGun.hidden = true; resolve(); }, 1000);
+      }
+    }
+    requestAnimationFrame(tick);
+  });
+}
+
+/* =========================================================
+   🎯 Дартс
+   ========================================================= */
+function playDarts(winnerLogin, winnerName) {
+  return new Promise((resolve) => {
+    els.spinRoulette.hidden = true;
+    els.spinDrum.hidden = true;
+    els.spinCase.hidden = true;
+    els.spinCards.hidden = true;
+    els.spinWheel.hidden = true;
+    els.spinGun.hidden = true;
+    els.spinDarts.hidden = false;
+    els.spinBingo.hidden = true;
+
+    const board = document.getElementById('dartboard');
+    board.innerHTML = '';
+    
+    for (let i = 0; i < 8; i++) {
+      const slice = document.createElement('div');
+      slice.className = 'dartboard-slice';
+      slice.style.transform = `rotate(${i * 45}deg) skewY(45deg)`;
+      slice.style.background = i % 2 === 0 ? 'var(--bg-panel)' : 'var(--bg-tertiary)';
+      board.appendChild(slice);
+    }
+
+    const dart = document.getElementById('dart');
+    dart.innerHTML = '<div class="dart-fletching"></div><div class="dart-head"></div>';
+    
+    dart.style.transition = 'none';
+    dart.style.transform = 'translate(200px, 400px) rotate(45deg) scale(2)';
+    dart.style.opacity = '0';
+    void dart.offsetHeight;
+
+    dart.style.transition = 'all 1.5s cubic-bezier(0.25, 1, 0.5, 1)';
+    dart.style.opacity = '1';
+    
+    setTimeout(() => {
+      dart.style.transform = 'translate(-50%, -50%) rotate(0deg) scale(1)';
+      board.style.animation = 'shake 0.3s ease';
+      
+      setTimeout(() => {
+        board.style.animation = '';
+        els.spinDarts.hidden = true;
+        resolve();
+      }, 1000);
+    }, 100);
+  });
+}
+
+/* =========================================================
+   🔢 Бинго
+   ========================================================= */
+function playBingo(pool, winnerLogin, winnerName) {
+  return new Promise((resolve) => {
+    els.spinRoulette.hidden = true;
+    els.spinDrum.hidden = true;
+    els.spinCase.hidden = true;
+    els.spinCards.hidden = true;
+    els.spinWheel.hidden = true;
+    els.spinGun.hidden = true;
+    els.spinDarts.hidden = true;
+    els.spinBingo.hidden = false;
+
+    const grid = els.bingoGrid;
+    grid.innerHTML = '';
+
+    let bingoLogins = [...pool];
+    if (bingoLogins.length > 25) {
+      bingoLogins = bingoLogins.slice(0, 25);
+      if (!bingoLogins.includes(winnerLogin)) bingoLogins[24] = winnerLogin;
+    } else if (bingoLogins.length < 25) {
+      while (bingoLogins.length < 25) {
+        bingoLogins.push(bingoLogins[Math.floor(Math.random() * bingoLogins.length)] || winnerLogin);
+      }
+    }
+
+    for (let i = bingoLogins.length - 1; i > 0; i--) {
+      const j = secureRandomInt(i + 1);
+      [bingoLogins[i], bingoLogins[j]] = [bingoLogins[j], bingoLogins[i]];
+    }
+
+    const cells = [];
+    bingoLogins.forEach((login) => {
+      const name = state.users.get(login) || login;
+      const cell = document.createElement('div');
+      cell.className = 'bingo-cell';
+      
+      const avatar = document.createElement('div');
+      avatar.className = 'bingo-avatar';
+      avatar.style.background = avatarGradient(login);
+      avatar.textContent = (name || '?').charAt(0).toUpperCase();
+      
+      const nameEl = document.createElement('div');
+      nameEl.className = 'bingo-name';
+      nameEl.textContent = name;
+      
+      cell.appendChild(avatar);
+      cell.appendChild(nameEl);
+      grid.appendChild(cell);
+      cells.push({ el: cell, login });
+    });
+
+    let remaining = [...cells];
+    const duration = 3000;
+    const start = performance.now();
+    let lastTick = 0;
+
+    function tick(now) {
+      if (spinCancel) { resolve(); return; }
+      const elapsed = now - start;
+      let interval = 500;
+      if (elapsed > duration * 0.3 && elapsed < duration * 0.8) interval = 50;
+      
+      if (elapsed - lastTick > interval) {
+        lastTick = elapsed;
+        const available = remaining.filter(c => c.login !== winnerLogin && !c.el.classList.contains('crossed'));
+        
+        if (available.length > 1 && elapsed < duration * 0.95) {
+          const toCross = available[secureRandomInt(available.length)];
+          toCross.el.classList.add('crossed');
+        } else {
+          remaining.forEach(c => {
+            if (c.login !== winnerLogin) c.el.classList.add('crossed');
+          });
+        }
+      }
+
+      if (elapsed < duration + 500) {
+        requestAnimationFrame(tick);
+      } else {
+        const winnerCell = remaining.find(c => c.login === winnerLogin);
+        if (winnerCell) winnerCell.el.classList.add('winner');
+        setTimeout(() => { els.spinBingo.hidden = true; resolve(); }, 1000);
+      }
+    }
+    requestAnimationFrame(tick);
+  });
+}
+
+/* =========================================================
    🏆 Выбор победителя
    ========================================================= */
 async function pickWinner() {
@@ -1032,6 +1267,13 @@ async function showWinnerWithSpin(login) {
     const basePool = getActiveWinnerPool().filter((l) => l !== login);
     const wheelPool = [...new Set([...basePool, login])];
     await playWheel(wheelPool, login, displayName);
+  }
+  else if (state.miniGame === 'gun') await playGun(login, displayName);
+  else if (state.miniGame === 'darts') await playDarts(login, displayName);
+  else if (state.miniGame === 'bingo') {
+    const basePool = getActiveWinnerPool().filter((l) => l !== login);
+    const bingoPool = [...new Set([...basePool, login])];
+    await playBingo(bingoPool, login, displayName);
   }
 
   els.modalSpin.hidden = true;
@@ -1116,6 +1358,9 @@ function closeWinnerModal() {
   els.spinCase.hidden = true;
   els.spinCards.hidden = true;
   els.spinWheel.hidden = true;
+  els.spinGun.hidden = true;
+  els.spinDarts.hidden = true;
+  els.spinBingo.hidden = true;
   els.modalPayoutInput.value = '';
   clearWinnerTimer();
   state.currentWinner = null;
@@ -1175,7 +1420,7 @@ function renderWinnersHistory() {
 }
 
 /* =========================================================
-   🪄 ВИЗУАЛЬНЫЕ ЭФФЕКТЫ (3D и Ripple)
+   🪄 ВИЗУАЛЬНЫЕ ЭФФЕКТЫ
    ========================================================= */
 function initTilt() {
   const cards = document.querySelectorAll('.minigame-item');

@@ -19,14 +19,11 @@
     </div>
 
     <div id="auth-section">
-      <!-- Блок ручного подключения к чату -->
       <div class="channel-box">
         <input type="text" id="channel-input" class="keyword-input" placeholder="Имя канала" autocomplete="off" spellcheck="false" />
         <button id="connect-btn" class="btn btn-primary">Подключить</button>
         <button id="disconnect-btn" class="btn btn-secondary" disabled>Отключить</button>
       </div>
-
-      <!-- ⚙️ Кнопка настроек всегда снаружи и видна всем -->
       <button id="settings-btn" class="btn btn-ghost btn-icon" title="Настройки">⚙️</button>
     </div>
   </header>
@@ -68,9 +65,25 @@
             <div class="minigame-info"><div class="minigame-title">Колесо</div></div>
             <span class="minigame-check">✓</span>
           </button>
+          
+          <!-- НОВЫЕ ИГРЫ -->
+          <button class="minigame-item" data-mode="gun">
+            <span class="minigame-icon">🔫</span>
+            <div class="minigame-info"><div class="minigame-title">Русская рулетка</div></div>
+            <span class="minigame-check">✓</span>
+          </button>
+          <button class="minigame-item" data-mode="darts">
+            <span class="minigame-icon">🎯</span>
+            <div class="minigame-info"><div class="minigame-title">Дартс</div></div>
+            <span class="minigame-check">✓</span>
+          </button>
+          <button class="minigame-item" data-mode="bingo">
+            <span class="minigame-icon">🔢</span>
+            <div class="minigame-info"><div class="minigame-title">Бинго</div></div>
+            <span class="minigame-check">✓</span>
+          </button>
 
           <div class="top-mode-divider"></div>
-
           <button id="top-mode-toggle" class="top-mode-btn">
             <span class="top-mode-icon">🔥</span>
             <span class="top-mode-text">Топ-10 по сообщениям</span>
@@ -138,6 +151,7 @@
     <div class="modal-backdrop"></div>
     <div class="modal-content" id="modal-content">
       <div class="modal-spin" id="modal-spin" hidden>
+        <!-- Старые игры -->
         <div class="spin-view" id="spin-roulette" hidden>
           <div class="spin-roulette-name" id="spin-roulette-name">—</div>
         </div>
@@ -167,6 +181,26 @@
             <div class="wheel-center-dot"></div>
           </div>
         </div>
+
+        <!-- НОВЫЕ ИГРЫ -->
+        <div class="spin-view" id="spin-gun" hidden>
+          <div class="gun-container">
+            <div class="gun-chambers" id="gun-chambers"></div>
+            <div class="gun-pin"></div>
+          </div>
+        </div>
+
+        <div class="spin-view" id="spin-darts" hidden>
+          <div class="dartboard-container" id="dartboard-container">
+            <div class="dartboard" id="dartboard"></div>
+            <div class="dart" id="dart"></div>
+          </div>
+        </div>
+
+        <div class="spin-view" id="spin-bingo" hidden>
+          <div class="bingo-grid" id="bingo-grid"></div>
+        </div>
+
       </div>
 
       <div class="modal-timer" id="winner-timer">0:00</div>
