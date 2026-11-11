@@ -268,16 +268,24 @@ function handleIrcLine(line, ws) {
   
   let rest = line;
   let tags = {};
+  
+  // 1. Извлекаем теги
   if (rest.startsWith('@')) {
     const sp = rest.indexOf(' ');
     tags = parseTags(rest.substring(1, sp));
     rest = rest.substring(sp + 1);
   }
 
+  // 2. Извлекаем префикс (например, ":user!user@user.tmi.twitch.tv")
+  if (rest.startsWith(':')) {
+    rest = rest.substring(rest.indexOf(' ') + 1);
+  }
+
+  // 3. Теперь получаем команду (PRIVMSG, USERNOTICE и т.д.)
   const sp = rest.indexOf(' ');
   const command = sp === -1 ? rest : rest.substring(0, sp);
   
-  // Отлов события подписки (USERNOTICE)
+  // 4. Отлов события подписки (USERNOTICE)
   if (command === 'USERNOTICE') {
     const msgId = tags['msg-id'];
     if (msgId === 'sub' || msgId === 'resub' || msgId === 'subgift') {
@@ -294,6 +302,7 @@ function handleIrcLine(line, ws) {
     return;
   }
 
+  // 5. Обработка обычных сообщений (PRIVMSG)
   if (command !== 'PRIVMSG') return;
 
   const sep = rest.indexOf(' :');
@@ -305,7 +314,7 @@ function handleIrcLine(line, ws) {
   
   if (!login) return;
 
-  // Парсинг бейджей подписки
+  // 6. Парсинг бейджей подписки
   let months = 0;
   if (tags['badge-info']) {
     const m = tags['badge-info'].match(/subscriber\/(\d+)/);
