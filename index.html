@@ -19,19 +19,10 @@
     </div>
 
     <div id="auth-section">
-      <a id="login-btn" href="#" class="btn btn-twitch" hidden>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/>
-        </svg>
-        Войти через Twitch
-      </a>
-      
-      <div id="user-info" class="user-info" hidden>
-        <div class="user-name-row">
-          <span class="user-dot"></span>
-          <span id="user-name"></span>
-        </div>
-        <button id="logout-btn" class="btn btn-ghost">Выйти</button>
+      <!-- Блок ручного подключения к чату -->
+      <div class="channel-box">
+        <input type="text" id="channel-input" class="keyword-input" placeholder="Имя канала (например, streamer)" autocomplete="off" spellcheck="false" />
+        <button id="connect-btn" class="btn btn-primary">Подключить</button>
       </div>
 
       <!-- ⚙️ Кнопка настроек всегда снаружи и видна всем -->
@@ -107,10 +98,10 @@
       <section id="chat-panel" class="panel">
         <div class="panel-header">
           <h2>💬 Чат</h2>
-          <span id="status-text" class="status status-off">Не подключён</span>
+          <span id="status-text" class="status status-off">Введите имя канала</span>
         </div>
         <div id="chat-messages" class="chat-messages">
-          <div class="chat-empty">Войдите через Twitch, чтобы подключиться к чату</div>
+          <div class="chat-empty">Подключитесь к каналу, чтобы начать сбор сообщений</div>
         </div>
       </section>
 

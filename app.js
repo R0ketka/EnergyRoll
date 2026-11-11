@@ -2,9 +2,7 @@
    Состояние
    ========================================================= */
 const state = {
-  token: null,
-  userLogin: null,
-  userDisplayName: null,
+  userLogin: null, // Теперь тут хранится имя канала
   ws: null,
   keyword: '',
   collectedUsers: new Set(),
@@ -37,10 +35,8 @@ const avatarCache = new Map();
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const els = {
-  loginBtn:          document.getElementById('login-btn'),
-  userInfo:          document.getElementById('user-info'),
-  userName:          document.getElementById('user-name'),
-  logoutBtn:         document.getElementById('logout-btn'),
+  channelInput:      document.getElementById('channel-input'),
+  connectBtn:        document.getElementById('connect-btn'),
   settingsBtn:       document.getElementById('settings-btn'),
   keywordInput:      document.getElementById('keyword-input'),
   chatMessages:      document.getElementById('chat-messages'),
@@ -365,63 +361,34 @@ function addParticipantByLogin() {
 }
 
 /* =========================================================
-   Авторизация
+   Подключение к чату (анонимно)
    ========================================================= */
-function showLoginButton() {
-  els.loginBtn.hidden = false;
-  els.userInfo.hidden = true;
-  els.loginBtn.href =
-    'https://id.twitch.tv/oauth2/authorize' +
-    '?client_id=' + encodeURIComponent(CONFIG.CLIENT_ID) +
-    '&redirect_uri=' + encodeURIComponent(CONFIG.REDIRECT_URI) +
-    '&response_type=token' +
-    '&scope=' + encodeURIComponent(CONFIG.SCOPES);
-}
-
-function showUserInfo() {
-  els.loginBtn.hidden = true;
-  els.userInfo.hidden = false;
-  els.userName.textContent = state.userDisplayName;
-  els.userName.title = state.userDisplayName;
-}
-
-function logout() {
-  sessionStorage.removeItem('twitch_access_token');
-  if (state.ws) state.ws.close();
-  window.location.reload();
-}
-
-async function loadUserAndConnect() {
-  const resp = await fetch(CONFIG.API_URL + '/users', {
-    headers: {
-      'Authorization': 'Bearer ' + state.token,
-      'Client-Id': CONFIG.CLIENT_ID
-    }
-  });
-  if (!resp.ok) {
-    const err = new Error('Не удалось загрузить профиль (HTTP ' + resp.status + ')');
-    err.status = resp.status;
-    throw err;
+function connectChatAnonymously(channelName) {
+  if (state.ws) {
+    state.ws.close();
   }
-  const data = await resp.json();
-  const user = data.data[0];
-  state.userLogin = user.login;
-  state.userDisplayName = user.display_name;
-  showUserInfo();
-  els.clearCollect.disabled = false;
-  connectChat();
-}
 
-function connectChat() {
+  const channel = channelName.toLowerCase().trim().replace(/^#/, '').replace(/[^a-z0-9_]/g, '');
+  if (!channel) {
+    addSystemMessage('⚠ Введите корректное имя канала.');
+    return;
+  }
+
+  localStorage.setItem('energyroll_channel', channel);
+  state.userLogin = channel;
+
   setStatus('Подключение...', 'wait');
   state.ws = new WebSocket(CONFIG.CHAT_WS_URL);
 
   state.ws.onopen = () => {
-    state.ws.send('PASS oauth:' + state.token);
-    state.ws.send('NICK ' + state.userLogin);
+    const anonNick = 'justinfan' + Math.floor(Math.random() * 99999);
+    
+    state.ws.send('PASS schmoopiie');
+    state.ws.send('NICK ' + anonNick);
     state.ws.send('CAP REQ :twitch.tv/tags twitch.tv/commands');
-    state.ws.send('JOIN #' + state.userLogin);
-    setStatus('В чате: #' + state.userLogin, 'ok');
+    state.ws.send('JOIN #' + channel);
+    
+    setStatus('В чате: #' + channel, 'ok');
   };
 
   state.ws.onmessage = (event) => {
@@ -431,12 +398,26 @@ function connectChat() {
 
   state.ws.onclose = () => {
     setStatus('Переподключение...', 'wait');
-    setTimeout(connectChat, 3000);
+    setTimeout(() => connectChatAnonymously(channel), 3000);
   };
 
-  state.ws.onerror = () => setStatus('Ошибка соединения', 'off');
+  state.ws.onerror = () => {
+    setStatus('Ошибка соединения', 'off');
+  };
 }
 
+function handleConnectClick() {
+  const channel = els.channelInput.value.trim();
+  if (!channel) {
+    addSystemMessage('⚠ Введите имя канала.');
+    return;
+  }
+  connectChatAnonymously(channel);
+}
+
+/* =========================================================
+   Парсинг IRC
+   ========================================================= */
 function parseTags(raw) {
   const tags = {};
   if (!raw) return tags;
@@ -477,6 +458,9 @@ function handleIrcLine(line) {
   if (login) addMessage(login, displayName, message);
 }
 
+/* =========================================================
+   Сообщения
+   ========================================================= */
 function addMessage(login, displayName, text) {
   const time = new Date();
 
@@ -1067,8 +1051,6 @@ function playWheel(pool, winnerLogin, winnerName) {
     const g = els.wheelRotating;
     g.innerHTML = '';
 
-    const colors = ['#4d2222', '#2e1212', '#3c1a1a'];
-    // Получаем цвет из CSS-переменной для актуальной темы
     const themeColors = [
       getComputedStyle(document.documentElement).getPropertyValue('--bg-panel').trim() || '#2e1212',
       getComputedStyle(document.documentElement).getPropertyValue('--bg-tertiary').trim() || '#3c1a1a',
@@ -1378,7 +1360,6 @@ function renderWinnersHistory() {
     wrap.appendChild(input);
     wrap.appendChild(cur);
 
-    // 🗑 Кнопка удаления
     const del = document.createElement('button');
     del.className = 'winner-delete-btn';
     del.type = 'button';
@@ -1455,32 +1436,26 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-els.logoutBtn.addEventListener('click', logout);
-
 /* =========================================================
    Старт
    ========================================================= */
-async function init() {
+function init() {
   initTheme();
   initMinigames();
   updateTopModeButton();
   renderTopChatters();
-  showLoginButton();
 
-  const token = sessionStorage.getItem('twitch_access_token');
-  if (!token) return;
-  state.token = token;
-  try {
-    await loadUserAndConnect();
-  } catch (err) {
-    console.error(err);
-    if (err.status === 401) {
-      sessionStorage.removeItem('twitch_access_token');
-      showLoginButton();
-      addSystemMessage('⚠ Сессия истекла, войдите снова.');
-    } else {
-      setStatus('Ошибка: ' + err.message, 'off');
-    }
+  els.connectBtn.addEventListener('click', handleConnectClick);
+  els.channelInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') handleConnectClick();
+  });
+
+  const savedChannel = localStorage.getItem('energyroll_channel');
+  if (savedChannel) {
+    els.channelInput.value = savedChannel;
+    connectChatAnonymously(savedChannel);
+  } else {
+    setStatus('Введите имя канала', 'off');
   }
 }
 

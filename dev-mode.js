@@ -1,15 +1,14 @@
 /* ==========================================================
    🧪 DEV MODE — ТОЛЬКО ДЛЯ РАЗРАБОТКИ
    Активируется через URL:  index.html?dev=1
-   Отключить на продакшене: удалить этот файл
-   и строку <script src="dev-mode.js"></script> в index.html.
+   Отключает подключение к реальному чату и запускает фейковый.
    ========================================================== */
 (function () {
   'use strict';
   if (!new URLSearchParams(location.search).has('dev')) return;
 
   console.log(
-    '%c🧪 DEV MODE ON%c — фейковый чат для теста выбора победителя',
+    '%c🧪 DEV MODE ON%c — фейковый чат',
     'background:#e63858;color:#fff;padding:4px 8px;border-radius:4px;font-weight:bold',
     'color:#e63858'
   );
@@ -40,15 +39,15 @@
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
   function initDevMode() {
-    // Притворяемся авторизованным
-    els.loginBtn.hidden = true;
-    els.userInfo.hidden = false;
-    els.userName.textContent = 'DEV (без авторизации)';
+    // Отключаем реальное подключение, если оно началось
+    if (window.state && window.state.ws) {
+      window.state.ws.close();
+    }
+
     setStatus('DEV MODE', 'wait');
 
-    // Предупреждающий баннер
     const banner = document.createElement('div');
-    banner.textContent = '🧪 DEV MODE — фейковый чат (уберите ?dev=1 из URL, чтобы выключить)';
+    banner.textContent = '🧪 DEV MODE — фейковый чат (уберите ?dev=1 из URL)';
     Object.assign(banner.style, {
       position: 'fixed',
       top: '0',
@@ -67,20 +66,16 @@
     document.body.appendChild(banner);
     document.body.style.paddingTop = '52px';
 
-    // Устанавливаем ключевое слово
     els.keywordInput.value = DEV_KEYWORD;
     state.keyword = DEV_KEYWORD;
 
-    // Разблокируем кнопки
     els.clearCollect.disabled = false;
 
-    // Стартовый «залп»
     for (let i = 0; i < 14; i++) {
       const user = pick(FAKE_USERS);
       addMessage(user.login, user.display, pick(FAKE_MESSAGES));
     }
 
-    // Бесконечный поток
     function tick() {
       const user = pick(FAKE_USERS);
       addMessage(user.login, user.display, pick(FAKE_MESSAGES));
@@ -93,5 +88,6 @@
     );
   }
 
-  initDevMode();
+  // Небольшая задержка, чтобы app.js успел инициализироваться
+  setTimeout(initDevMode, 100);
 })();
