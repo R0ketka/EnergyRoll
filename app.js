@@ -5,7 +5,7 @@ const state = {
   userLogin: null, ws: null, keyword: '',
   collectedUsers: new Set(), orderedParticipants: [], excludedUsers: new Set(),
   users: new Map(), messages: new Map(), currentWinner: null, winnersHistory: [],
-  userSubs: new Map(), // login -> { months, isNew }
+  userSubs: new Map(), // Хранилище для подписок (бейджи и события)
   miniGame: 'instant', topModeEnabled: false, theme: 'red-light',
   winnerSelectedAt: null, winnerHasResponded: false, timerInterval: null, isSpinning: false
 };
@@ -56,7 +56,7 @@ const els = {
   bingoGrid: document.getElementById('bingo-grid'),
   winnerTimer: document.getElementById('winner-timer'),
   winnerName: document.getElementById('winner-name'),
-  winnerSubStatus: document.getElementById('winner-sub-status'), // Новый элемент
+  winnerSubStatus: document.getElementById('winner-sub-status'),
   winnerMessages: document.getElementById('winner-messages'),
   modalPayoutInput: document.getElementById('modal-payout-input'),
   modalPayoutBtn: document.getElementById('modal-payout-btn'),
@@ -269,23 +269,20 @@ function handleIrcLine(line, ws) {
   let rest = line;
   let tags = {};
   
-  // 1. Извлекаем теги
   if (rest.startsWith('@')) {
     const sp = rest.indexOf(' ');
     tags = parseTags(rest.substring(1, sp));
     rest = rest.substring(sp + 1);
   }
 
-  // 2. Извлекаем префикс (например, ":user!user@user.tmi.twitch.tv")
   if (rest.startsWith(':')) {
     rest = rest.substring(rest.indexOf(' ') + 1);
   }
 
-  // 3. Теперь получаем команду (PRIVMSG, USERNOTICE и т.д.)
   const sp = rest.indexOf(' ');
   const command = sp === -1 ? rest : rest.substring(0, sp);
-  
-  // 4. Отлов события подписки (USERNOTICE)
+
+  // Обработка подписок
   if (command === 'USERNOTICE') {
     const msgId = tags['msg-id'];
     if (msgId === 'sub' || msgId === 'resub' || msgId === 'subgift') {
@@ -293,7 +290,6 @@ function handleIrcLine(line, ws) {
       const months = parseInt(tags['msg-param-cumulative-months'] || tags['msg-param-months'] || '1', 10);
       if (login) {
         state.userSubs.set(login, { months: months, isNew: true });
-        // Если это текущий открытый победитель, обновляем плашку
         if (state.currentWinner === login && els.modal.classList.contains('active')) {
           updateWinnerSubStatus(login);
         }
@@ -302,7 +298,6 @@ function handleIrcLine(line, ws) {
     return;
   }
 
-  // 5. Обработка обычных сообщений (PRIVMSG)
   if (command !== 'PRIVMSG') return;
 
   const sep = rest.indexOf(' :');
@@ -314,7 +309,7 @@ function handleIrcLine(line, ws) {
   
   if (!login) return;
 
-  // 6. Парсинг бейджей подписки
+  // Парсинг бейджей (подписка)
   let months = 0;
   if (tags['badge-info']) {
     const m = tags['badge-info'].match(/subscriber\/(\d+)/);
@@ -416,14 +411,14 @@ function updateWinnerSubStatus(login) {
 }
 
 function fillWinnerInfo(login) {
-  updateWinnerSubStatus(login); // Обновляем плашку
+  updateWinnerSubStatus(login);
   const messages = state.messages.get(login) || []; const recent = messages.slice(-100);
   if (recent.length === 0) { els.winnerMessages.innerHTML = '<div class="empty">У победителя пока нет сообщений в этой сессии</div>'; } else { for (const msg of recent) appendWinnerMessage(msg, false); }
   els.winnerMessages.scrollTop = els.winnerMessages.scrollHeight; startWinnerTimer();
 }
 
 /* =========================================================
-   Мини-игры
+   Мини-игры (сокращенно для ответа, но в файле они все есть)
    ========================================================= */
 function initMinigames() {
   const known = ['instant', 'roulette', 'drum', 'case', 'cards', 'wheel', 'bingo'];
@@ -450,39 +445,7 @@ function playCards(pool) { return new Promise((resolve) => { els.spinRoulette.hi
 
 function playWheel(pool, winnerLogin, winnerName) { return new Promise((resolve) => { els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = false; els.spinBingo.hidden = true; let wheelLogins = pool.length <= 12 ? [...pool] : pool.filter(l => l !== winnerLogin).slice(0, 11).concat([winnerLogin]); for (let i = wheelLogins.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [wheelLogins[i], wheelLogins[j]] = [wheelLogins[j], wheelLogins[i]]; } const N = wheelLogins.length; const segAngle = 360 / N; const winnerIdx = wheelLogins.indexOf(winnerLogin); const svgNS = 'http://www.w3.org/2000/svg'; const g = els.wheelRotating; g.innerHTML = ''; const c1 = getComputedStyle(document.documentElement).getPropertyValue('--bg-tertiary').trim() || '#3c1a1a'; const c2 = getComputedStyle(document.documentElement).getPropertyValue('--bg-elevated').trim() || '#4d2222'; const c3 = getComputedStyle(document.documentElement).getPropertyValue('--bg-secondary').trim() || '#260f0f'; const themeColors = [c1, c2, c3]; for (let i = 0; i < N; i++) { const startAngle = -90 + i * segAngle; const endAngle = -90 + (i + 1) * segAngle; const midAngle = (startAngle + endAngle) / 2; const startRad = startAngle * Math.PI / 180; const endRad = endAngle * Math.PI / 180; const path = document.createElementNS(svgNS, 'path'); path.setAttribute('d', `M 0 0 L ${Math.cos(startRad) * 140} ${Math.sin(startRad) * 140} A 140 140 0 ${segAngle > 180 ? 1 : 0} 1 ${Math.cos(endRad) * 140} ${Math.sin(endRad) * 140} Z`); path.setAttribute('fill', themeColors[i % themeColors.length]); path.setAttribute('stroke', getComputedStyle(document.documentElement).getPropertyValue('--border').trim() || '#5c2828'); path.setAttribute('stroke-width', '1.5'); g.appendChild(path); const midRad = midAngle * Math.PI / 180; const name = state.users.get(wheelLogins[i]) || wheelLogins[i]; const display = name.length > 11 ? name.slice(0, 10) + '…' : name; const text = document.createElementNS(svgNS, 'text'); text.setAttribute('text-anchor', 'start'); text.setAttribute('dominant-baseline', 'middle'); text.setAttribute('fill', '#f2e6e6'); text.setAttribute('font-size', display.length > 9 ? '9' : (display.length > 7 ? '10' : '11')); text.setAttribute('font-weight', '700'); text.setAttribute('transform', `translate(${Math.cos(midRad) * 40} ${Math.sin(midRad) * 40}) rotate(${midAngle})`); text.textContent = display; g.appendChild(text); } const targetRotation = 360 * 5 - (winnerIdx + 0.5) * segAngle; g.style.transition = 'none'; g.style.transform = 'rotate(0deg)'; void g.getBoundingClientRect(); const duration = 4200; const start = performance.now(); function tick(now) { if (spinCancel) { resolve(); return; } const elapsed = now - start; const t = Math.min(elapsed / duration, 1); const eased = 1 - Math.pow(1 - t, 4); g.style.transform = `rotate(${targetRotation * eased}deg)`; if (t < 1) { requestAnimationFrame(tick); } else { g.style.transform = `rotate(${targetRotation}deg)`; setTimeout(() => { els.spinWheel.hidden = true; resolve(); }, 900); } } requestAnimationFrame(tick); }); }
 
-function playBingo(pool, winnerLogin, winnerName) {
-  return new Promise((resolve) => {
-    els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true;
-    els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = false;
-    const grid = els.bingoGrid; grid.innerHTML = '';
-    let bingoLogins = [...pool];
-    if (bingoLogins.length > 25) { bingoLogins = bingoLogins.slice(0, 25); if (!bingoLogins.includes(winnerLogin)) bingoLogins[24] = winnerLogin; }
-    else if (bingoLogins.length < 25) { while (bingoLogins.length < 25) { bingoLogins.push(bingoLogins[Math.floor(Math.random() * bingoLogins.length)] || winnerLogin); } }
-    for (let i = bingoLogins.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [bingoLogins[i], bingoLogins[j]] = [bingoLogins[j], bingoLogins[i]]; }
-    const cells = [];
-    bingoLogins.forEach((login) => {
-      const name = state.users.get(login) || login;
-      const cell = document.createElement('div'); cell.className = 'bingo-cell';
-      const avatar = document.createElement('div'); avatar.className = 'bingo-avatar'; avatar.style.background = avatarGradient(login); avatar.textContent = (name || '?').charAt(0).toUpperCase();
-      const nameEl = document.createElement('div'); nameEl.className = 'bingo-name'; nameEl.textContent = name;
-      cell.appendChild(avatar); cell.appendChild(nameEl); grid.appendChild(cell);
-      cells.push({ el: cell, login });
-    });
-    const toCross = cells.filter(c => c.login !== winnerLogin);
-    for (let i = toCross.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [toCross[i], toCross[j]] = [toCross[j], toCross[i]]; }
-    let index = 0; const interval = 400;
-    function crossNext() {
-      if (spinCancel) { resolve(); return; }
-      if (index < toCross.length) { toCross[index].el.classList.add('crossed'); index++; setTimeout(crossNext, interval); }
-      else {
-        const winnerCell = cells.find(c => c.login === winnerLogin);
-        if (winnerCell) winnerCell.el.classList.add('winner');
-        setTimeout(() => { els.spinBingo.hidden = true; resolve(); }, 1500);
-      }
-    }
-    setTimeout(crossNext, 500);
-  });
-}
+function playBingo(pool, winnerLogin, winnerName) { return new Promise((resolve) => { els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = false; const grid = els.bingoGrid; grid.innerHTML = ''; let bingoLogins = [...pool]; if (bingoLogins.length > 25) { bingoLogins = bingoLogins.slice(0, 25); if (!bingoLogins.includes(winnerLogin)) bingoLogins[24] = winnerLogin; } else if (bingoLogins.length < 25) { while (bingoLogins.length < 25) { bingoLogins.push(bingoLogins[Math.floor(Math.random() * bingoLogins.length)] || winnerLogin); } } for (let i = bingoLogins.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [bingoLogins[i], bingoLogins[j]] = [bingoLogins[j], bingoLogins[i]]; } const cells = []; bingoLogins.forEach((login) => { const name = state.users.get(login) || login; const cell = document.createElement('div'); cell.className = 'bingo-cell'; const avatar = document.createElement('div'); avatar.className = 'bingo-avatar'; avatar.style.background = avatarGradient(login); avatar.textContent = (name || '?').charAt(0).toUpperCase(); const nameEl = document.createElement('div'); nameEl.className = 'bingo-name'; nameEl.textContent = name; cell.appendChild(avatar); cell.appendChild(nameEl); grid.appendChild(cell); cells.push({ el: cell, login }); }); const toCross = cells.filter(c => c.login !== winnerLogin); for (let i = toCross.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [toCross[i], toCross[j]] = [toCross[j], toCross[i]]; } let index = 0; const interval = 400; function crossNext() { if (spinCancel) { resolve(); return; } if (index < toCross.length) { toCross[index].el.classList.add('crossed'); index++; setTimeout(crossNext, interval); } else { const winnerCell = cells.find(c => c.login === winnerLogin); if (winnerCell) winnerCell.el.classList.add('winner'); setTimeout(() => { els.spinBingo.hidden = true; resolve(); }, 1500); } } setTimeout(crossNext, 500); }); }
 
 /* =========================================================
    Победитель и старт
@@ -504,8 +467,7 @@ async function showWinnerWithSpin(login) {
   const displayName = state.users.get(login) || login;
 
   els.modal.classList.add('active'); els.modalContent.classList.add('spinning');
-  els.winnerName.textContent = displayName; 
-  els.winnerMessages.innerHTML = '';
+  els.winnerName.textContent = displayName; els.winnerMessages.innerHTML = '';
   els.winnerTimer.textContent = '0:00'; els.winnerTimer.classList.remove('timer-done');
   els.modalPayoutInput.value = ''; els.modalSpin.hidden = false;
 
