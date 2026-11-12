@@ -28,7 +28,7 @@ let winnerIdCounter = 0;
 let cardsCancelFn = null;
 let topChattersScheduled = false;
 let reconnectAttempts = 0;
-let chatSaveTimeout = null; // Таймер для сохранения чата
+let chatSaveTimeout = null;
 
 const topElements = new Map();
 const avatarCache = new Map();
@@ -53,7 +53,7 @@ const els = {
   editWinnersBtn: document.getElementById('edit-winners-btn'),
   sortWinnersBtn: document.getElementById('sort-winners-btn'),
   topChattersList: document.getElementById('top-chatters-list'),
-  clearTopBtn: document.getElementById('clear-top-btn'), // Новая кнопка
+  clearTopBtn: document.getElementById('clear-top-btn'),
   topModeToggle: document.getElementById('top-mode-toggle'),
   topModeState: document.getElementById('top-mode-state'),
   modal: document.getElementById('winner-modal'),
@@ -96,7 +96,6 @@ function saveChatState() {
     const usersArr = Array.from(state.users.entries());
     const msgsArr = [];
     for (const [login, msgs] of state.messages.entries()) {
-      // Сохраняем только последние 100 сообщений на человека, чтобы не переполнить память
       const recentMsgs = msgs.slice(-100).map(m => ({ text: m.text, time: m.time.getTime() }));
       msgsArr.push([login, recentMsgs]);
     }
@@ -111,7 +110,7 @@ function scheduleChatSave() {
   chatSaveTimeout = setTimeout(() => {
     chatSaveTimeout = null;
     saveChatState();
-  }, 2000); // Сохраняем раз в 2 секунды, чтобы не нагружать браузер
+  }, 2000);
 }
 
 function loadChatState() {
@@ -470,7 +469,7 @@ function addMessage(login, displayName, text) {
   renderChatMessage(login, displayName, text);
   scheduleTopChattersRender();
   schedulePickWinnerUpdate();
-  scheduleChatSave(); // Сохраняем топ при новом сообщении
+  scheduleChatSave(); 
 }
 
 function renderParticipant(login, displayName, isNew = false) {
@@ -876,13 +875,13 @@ if (els.modalDepInput) {
 els.closeModal.addEventListener('click', closeWinnerModal);
 els.modal.querySelector('.modal-backdrop').addEventListener('click', closeWinnerModal);
 
-// Очистка топа по сообщениям
+// Очистка топа по сообщениям (ИСПРАВЛЕНО: сохраняем мгновенно)
 if (els.clearTopBtn) {
   els.clearTopBtn.addEventListener('click', () => {
     state.messages.clear();
     topElements.clear();
     renderTopChatters();
-    scheduleChatSave();
+    saveChatState(); // Принудительное сохранение сразу!
     addSystemMessage('🔥 Топ по сообщениям очищен.');
   });
 }
@@ -953,6 +952,15 @@ if (els.siteButtons) {
     updateCommitButton();
   });
 }
+
+// Сохраняем данные при закрытии или обновлении страницы
+window.addEventListener('beforeunload', () => {
+  if (chatSaveTimeout) {
+    clearTimeout(chatSaveTimeout);
+    chatSaveTimeout = null;
+    saveChatState();
+  }
+});
 
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (els.modal.classList.contains('active')) closeWinnerModal(); if (els.settingsModal.classList.contains('active')) closeSettings(); } });
 
