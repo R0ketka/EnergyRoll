@@ -2,7 +2,7 @@
    НАСТРОЙКА API (замените на ваш URL на Render)
    ========================================================= */
 
-const API_BASE = 'https://energyroll.onrender.com/'; 
+const API_BASE = 'https://energyroll.onrender.com'; 
 
 /* =========================================================
    Состояние
