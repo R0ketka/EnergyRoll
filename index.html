@@ -173,13 +173,22 @@
         </div>
       </div>
 
-      <div class="modal-timer" id="winner-timer">0:00</div>
+      <a id="check-winner-btn" class="winner-check-btn"
+      href="https://followage.showmasterokda.com/"
+      target="_blank" rel="noopener noreferrer"
+      title="Открыть followage.showmasterokda.com">🔍 Проверить</a>
 
-      <div class="modal-header">
-        <div class="trophy">🏆</div>
-        <h2>Победитель</h2>
-        <div id="winner-name" class="winner-name">—</div>
-      </div>
+  <div class="modal-timer" id="winner-timer">0:00</div>
+
+  <div class="modal-header">
+    <div class="trophy">🏆</div>
+    <h2>Победитель</h2>
+    <div class="winner-name-row">
+      <div id="winner-name" class="winner-name">—</div>
+      <button id="copy-winner-btn" class="winner-copy-btn" type="button"
+              title="Скопировать ник">📋</button>
+    </div>
+  </div>
       <div class="modal-body">
         <h3>Сообщения кандидата</h3>
         <div id="winner-messages" class="winner-messages"></div>

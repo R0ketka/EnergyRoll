@@ -57,6 +57,7 @@ const els = {
   winnerTimer: document.getElementById('winner-timer'),
   winnerName: document.getElementById('winner-name'),
   winnerMessages: document.getElementById('winner-messages'),
+  copyWinnerBtn: document.getElementById('copy-winner-btn'), // [COPY-BTN]
   modalPayoutInput: document.getElementById('modal-payout-input'),
   modalPayoutBtn: document.getElementById('modal-payout-btn'),
   rerollBtn: document.getElementById('reroll-btn'),
@@ -229,7 +230,6 @@ function connectChatAnonymously(channelName) {
     reconnectAttempts = 0;
     const anonNick = 'justinfan' + Math.floor(Math.random() * 99999);
     
-    // Отправляем каждую команду с обязательным переносом строки \r\n
     ws.send('CAP REQ :twitch.tv/tags twitch.tv/commands\r\n');
     ws.send('PASS SCHMOOPIIE\r\n');
     ws.send('NICK ' + anonNick + '\r\n');
@@ -484,6 +484,7 @@ function closeWinnerModal() {
   els.modal.classList.remove('active'); els.modalContent.classList.remove('spinning'); els.modalSpin.hidden = true;
   els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true;
   els.modalPayoutInput.value = ''; clearWinnerTimer(); state.currentWinner = null;
+  if (els.copyWinnerBtn) { els.copyWinnerBtn.classList.remove('copied'); els.copyWinnerBtn.textContent = '📋'; } // [COPY-BTN]
 }
 
 function addWinnerToHistory(displayName, payout = '') { state.winnersHistory.unshift({ id: ++winnerIdCounter, name: displayName, payout: payout }); renderWinnersHistory(); }
@@ -540,6 +541,36 @@ els.modalPayoutBtn.addEventListener('click', commitCurrentWinner);
 els.modalPayoutInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); commitCurrentWinner(); } });
 els.closeModal.addEventListener('click', closeWinnerModal);
 els.modal.querySelector('.modal-backdrop').addEventListener('click', closeWinnerModal);
+
+// [COPY-BTN] Копирование ника победителя в буфер обмена
+if (els.copyWinnerBtn) {
+  els.copyWinnerBtn.addEventListener('click', async () => {
+    if (!state.currentWinner) return;
+    const text = state.currentWinner;
+    let ok = false;
+    try {
+      await navigator.clipboard.writeText(text);
+      ok = true;
+    } catch (e) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { ok = document.execCommand('copy'); } catch (err) {}
+      ta.remove();
+    }
+    if (!ok) { addSystemMessage('⚠ Не удалось скопировать ник.'); return; }
+    els.copyWinnerBtn.classList.add('copied');
+    els.copyWinnerBtn.textContent = '✓';
+    setTimeout(() => {
+      els.copyWinnerBtn.classList.remove('copied');
+      els.copyWinnerBtn.textContent = '📋';
+    }, 1200);
+  });
+}
+
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (els.modal.classList.contains('active')) closeWinnerModal(); if (els.settingsModal.classList.contains('active')) closeSettings(); } });
 
 function init() {

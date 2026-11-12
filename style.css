@@ -268,3 +268,62 @@ main { display: grid; grid-template-columns: 1fr 3fr 1.2fr 1fr; gap: 16px; heigh
 .bingo-cell.winner { border-color: var(--accent); box-shadow: 0 0 20px var(--accent); opacity: 1; transform: scale(1.05); background: var(--bg-glow-1); z-index: 2; }
 .bingo-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; color: #fff; flex-shrink: 0; margin-bottom: 4px; }
 .bingo-name { font-size: 9px; font-weight: 600; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+/* Кнопка «Проверить» — левый верхний угол модалки */
+.winner-check-btn {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 2;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 6px 12px;
+  border-radius: var(--r-md);
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.winner-check-btn:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Строка с ником и кнопкой копирования */
+.winner-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.winner-name-row .winner-name { margin: 0; }
+
+.winner-copy-btn {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  font-size: 14px;
+  transition: 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.winner-copy-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.winner-copy-btn.copied {
+  border-color: var(--success);
+  color: var(--success);
+}
