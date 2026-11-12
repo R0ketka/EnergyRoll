@@ -3,13 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>⚡ EnergyRoll</title>
+  <title>EnergyRoll</title>
+  <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header>
     <div class="logo">
-      <span class="logo-icon">⚡</span>
       <span class="logo-text">EnergyRoll</span>
     </div>
 
@@ -103,7 +104,11 @@
           </button>
 
           <div class="winner-history">
-            <h3>Победители</h3>
+            <div class="winner-history-header">
+              <h3>Победители</h3>
+              <button id="sort-winners-btn" class="sort-winners-btn" type="button" title="Сортировка: по времени">🕒</button>
+              <button id="edit-winners-btn" class="edit-winners-btn" type="button" title="Режим редактирования">✏️</button>
+            </div>
             <div id="winners-history" class="winners-list">
               <div class="empty">Пока никого</div>
             </div>
@@ -121,7 +126,7 @@
       <section id="participants-panel" class="panel participants-panel">
         <div class="panel-header">
           <h2>👥 Участники <span id="participant-count" class="participants-badge">0</span></h2>
-          <button id="clear-collect" class="btn-clear" title="Очистить список участников" disabled>✕</button>
+          <button id="clear-collect" class="btn-clear btn-clear-trash" title="Очистить список участников" disabled>🗑</button>
         </div>
         <div class="add-participant-row">
           <input type="text" id="add-participant-input" class="add-participant-input" placeholder="Добавить по нику…" maxlength="50" autocomplete="off" spellcheck="false" />
@@ -173,31 +178,50 @@
         </div>
       </div>
 
-      <a id="check-winner-btn" class="winner-check-btn"
-      href="https://followage.showmasterokda.com/"
-      target="_blank" rel="noopener noreferrer"
-      title="Открыть followage.showmasterokda.com">🔍 Проверить</a>
+      <div class="modal-top-left">
+        <a id="check-winner-btn" class="winner-check-btn"
+           href="https://followage.showmasterokda.com/"
+           target="_blank" rel="noopener noreferrer"
+           title="Открыть followage.showmasterokda.com">🔍 Проверить</a>
+        <button id="half-window-btn" class="winner-half-btn" type="button"
+                title="На половину окна">◧</button>
+      </div>
 
-  <div class="modal-timer" id="winner-timer">0:00</div>
+      <div class="modal-timer" id="winner-timer">0:00</div>
 
-  <div class="modal-header">
-    <div class="trophy">🏆</div>
-    <h2>Победитель</h2>
-    <div class="winner-name-row">
-      <div id="winner-name" class="winner-name">—</div>
-      <button id="copy-winner-btn" class="winner-copy-btn" type="button"
-              title="Скопировать ник">📋</button>
-    </div>
-  </div>
+      <div class="modal-header">
+        <div class="trophy">🏆</div>
+        <h2>Победитель</h2>
+        <div class="winner-name-row">
+          <div id="winner-name" class="winner-name">—</div>
+          <button id="copy-winner-btn" class="winner-copy-btn" type="button"
+                  title="Скопировать ник">📋</button>
+        </div>
+      </div>
       <div class="modal-body">
         <h3>Сообщения кандидата</h3>
         <div id="winner-messages" class="winner-messages"></div>
       </div>
+
+      <div class="modal-site-section">
+        <span class="modal-site-label">🎰 Сайт:</span>
+        <div class="site-buttons" id="site-buttons">
+          <button class="site-btn" data-site="magicdrop" type="button">Magic Drop</button>
+          <button class="site-btn" data-site="ninjacase" type="button">NinjaCase</button>
+          <button class="site-btn" data-site="zavod" type="button">Zavod</button>
+        </div>
+      </div>
+
       <div class="modal-payout-section">
         <span class="modal-payout-label">💰 Вывод:</span>
         <input type="text" id="modal-payout-input" class="modal-payout-input" placeholder="0" inputmode="numeric" autocomplete="off" spellcheck="false" />
         <span class="modal-payout-currency">₽</span>
         <button id="modal-payout-btn" class="modal-payout-btn">Добавить</button>
+      </div>
+      <div class="modal-payout-section modal-dep-section">
+        <span class="modal-payout-label">💳 Деп:</span>
+        <input type="text" id="modal-dep-input" class="modal-payout-input" placeholder="0" inputmode="numeric" autocomplete="off" spellcheck="false" />
+        <span class="modal-payout-currency">₽</span>
       </div>
       <div class="modal-actions">
         <button id="reroll-btn" class="btn btn-primary">🔄 Рерол</button>
