@@ -1,4 +1,10 @@
 /* =========================================================
+   НАСТРОЙКА API (замените на ваш URL на Render)
+   ========================================================= */
+
+const API_BASE = 'https://energyroll.onrender.com/'; 
+
+/* =========================================================
    Состояние
    ========================================================= */
 const state = {
@@ -9,7 +15,7 @@ const state = {
   winnerSelectedAt: null, winnerHasResponded: false, timerInterval: null, isSpinning: false,
   selectedSite: null,
   editWinnersMode: false,
-  sortMode: 'time' // 'time' | 'payout'
+  sortMode: 'time'
 };
 
 const SITES = [
@@ -82,134 +88,79 @@ const els = {
 };
 
 /* =========================================================
-   Персистентность
+   API-запросы к MongoDB
    ========================================================= */
-const PERSIST_KEY = 'energyroll_state_v1';
-const PERSIST_VERSION = 1;
-const MAX_PERSISTED_MESSAGES_TOTAL = 5000;
-const MAX_PERSISTED_MESSAGES_PER_USER = 100;
-const MAX_PERSISTED_WINNERS = 100;
-
-let persistTimer = null;
-let persistQuotaWarned = false;
-
-function serializeUsers() {
-  return Array.from(state.users.entries());
-}
-
-function serializeMessages() {
-  const flat = [];
-  for (const [login, msgs] of state.messages) {
-    if (!msgs || msgs.length === 0) continue;
-    const recent = msgs.slice(-MAX_PERSISTED_MESSAGES_PER_USER);
-    for (const m of recent) {
-      flat.push({ login, t: m.text, ts: m.time.getTime() });
-    }
-  }
-  flat.sort((a, b) => a.ts - b.ts);
-  const capped = flat.slice(-MAX_PERSISTED_MESSAGES_TOTAL);
-  const grouped = new Map();
-  for (const item of capped) {
-    if (!grouped.has(item.login)) grouped.set(item.login, []);
-    grouped.get(item.login).push({ t: item.t, ts: item.ts });
-  }
-  return Array.from(grouped.entries());
-}
-
-function serializeWinners() {
-  return state.winnersHistory
-    .slice(0, MAX_PERSISTED_WINNERS)
-    .map((w) => ({ id: w.id, name: w.name, payout: w.payout || '', site: w.site || null, dep: w.dep || '' }));
-}
-
-function savePersistedState() {
+async function loadWinnersFromApi() {
   try {
-    const data = {
-      v: PERSIST_VERSION,
-      savedAt: Date.now(),
-      users: serializeUsers(),
-      messages: serializeMessages(),
-      winnersHistory: serializeWinners(),
-      winnerIdCounter
-    };
-    localStorage.setItem(PERSIST_KEY, JSON.stringify(data));
+    const res = await fetch(`${API_BASE}/winners`);
+    if (!res.ok) throw new Error(res.status);
+    const list = await res.json();
+    state.winnersHistory = list.map((w) => ({
+      id: w.id,
+      name: w.name,
+      payout: w.payout || '',
+      site: w.site || null,
+      dep: w.dep || ''
+    }));
+    // Обновляем счетчик id, чтобы новые записи не пересекались
+    for (const w of state.winnersHistory) {
+      if (Number.isFinite(w.id) && w.id > winnerIdCounter) winnerIdCounter = w.id;
+    }
+    renderWinnersHistory();
   } catch (e) {
-    if (!persistQuotaWarned) {
-      persistQuotaWarned = true;
-      try { addSystemMessage('⚠ Хранилище переполнено — часть данных не сохранится.'); } catch (_) {}
-    }
-    try { localStorage.removeItem(PERSIST_KEY); } catch (_) {}
+    addSystemMessage('⚠ Не удалось загрузить победителей из базы.');
+    console.error(e);
   }
 }
 
-function scheduleSavePersisted() {
-  if (persistTimer) return;
-  persistTimer = setTimeout(() => { persistTimer = null; savePersistedState(); }, 800);
+async function addWinnerToHistory(displayName, payout = '', site = null, dep = '') {
+  try {
+    const res = await fetch(`${API_BASE}/winners`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: displayName, payout, dep, site })
+    });
+    if (!res.ok) throw new Error(res.status);
+    const saved = await res.json();
+    
+    state.winnersHistory.unshift({
+      id: saved.id,
+      name: saved.name,
+      payout: saved.payout,
+      site: saved.site,
+      dep: saved.dep
+    });
+    if (state.winnersHistory.length > 100) state.winnersHistory.length = 100;
+    
+    renderWinnersHistory();
+  } catch (e) {
+    addSystemMessage('⚠ Не удалось сохранить победителя в базу.');
+    console.error(e);
+  }
 }
 
-function flushPersistedState() {
-  if (persistTimer) { clearTimeout(persistTimer); persistTimer = null; }
-  savePersistedState();
+async function deleteWinnerFromApi(id) {
+  try {
+    const res = await fetch(`${API_BASE}/winners/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(res.status);
+    state.winnersHistory = state.winnersHistory.filter((x) => x.id !== id);
+    renderWinnersHistory();
+  } catch (e) {
+    addSystemMessage('⚠ Не удалось удалить победителя из базы.');
+    console.error(e);
+  }
 }
 
-function loadPersistedState() {
-  let raw;
-  try { raw = localStorage.getItem(PERSIST_KEY); } catch (e) { return false; }
-  if (!raw) return false;
-
-  let data;
-  try { data = JSON.parse(raw); } catch (e) { return false; }
-  if (!data || data.v !== PERSIST_VERSION) return false;
-
-  if (Array.isArray(data.users)) {
-    for (const pair of data.users) {
-      if (!Array.isArray(pair) || typeof pair[0] !== 'string') continue;
-      const login = pair[0];
-      if (!login) continue;
-      const display = (typeof pair[1] === 'string' && pair[1]) ? pair[1] : login;
-      state.users.set(login, display);
-    }
+async function updateWinnerInApi(id, payout, dep, site) {
+  try {
+    await fetch(`${API_BASE}/winners/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ payout, dep, site })
+    });
+  } catch (e) {
+    console.error('Ошибка при обновлении победителя', e);
   }
-
-  if (Array.isArray(data.messages)) {
-    for (const pair of data.messages) {
-      if (!Array.isArray(pair) || typeof pair[0] !== 'string' || !Array.isArray(pair[1])) continue;
-      const login = pair[0];
-      if (!login) continue;
-      const list = [];
-      for (const item of pair[1]) {
-        if (!item || typeof item !== 'object') continue;
-        list.push({
-          text: typeof item.t === 'string' ? item.t : String(item.t ?? ''),
-          time: new Date(Number(item.ts) || Date.now())
-        });
-      }
-      state.messages.set(login, list);
-      if (!state.users.has(login)) state.users.set(login, login);
-    }
-  }
-
-  if (Array.isArray(data.winnersHistory)) {
-    state.winnersHistory = data.winnersHistory
-      .slice(0, MAX_PERSISTED_WINNERS)
-      .map((w) => ({
-        id: Number(w && w.id) || 0,
-        name: String((w && w.name) || ''),
-        payout: String((w && w.payout) || ''),
-        site: w && w.site ? String(w.site) : null,
-        dep: String((w && w.dep) || '')
-      }))
-      .filter((w) => w.name);
-  }
-
-  if (Number.isFinite(data.winnerIdCounter)) {
-    winnerIdCounter = Math.max(winnerIdCounter, data.winnerIdCounter | 0);
-  }
-  for (const w of state.winnersHistory) {
-    if (Number.isFinite(w.id) && w.id > winnerIdCounter) winnerIdCounter = w.id;
-  }
-
-  return true;
 }
 
 /* =========================================================
@@ -420,17 +371,6 @@ function handleConnectClick() { const channel = els.channelInput.value.trim(); i
 /* =========================================================
    Парсинг IRC
    ========================================================= */
-function parseTags(raw) {
-  const tags = {};
-  if (!raw) return tags;
-  for (const pair of raw.split(';')) {
-    const idx = pair.indexOf('=');
-    if (idx === -1) continue;
-    tags[pair.slice(0, idx)] = pair.slice(idx + 1);
-  }
-  return tags;
-}
-
 function handleIrcLine(line, ws) {
   if (line.startsWith('PING')) { ws.send('PONG :tmi.twitch.tv\r\n'); return; }
 
@@ -486,7 +426,6 @@ function addMessage(login, displayName, text) {
   renderChatMessage(login, displayName, text);
   scheduleTopChattersRender();
   schedulePickWinnerUpdate();
-  scheduleSavePersisted();
 }
 
 function renderParticipant(login, displayName, isNew = false) {
@@ -593,7 +532,7 @@ async function showWinnerWithSpin(login) {
   els.winnerTimer.textContent = '0:00'; els.winnerTimer.classList.remove('timer-done');
   els.modalPayoutInput.value = ''; els.modalSpin.hidden = false;
   if (els.modalDepInput) els.modalDepInput.value = '';
-  updateCommitButton(); // [VALIDATE]
+  updateCommitButton();
 
   if (state.miniGame === 'roulette') await playRoulette(displayName);
   else if (state.miniGame === 'drum') await playDrum(login, displayName);
@@ -613,7 +552,7 @@ async function showCardsPick(pool) {
   els.winnerMessages.innerHTML = ''; els.winnerTimer.textContent = '0:00'; els.winnerTimer.classList.remove('timer-done');
   els.modalPayoutInput.value = ''; els.modalSpin.hidden = false;
   if (els.modalDepInput) els.modalDepInput.value = '';
-  updateCommitButton(); // [VALIDATE]
+  updateCommitButton();
   const pickedLogin = await playCards(pool);
   if (spinCancel || !pickedLogin) { els.modal.classList.remove('active'); els.modalContent.classList.remove('spinning'); els.modalSpin.hidden = true; els.spinCards.hidden = true; state.isSpinning = false; return; }
   state.currentWinner = pickedLogin; state.winnerSelectedAt = Date.now();
@@ -625,7 +564,6 @@ async function showCardsPick(pool) {
   fillWinnerInfo(pickedLogin);
 }
 
-// [VALIDATE] Кнопка «Добавить» активна только при заполненных сайте, выводе и депе
 function updateCommitButton() {
   if (!els.modalPayoutBtn) return;
   const hasSite = !!state.selectedSite;
@@ -638,14 +576,16 @@ function commitCurrentWinner() {
   if (!state.currentWinner) return;
   const payout = els.modalPayoutInput.value.trim();
   const dep = els.modalDepInput ? els.modalDepInput.value.trim() : '';
-  // [VALIDATE] Жёсткая проверка на случай Enter/программного вызова
   if (!state.selectedSite || !payout || !dep) {
     addSystemMessage('⚠ Укажите сайт, вывод и деп.');
     return;
   }
   const displayName = state.users.get(state.currentWinner) || state.currentWinner;
   const siteName = state.selectedSite ? (SITES.find(s => s.id === state.selectedSite)?.name || state.selectedSite) : '';
+  
+  // Сохраняем в API
   addWinnerToHistory(displayName, payout, state.selectedSite, dep);
+  
   let sysMsg = '🏆 Победитель: ' + displayName;
   if (payout) sysMsg += ' — ' + payout + ' ₽';
   if (siteName) sysMsg += ' [' + siteName + ']';
@@ -661,13 +601,6 @@ function closeWinnerModal() {
   els.modalPayoutInput.value = ''; clearWinnerTimer(); state.currentWinner = null;
   if (els.modalDepInput) els.modalDepInput.value = '';
   if (els.copyWinnerBtn) { els.copyWinnerBtn.classList.remove('copied'); els.copyWinnerBtn.textContent = '📋'; }
-}
-
-function addWinnerToHistory(displayName, payout = '', site = null, dep = '') {
-  state.winnersHistory.unshift({ id: ++winnerIdCounter, name: displayName, payout: payout, site: site, dep: dep });
-  if (state.winnersHistory.length > MAX_PERSISTED_WINNERS) state.winnersHistory.length = MAX_PERSISTED_WINNERS;
-  renderWinnersHistory();
-  savePersistedState();
 }
 
 /* =========================================================
@@ -737,6 +670,7 @@ function createAddWinnerForm() {
   addBtn.addEventListener('click', () => {
     const name = nameInput.value.trim();
     if (!name) { nameInput.focus(); return; }
+    // Вызов API для добавления
     addWinnerToHistory(name, payoutInput.value.trim(), siteSelect.value || null, depInput.value.trim());
     const newName = els.winnersHistory.querySelector('.winner-add-name');
     if (newName) newName.focus();
@@ -797,7 +731,10 @@ function renderWinnersHistory() {
       const meta = item.site ? SITES.find(s => s.id === item.site) : null;
       siteSpan.textContent = meta ? meta.name : '';
       siteSpan.hidden = !meta || state.editWinnersMode;
-      scheduleSavePersisted();
+      
+      // Обновляем в API
+      updateWinnerInApi(item.id, item.payout, item.dep, item.site);
+      
       if (state.sortMode === 'payout') renderWinnersHistory();
     });
     info.appendChild(siteSelect);
@@ -814,13 +751,17 @@ function renderWinnersHistory() {
     input.inputMode = 'numeric';
     input.autocomplete = 'off';
     input.disabled = !state.editWinnersMode;
+    input.addEventListener('blur', (e) => {
+      const item = state.winnersHistory.find((x) => x.id === w.id);
+      if (item) {
+        // Обновляем в API
+        updateWinnerInApi(item.id, item.payout, item.dep, item.site);
+      }
+      if (state.sortMode === 'payout' && state.editWinnersMode) renderWinnersHistory();
+    });
     input.addEventListener('input', (e) => {
       const item = state.winnersHistory.find((x) => x.id === w.id);
       if (item) item.payout = e.target.value;
-      scheduleSavePersisted();
-    });
-    input.addEventListener('blur', () => {
-      if (state.sortMode === 'payout' && state.editWinnersMode) renderWinnersHistory();
     });
     const cur = document.createElement('span'); cur.className = 'winner-payout-currency'; cur.textContent = '₽';
     wrap.appendChild(input); wrap.appendChild(cur);
@@ -842,7 +783,13 @@ function renderWinnersHistory() {
       const item = state.winnersHistory.find((x) => x.id === w.id);
       if (item) item.dep = e.target.value;
       if (!state.editWinnersMode) depWrap.hidden = !e.target.value.trim();
-      scheduleSavePersisted();
+    });
+    depInput.addEventListener('blur', (e) => {
+      const item = state.winnersHistory.find((x) => x.id === w.id);
+      if (item) {
+        // Обновляем в API
+        updateWinnerInApi(item.id, item.payout, item.dep, item.site);
+      }
     });
     const depCur = document.createElement('span'); depCur.className = 'winner-dep-currency'; depCur.textContent = '₽';
     depWrap.appendChild(depInput); depWrap.appendChild(depCur);
@@ -850,9 +797,8 @@ function renderWinnersHistory() {
 
     const del = document.createElement('button'); del.className = 'winner-delete-btn'; del.type = 'button'; del.textContent = '✕'; del.title = 'Удалить';
     del.addEventListener('click', () => {
-      state.winnersHistory = state.winnersHistory.filter((x) => x.id !== w.id);
-      renderWinnersHistory();
-      savePersistedState();
+      // Вызов API для удаления
+      deleteWinnerFromApi(w.id);
     });
 
     row.appendChild(info); row.appendChild(moneyStack); row.appendChild(del);
@@ -893,10 +839,10 @@ els.pickWinner.addEventListener('click', pickWinner);
 els.rerollBtn.addEventListener('click', pickWinner);
 els.modalPayoutBtn.addEventListener('click', commitCurrentWinner);
 els.modalPayoutInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); commitCurrentWinner(); } });
-els.modalPayoutInput.addEventListener('input', updateCommitButton); // [VALIDATE]
+els.modalPayoutInput.addEventListener('input', updateCommitButton);
 if (els.modalDepInput) {
   els.modalDepInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); commitCurrentWinner(); } });
-  els.modalDepInput.addEventListener('input', updateCommitButton); // [VALIDATE]
+  els.modalDepInput.addEventListener('input', updateCommitButton);
 }
 els.closeModal.addEventListener('click', closeWinnerModal);
 els.modal.querySelector('.modal-backdrop').addEventListener('click', closeWinnerModal);
@@ -968,20 +914,22 @@ if (els.siteButtons) {
   });
 }
 
-window.addEventListener('beforeunload', () => { flushPersistedState(); });
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushPersistedState(); });
-
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (els.modal.classList.contains('active')) closeWinnerModal(); if (els.settingsModal.classList.contains('active')) closeSettings(); } });
 
 function init() {
-  initTheme(); initMinigames(); initRipple();
-  loadPersistedState();
+  initTheme(); 
+  initMinigames(); 
+  initRipple();
+  
+  // Загружаем данные из MongoDB
+  loadWinnersFromApi();
+
   updateCommitButton();
   updateTopModeButton();
   updateSortWinnersButton();
   renderTopChatters();
-  renderWinnersHistory();
   updateParticipantCount();
+  
   els.connectBtn.addEventListener('click', handleConnectClick);
   els.channelInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleConnectClick(); });
   const savedChannel = localStorage.getItem('energyroll_channel');
