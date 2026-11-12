@@ -1,4 +1,6 @@
-
+/* =========================================================
+   НАСТРОЙКА API (ваша ссылка на Render)
+   ========================================================= */
 const API_BASE = 'https://energyroll-api.onrender.com/api'; 
 
 /* =========================================================
@@ -26,6 +28,7 @@ let winnerIdCounter = 0;
 let cardsCancelFn = null;
 let topChattersScheduled = false;
 let reconnectAttempts = 0;
+let chatSaveTimeout = null; // Таймер для сохранения чата
 
 const topElements = new Map();
 const avatarCache = new Map();
@@ -50,6 +53,7 @@ const els = {
   editWinnersBtn: document.getElementById('edit-winners-btn'),
   sortWinnersBtn: document.getElementById('sort-winners-btn'),
   topChattersList: document.getElementById('top-chatters-list'),
+  clearTopBtn: document.getElementById('clear-top-btn'), // Новая кнопка
   topModeToggle: document.getElementById('top-mode-toggle'),
   topModeState: document.getElementById('top-mode-state'),
   modal: document.getElementById('winner-modal'),
@@ -85,7 +89,51 @@ const els = {
 };
 
 /* =========================================================
-   API-запросы к MongoDB
+   Локальное сохранение чата (Топ по сообщениям)
+   ========================================================= */
+function saveChatState() {
+  try {
+    const usersArr = Array.from(state.users.entries());
+    const msgsArr = [];
+    for (const [login, msgs] of state.messages.entries()) {
+      // Сохраняем только последние 100 сообщений на человека, чтобы не переполнить память
+      const recentMsgs = msgs.slice(-100).map(m => ({ text: m.text, time: m.time.getTime() }));
+      msgsArr.push([login, recentMsgs]);
+    }
+    localStorage.setItem('energyroll_chat_state', JSON.stringify({ users: usersArr, messages: msgsArr }));
+  } catch (e) {
+    console.warn('Не удалось сохранить чат локально', e);
+  }
+}
+
+function scheduleChatSave() {
+  if (chatSaveTimeout) return;
+  chatSaveTimeout = setTimeout(() => {
+    chatSaveTimeout = null;
+    saveChatState();
+  }, 2000); // Сохраняем раз в 2 секунды, чтобы не нагружать браузер
+}
+
+function loadChatState() {
+  try {
+    const raw = localStorage.getItem('energyroll_chat_state');
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (data.users) {
+      for (const [login, name] of data.users) state.users.set(login, name);
+    }
+    if (data.messages) {
+      for (const [login, msgs] of data.messages) {
+        state.messages.set(login, msgs.map(m => ({ text: m.text, time: new Date(m.time) })));
+      }
+    }
+  } catch (e) {
+    console.warn('Не удалось загрузить чат локально', e);
+  }
+}
+
+/* =========================================================
+   API-запросы к MongoDB (Победители)
    ========================================================= */
 async function loadWinnersFromApi() {
   try {
@@ -99,7 +147,6 @@ async function loadWinnersFromApi() {
       site: w.site || null,
       dep: w.dep || ''
     }));
-    // Обновляем счетчик id, чтобы новые записи не пересекались
     for (const w of state.winnersHistory) {
       if (Number.isFinite(w.id) && w.id > winnerIdCounter) winnerIdCounter = w.id;
     }
@@ -423,6 +470,7 @@ function addMessage(login, displayName, text) {
   renderChatMessage(login, displayName, text);
   scheduleTopChattersRender();
   schedulePickWinnerUpdate();
+  scheduleChatSave(); // Сохраняем топ при новом сообщении
 }
 
 function renderParticipant(login, displayName, isNew = false) {
@@ -580,7 +628,6 @@ function commitCurrentWinner() {
   const displayName = state.users.get(state.currentWinner) || state.currentWinner;
   const siteName = state.selectedSite ? (SITES.find(s => s.id === state.selectedSite)?.name || state.selectedSite) : '';
   
-  // Сохраняем в API
   addWinnerToHistory(displayName, payout, state.selectedSite, dep);
   
   let sysMsg = '🏆 Победитель: ' + displayName;
@@ -667,7 +714,6 @@ function createAddWinnerForm() {
   addBtn.addEventListener('click', () => {
     const name = nameInput.value.trim();
     if (!name) { nameInput.focus(); return; }
-    // Вызов API для добавления
     addWinnerToHistory(name, payoutInput.value.trim(), siteSelect.value || null, depInput.value.trim());
     const newName = els.winnersHistory.querySelector('.winner-add-name');
     if (newName) newName.focus();
@@ -703,7 +749,6 @@ function renderWinnersHistory() {
   for (const w of getSortedWinners()) {
     const row = document.createElement('div'); row.className = 'winner-item';
 
-    // Строка 1: имя + сайт
     const info = document.createElement('div'); info.className = 'winner-item-info';
     const nameEl = document.createElement('span'); nameEl.className = 'winner-item-name'; nameEl.textContent = w.name; nameEl.title = w.name;
     info.appendChild(nameEl);
@@ -728,15 +773,11 @@ function renderWinnersHistory() {
       const meta = item.site ? SITES.find(s => s.id === item.site) : null;
       siteSpan.textContent = meta ? meta.name : '';
       siteSpan.hidden = !meta || state.editWinnersMode;
-      
-      // Обновляем в API
       updateWinnerInApi(item.id, item.payout, item.dep, item.site);
-      
       if (state.sortMode === 'payout') renderWinnersHistory();
     });
     info.appendChild(siteSelect);
 
-    // Стопка: вывод сверху, деп снизу
     const moneyStack = document.createElement('div'); moneyStack.className = 'winner-money-stack';
 
     const wrap = document.createElement('div'); wrap.className = 'winner-payout-wrap';
@@ -750,10 +791,7 @@ function renderWinnersHistory() {
     input.disabled = !state.editWinnersMode;
     input.addEventListener('blur', (e) => {
       const item = state.winnersHistory.find((x) => x.id === w.id);
-      if (item) {
-        // Обновляем в API
-        updateWinnerInApi(item.id, item.payout, item.dep, item.site);
-      }
+      if (item) updateWinnerInApi(item.id, item.payout, item.dep, item.site);
       if (state.sortMode === 'payout' && state.editWinnersMode) renderWinnersHistory();
     });
     input.addEventListener('input', (e) => {
@@ -783,20 +821,14 @@ function renderWinnersHistory() {
     });
     depInput.addEventListener('blur', (e) => {
       const item = state.winnersHistory.find((x) => x.id === w.id);
-      if (item) {
-        // Обновляем в API
-        updateWinnerInApi(item.id, item.payout, item.dep, item.site);
-      }
+      if (item) updateWinnerInApi(item.id, item.payout, item.dep, item.site);
     });
     const depCur = document.createElement('span'); depCur.className = 'winner-dep-currency'; depCur.textContent = '₽';
     depWrap.appendChild(depInput); depWrap.appendChild(depCur);
     moneyStack.appendChild(depWrap);
 
     const del = document.createElement('button'); del.className = 'winner-delete-btn'; del.type = 'button'; del.textContent = '✕'; del.title = 'Удалить';
-    del.addEventListener('click', () => {
-      // Вызов API для удаления
-      deleteWinnerFromApi(w.id);
-    });
+    del.addEventListener('click', () => { deleteWinnerFromApi(w.id); });
 
     row.appendChild(info); row.appendChild(moneyStack); row.appendChild(del);
     els.winnersHistory.appendChild(row);
@@ -843,6 +875,17 @@ if (els.modalDepInput) {
 }
 els.closeModal.addEventListener('click', closeWinnerModal);
 els.modal.querySelector('.modal-backdrop').addEventListener('click', closeWinnerModal);
+
+// Очистка топа по сообщениям
+if (els.clearTopBtn) {
+  els.clearTopBtn.addEventListener('click', () => {
+    state.messages.clear();
+    topElements.clear();
+    renderTopChatters();
+    scheduleChatSave();
+    addSystemMessage('🔥 Топ по сообщениям очищен.');
+  });
+}
 
 if (els.editWinnersBtn) {
   els.editWinnersBtn.addEventListener('click', () => {
@@ -918,13 +961,16 @@ function init() {
   initMinigames(); 
   initRipple();
   
-  // Загружаем данные из MongoDB
+  // Загружаем победителей из MongoDB
   loadWinnersFromApi();
+  
+  // Загружаем топ чата из локального хранилища
+  loadChatState();
 
   updateCommitButton();
   updateTopModeButton();
   updateSortWinnersButton();
-  renderTopChatters();
+  renderTopChatters(); // Сразу отрисовываем сохраненный топ
   updateParticipantCount();
   
   els.connectBtn.addEventListener('click', handleConnectClick);

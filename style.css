@@ -12,45 +12,102 @@
   --bg-glow-1: rgba(230, 56, 88, 0.15); --bg-glow-2: rgba(176, 24, 64, 0.15);
   --panel-bg: rgba(40, 18, 18, 0.95);
 }
-[data-theme="red-dark"] { --bg-primary: #120404; --bg-secondary: #1a0606; --bg-panel: #220808; --bg-tertiary: #2e0e0e; --bg-elevated: #3a1212; --border: #4a1818; --border-light: #6a2222; --accent: #c41230; --accent-hover: #e63858; --accent-dark: #8b0020; --bg-glow-1: rgba(196, 18, 48, 0.15); --bg-glow-2: rgba(139, 0, 32, 0.15); --panel-bg: rgba(20, 8, 8, 0.95); }
-[data-theme="purple"] { --bg-primary: #17091a; --bg-secondary: #220f28; --bg-panel: #2a1332; --bg-tertiary: #381a42; --bg-elevated: #48225a; --border: #5a2c70; --border-light: #7a3d95; --accent: #a855f7; --accent-hover: #c084fc; --accent-dark: #7e22ce; --bg-glow-1: rgba(168, 85, 247, 0.15); --bg-glow-2: rgba(126, 34, 206, 0.15); --panel-bg: rgba(35, 15, 45, 0.95); }
-[data-theme="orange"] { --bg-primary: #1a0a06; --bg-secondary: #241008; --bg-panel: #2c1409; --bg-tertiary: #3a1a0d; --bg-elevated: #4a2411; --border: #5a2e16; --border-light: #7a401e; --accent: #f97316; --accent-hover: #fb923c; --accent-dark: #c2410c; --bg-glow-1: rgba(249, 115, 22, 0.15); --bg-glow-2: rgba(194, 65, 12, 0.15); --panel-bg: rgba(40, 20, 10, 0.95); }
-[data-theme="blue"] { --bg-primary: #060a1a; --bg-secondary: #0b1226; --bg-panel: #0f1830; --bg-tertiary: #182240; --bg-elevated: #202e54; --border: #283a6a; --border-light: #3a5090; --accent: #3b82f6; --accent-hover: #60a5fa; --accent-dark: #1d4ed8; --bg-glow-1: rgba(59, 130, 246, 0.15); --bg-glow-2: rgba(29, 78, 216, 0.15); --panel-bg: rgba(15, 25, 50, 0.95); }
+
+[data-theme="red-dark"] { 
+  --bg-primary: #120404; --bg-secondary: #1a0606; --bg-panel: #220808; --bg-tertiary: #2e0e0e; --bg-elevated: #3a1212; 
+  --border: #4a1818; --border-light: #6a2222; --accent: #c41230; --accent-hover: #e63858; --accent-dark: #8b0020; 
+  --bg-glow-1: rgba(196, 18, 48, 0.15); --bg-glow-2: rgba(139, 0, 32, 0.15); --panel-bg: rgba(20, 8, 8, 0.95); 
+}
+
+[data-theme="purple"] { 
+  --bg-primary: #17091a; --bg-secondary: #220f28; --bg-panel: #2a1332; --bg-tertiary: #381a42; --bg-elevated: #48225a; 
+  --border: #5a2c70; --border-light: #7a3d95; --accent: #a855f7; --accent-hover: #c084fc; --accent-dark: #7e22ce; 
+  --bg-glow-1: rgba(168, 85, 247, 0.15); --bg-glow-2: rgba(126, 34, 206, 0.15); --panel-bg: rgba(35, 15, 45, 0.95); 
+}
+
+[data-theme="orange"] { 
+  --bg-primary: #1a0a06; --bg-secondary: #241008; --bg-panel: #2c1409; --bg-tertiary: #3a1a0d; --bg-elevated: #4a2411; 
+  --border: #5a2e16; --border-light: #7a401e; --accent: #f97316; --accent-hover: #fb923c; --accent-dark: #c2410c; 
+  --bg-glow-1: rgba(249, 115, 22, 0.15); --bg-glow-2: rgba(194, 65, 12, 0.15); --panel-bg: rgba(40, 20, 10, 0.95); 
+}
+
+[data-theme="blue"] { 
+  --bg-primary: #060a1a; --bg-secondary: #0b1226; --bg-panel: #0f1830; --bg-tertiary: #182240; --bg-elevated: #202e54; 
+  --border: #283a6a; --border-light: #3a5090; --accent: #3b82f6; --accent-hover: #60a5fa; --accent-dark: #1d4ed8; 
+  --bg-glow-1: rgba(59, 130, 246, 0.15); --bg-glow-2: rgba(29, 78, 216, 0.15); --panel-bg: rgba(15, 25, 50, 0.95); 
+}
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  color: var(--text); min-height: 100vh; padding: 0; overflow-x: hidden; position: relative;
-  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+  color: var(--text); 
+  min-height: 100vh; 
+  padding: 0; 
+  overflow-x: hidden; 
+  position: relative;
+  -webkit-font-smoothing: antialiased; 
+  -moz-osx-font-smoothing: grayscale;
   background-color: var(--bg-primary);
   background-image: radial-gradient(circle at 20% 30%, var(--bg-glow-1), transparent 40%), radial-gradient(circle at 80% 70%, var(--bg-glow-2), transparent 40%);
   background-attachment: fixed;
 }
 
 body::before {
-  content: ''; position: fixed; inset: 0; z-index: -1;
+  content: ''; 
+  position: fixed; 
+  inset: 0; 
+  z-index: -1;
   background-image: linear-gradient(var(--grid-color) 1px, transparent 1px), linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
-  background-size: 40px 40px; pointer-events: none;
+  background-size: 40px 40px; 
+  pointer-events: none;
   mask-image: radial-gradient(ellipse at center, #000 20%, transparent 80%);
   -webkit-mask-image: radial-gradient(ellipse at center, #000 20%, transparent 80%);
 }
 
-header { position: relative; z-index: 10; width: 100%; display: flex; align-items: center; gap: 24px; margin: 0 0 20px 0; padding: 14px 26px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-light); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4); }
-header::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); opacity: 0.8; }
+/* =========================================================
+   ШАПКА
+   ========================================================= */
+header { 
+  position: relative; z-index: 10; width: 100%; display: flex; align-items: center; gap: 24px; 
+  margin: 0 0 20px 0; padding: 14px 26px; background: var(--bg-secondary); 
+  border-bottom: 1px solid var(--border-light); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4); 
+}
+header::after { 
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; 
+  background: linear-gradient(90deg, transparent, var(--accent), transparent); opacity: 0.8; 
+}
 .logo { font-size: 22px; font-weight: 800; letter-spacing: 0.3px; display: flex; gap: 10px; align-items: center; flex-shrink: 0; }
-.logo-text { background: linear-gradient(135deg, #ffffff 0%, #ffe0e8 30%, var(--accent) 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.logo-text { 
+  background: linear-gradient(135deg, #ffffff 0%, #ffe0e8 30%, var(--accent) 100%); 
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; 
+}
 .keyword-box { display: flex; align-items: center; gap: 10px; }
 .keyword-label { font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-.keyword-input { background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border); border-radius: var(--r-md); padding: 9px 14px; color: var(--text); font-family: inherit; font-size: 14px; font-weight: 600; min-width: 160px; outline: none; box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5); transition: border-color 0.2s ease, box-shadow 0.2s ease; }
+.keyword-input { 
+  background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border); border-radius: var(--r-md); 
+  padding: 9px 14px; color: var(--text); font-family: inherit; font-size: 14px; font-weight: 600; 
+  min-width: 160px; outline: none; box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5); 
+  transition: border-color 0.2s ease, box-shadow 0.2s ease; 
+}
 .keyword-input:focus { border-color: var(--accent); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5), 0 0 0 2px var(--bg-glow-1); }
 #auth-section { display: flex; align-items: center; justify-content: flex-end; margin-left: auto; gap: 12px; }
 .channel-box { display: flex; align-items: center; gap: 8px; }
 
-.btn { position: relative; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 20px; border: none; border-radius: var(--r-md); font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; white-space: nowrap; z-index: 1; }
+/* =========================================================
+   КНОПКИ
+   ========================================================= */
+.btn { 
+  position: relative; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; 
+  gap: 8px; padding: 10px 20px; border: none; border-radius: var(--r-md); font-family: inherit; 
+  font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; white-space: nowrap; z-index: 1; 
+}
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .btn-icon { padding: 6px 10px; font-size: 14px; }
-.btn-primary { background: linear-gradient(180deg, var(--accent-hover) 0%, var(--accent-dark) 100%); color: #fff; box-shadow: 0 4px 15px var(--bg-glow-1), inset 0 1px 0 rgba(255,255,255,0.2); }
+.btn-primary { 
+  background: linear-gradient(180deg, var(--accent-hover) 0%, var(--accent-dark) 100%); 
+  color: #fff; box-shadow: 0 4px 15px var(--bg-glow-1), inset 0 1px 0 rgba(255,255,255,0.2); 
+}
 .btn-primary:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
 .btn-secondary { background: var(--bg-tertiary); color: var(--text); border: 1px solid var(--border-light); }
 .btn-secondary:hover:not(:disabled) { background: var(--bg-elevated); border-color: var(--accent); color: var(--accent-hover); }
@@ -60,19 +117,38 @@ header::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; h
 .ripple { position: absolute; border-radius: 50%; background: rgba(255, 255, 255, 0.4); transform: scale(0); animation: rippleAnim 0.6s linear; pointer-events: none; }
 @keyframes rippleAnim { to { transform: scale(4); opacity: 0; } }
 
+/* =========================================================
+   СЕТКА И ПАНЕЛИ
+   ========================================================= */
 #app { position: relative; z-index: 1; width: 100%; margin: 0; padding: 0 20px 20px 20px; }
 main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; height: calc(100vh - 130px); align-items: stretch; }
-@media (max-width: 1200px) { main { grid-template-columns: 1fr 3fr 1.2fr; height: auto; } #participants-panel { grid-column: 1 / -1; } .chat-messages { min-height: 240px; max-height: 460px; } .participants-list { min-height: 160px; max-height: 300px; } }
-@media (max-width: 900px) { main { grid-template-columns: 1fr; } #participants-panel { grid-column: auto; } }
+
+@media (max-width: 1200px) { 
+  main { grid-template-columns: 1fr 3fr 1.2fr; height: auto; } 
+  #participants-panel { grid-column: 1 / -1; } 
+  .chat-messages { min-height: 240px; max-height: 460px; } 
+  .participants-list { min-height: 160px; max-height: 300px; } 
+}
+@media (max-width: 900px) { 
+  main { grid-template-columns: 1fr; } 
+  #participants-panel { grid-column: auto; } 
+}
 
 #chat-panel { width: 100%; max-width: 760px; justify-self: end; min-width: 0; margin-right: -8px; }
 @media (max-width: 900px) {
   #chat-panel { justify-self: stretch; max-width: none; margin-right: 0; }
 }
 
-.panel { position: relative; background: var(--panel-bg); border: 1px solid var(--border); border-radius: var(--r-lg); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); transition: border-color 0.3s ease; }
+.panel { 
+  position: relative; background: var(--panel-bg); border: 1px solid var(--border); 
+  border-radius: var(--r-lg); display: flex; flex-direction: column; overflow: hidden; 
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); transition: border-color 0.3s ease; 
+}
 .panel:hover { border-color: var(--border-light); }
-.panel-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--border); background: rgba(0, 0, 0, 0.2); }
+.panel-header { 
+  display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; 
+  border-bottom: 1px solid var(--border); background: rgba(0, 0, 0, 0.2); 
+}
 .panel-header h2 { font-size: 14px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; }
 
 .status { font-size: 11px; padding: 4px 10px; border-radius: 999px; font-weight: 700; text-transform: uppercase; }
@@ -80,14 +156,17 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 .status-ok { background: rgba(58,158,58,0.15); color: var(--success); }
 .status-wait { background: rgba(255,193,7,0.15); color: #ffc107; }
 
+/* =========================================================
+   МИНИ-ИГРЫ (МЕНЮ)
+   ========================================================= */
 .minigames-panel { min-height: 0; overflow-y: auto; }
 .minigames-panel::-webkit-scrollbar { width: 6px; }
 .minigames-panel::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
 .minigames-list { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
-
 .minigame-item {
-  position: relative; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 10px; padding: 11px 13px;
-  color: var(--text); font-family: inherit; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 12px;
+  position: relative; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 10px; 
+  padding: 11px 13px; color: var(--text); font-family: inherit; cursor: pointer; text-align: left; 
+  display: flex; align-items: center; gap: 12px;
   transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 .minigame-item:hover { border-color: var(--accent); transform: scale(1.02); }
@@ -99,7 +178,11 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 .minigame-item.active .minigame-check { opacity: 1; transform: scale(1); }
 
 .top-mode-divider { height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent); margin: 8px 0; }
-.top-mode-btn { position: relative; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 10px; padding: 11px 13px; color: var(--text); font-family: inherit; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 10px; transition: all 0.15s ease; }
+.top-mode-btn { 
+  position: relative; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 10px; 
+  padding: 11px 13px; color: var(--text); font-family: inherit; cursor: pointer; text-align: left; 
+  display: flex; align-items: center; gap: 10px; transition: all 0.15s ease; 
+}
 .top-mode-btn:hover { border-color: var(--border-light); transform: translateX(3px); }
 .top-mode-btn.active { border-color: var(--accent); background: var(--bg-glow-1); box-shadow: 0 0 20px var(--bg-glow-1); }
 .top-mode-icon { font-size: 18px; }
@@ -107,33 +190,53 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 .top-mode-state { font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 999px; background: var(--bg-panel); color: var(--text-muted); }
 .top-mode-btn.active .top-mode-state { background: var(--accent); color: #fff; }
 
+/* =========================================================
+   ЧАТ
+   ========================================================= */
 .chat-header-right { display: flex; align-items: center; gap: 10px; }
 #clear-chat-btn { font-size: 14px; padding: 0; width: 28px; height: 28px; }
 .chat-messages { flex: 1; min-height: 0; overflow-y: auto; padding: 12px; font-size: 13px; display: flex; flex-direction: column; gap: 4px; }
 .chat-messages::-webkit-scrollbar { width: 6px; }
 .chat-messages::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
-.chat-msg { display: flex; align-items: flex-start; gap: 10px; padding: 8px 12px 8px 10px; border-radius: 8px; background: rgba(0, 0, 0, 0.2); border-left: 2px solid transparent; flex-shrink: 0; word-wrap: break-word; transition: all 0.2s; }
+.chat-msg { 
+  display: flex; align-items: flex-start; gap: 10px; padding: 8px 12px 8px 10px; border-radius: 8px; 
+  background: rgba(0, 0, 0, 0.2); border-left: 2px solid transparent; flex-shrink: 0; word-wrap: break-word; transition: all 0.2s; 
+}
 .chat-msg:hover { background: rgba(255,255,255,0.05); border-left-color: var(--accent); }
-.chat-msg-avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.5); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,0.15), 0 2px 6px rgba(0,0,0,0.35); }
+.chat-msg-avatar { 
+  width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+  font-weight: 800; font-size: 13px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.5); 
+  box-shadow: inset 0 0 0 1.5px rgba(255,255,255,0.15), 0 2px 6px rgba(0,0,0,0.35); 
+}
 .chat-author { color: var(--accent-hover); font-weight: 700; font-size: 13px; }
 .chat-text { color: var(--text); }
 .system-msg { color: var(--text-muted); font-style: italic; text-align: center; font-size: 12px; padding: 10px 0; border-top: 1px dashed var(--border); }
 .chat-empty, .empty { color: var(--text-dim); text-align: center; padding: 36px 20px; font-size: 13px; font-style: italic; }
 
+/* =========================================================
+   УЧАСТНИКИ
+   ========================================================= */
 .participants-panel { min-height: 0; }
 .participants-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 22px; padding: 0 8px; background: var(--accent); color: #fff; border-radius: 999px; font-size: 11px; font-weight: 800; margin-left: 6px; }
-.btn-clear { background: transparent; border: 1px solid var(--border); color: var(--text-muted); width: 28px; height: 28px; border-radius: var(--r-sm); cursor: pointer; font-size: 13px; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; }
+.btn-clear { 
+  background: transparent; border: 1px solid var(--border); color: var(--text-muted); width: 28px; height: 28px; 
+  border-radius: var(--r-sm); cursor: pointer; font-size: 13px; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; 
+}
 .btn-clear:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
 .btn-clear:disabled { opacity: 0.35; cursor: not-allowed; }
 .btn-clear-trash { font-size: 15px; }
 .btn-clear-trash:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+
 .add-participant-row { display: flex; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--border); background: rgba(0,0,0,0.2); }
 .add-participant-input { flex: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 7px; color: #fff; outline: none; font-size: 12px; }
 .add-participant-btn { width: 32px; height: 32px; border-radius: var(--r-sm); background: var(--accent); border: none; color: #fff; cursor: pointer; font-size: 18px; font-weight: 800; }
 .participants-list { flex: 1; min-height: 0; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 5px; }
 .participants-list::-webkit-scrollbar { width: 6px; }
 .participants-list::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
-.participant-item { padding: 7px 10px 7px 8px; background: var(--bg-tertiary); border-left: 3px solid var(--accent-dark); border-radius: var(--r-sm); font-size: 13px; display: flex; align-items: center; gap: 10px; min-width: 0; transition: 0.2s; }
+.participant-item { 
+  padding: 7px 10px 7px 8px; background: var(--bg-tertiary); border-left: 3px solid var(--accent-dark); 
+  border-radius: var(--r-sm); font-size: 13px; display: flex; align-items: center; gap: 10px; min-width: 0; transition: 0.2s; 
+}
 .participant-item:hover { background: var(--bg-elevated); transform: translateX(2px); }
 .participant-avatar { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px; color: #fff; }
 .participant-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
@@ -142,356 +245,118 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 .participant-item.participant-excluded { opacity: 0.4; filter: saturate(0.3); }
 .participant-item.participant-excluded .participant-name { text-decoration: line-through; }
 
+/* =========================================================
+   ПАНЕЛЬ УПРАВЛЕНИЯ (ПОБЕДИТЕЛИ И ТОП)
+   ========================================================= */
 .control-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; flex: 1; min-height: 0; overflow-y: auto; }
 .control-body::-webkit-scrollbar { width: 6px; }
 .control-body::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
 
+/* --- Список победителей --- */
 .winner-history { border-top: 1px solid var(--border); padding-top: 16px; display: flex; flex-direction: column; flex: 1; min-height: 0; }
-
-/* Шапка «Победители» + карандаш + сортировка */
-.winner-history-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 12px;
+.winner-history-header { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+.winner-history-header h3 { font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 800; margin-right: auto; }
+.edit-winners-btn, .sort-winners-btn { 
+  background: transparent; border: 1px solid var(--border); color: var(--text-muted); width: 26px; height: 26px; 
+  border-radius: var(--r-sm); cursor: pointer; font-size: 12px; transition: 0.2s; 
+  display: inline-flex; align-items: center; justify-content: center; padding: 0; flex-shrink: 0; 
 }
-.winner-history-header h3 {
-  font-size: 12px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  font-weight: 800;
-  margin-right: auto;
-}
-.edit-winners-btn {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  width: 26px;
-  height: 26px;
-  border-radius: var(--r-sm);
-  cursor: pointer;
-  font-size: 12px;
-  transition: 0.2s;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  flex-shrink: 0;
-}
-.edit-winners-btn:hover { border-color: var(--accent); color: var(--accent); }
-.edit-winners-btn.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-  box-shadow: 0 0 12px var(--bg-glow-1);
-}
-.sort-winners-btn {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  width: 26px;
-  height: 26px;
-  border-radius: var(--r-sm);
-  cursor: pointer;
-  font-size: 12px;
-  transition: 0.2s;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  flex-shrink: 0;
-}
-.sort-winners-btn:hover { border-color: var(--accent); color: var(--accent); }
-.sort-winners-btn.payout-mode {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--bg-glow-1);
-}
+.edit-winners-btn:hover, .sort-winners-btn:hover { border-color: var(--accent); color: var(--accent); }
+.edit-winners-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: 0 0 12px var(--bg-glow-1); }
+.sort-winners-btn.payout-mode { border-color: var(--accent); color: var(--accent); background: var(--bg-glow-1); }
 
 .winners-list { display: flex; flex-direction: column; gap: 6px; flex: 1; overflow-y: auto; padding-right: 2px; }
 .winners-list::-webkit-scrollbar { width: 6px; }
 .winners-list::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
 
-/* Карточка победителя — grid: строка 1 = ник+сайт+крестик, строка 2 = вывод+деп */
-.winner-item {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  grid-template-areas: "info money del";
-  gap: 6px;
-  align-items: start;
-  padding: 8px;
-  background: var(--bg-tertiary);
-  border-radius: var(--r-sm);
-  border-left: 3px solid var(--accent);
-  font-size: 13px;
+/* Карточка победителя */
+.winner-item { 
+  display: grid; grid-template-columns: 1fr auto auto; grid-template-areas: "info money del"; 
+  gap: 6px; align-items: start; padding: 8px; background: var(--bg-tertiary); 
+  border-radius: var(--r-sm); border-left: 3px solid var(--accent); font-size: 13px; 
 }
+.winner-item-info { grid-area: info; min-width: 0; display: flex; flex-direction: row; align-items: center; gap: 6px; min-height: 22px; }
+.winner-item-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex-shrink: 1; }
+.winner-item-site { 
+  font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; 
+  color: var(--accent); background: var(--bg-glow-1); padding: 2px 6px; border-radius: 4px; 
+  white-space: nowrap; flex-shrink: 0; 
+}
+.winner-site-select { 
+  background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border); border-radius: var(--r-sm); 
+  color: var(--text); font-family: inherit; font-size: 11px; font-weight: 700; 
+  padding: 3px 6px; outline: none; cursor: pointer; flex-shrink: 0; max-width: 120px; 
+}
+.winner-site-select:hover, .winner-site-select:focus { border-color: var(--accent); }
 
-.winner-item-info {
-  grid-area: info;
-  min-width: 0;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 6px;
-  min-height: 22px; 
-}
-.winner-item-name {
-  font-weight: 700;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-  flex-shrink: 1;
-}
-.winner-item-site {
-  font-size: 9px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  color: var(--accent);
-  background: var(--bg-glow-1);
-  padding: 2px 6px;
-  border-radius: 4px;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-.winner-site-select {
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid var(--border);
-  border-radius: var(--r-sm);
-  color: var(--text);
-  font-family: inherit;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 3px 6px;
-  outline: none;
-  cursor: pointer;
-  flex-shrink: 0;
-  max-width: 120px;
-}
-.winner-site-select:hover { border-color: var(--accent); }
-.winner-site-select:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--bg-glow-1); }
+.winner-money-stack { grid-area: money; display: flex; flex-direction: column; gap: 3px; align-items: stretch; }
 
-/* Вывод сверху, деп снизу — в одной колонке */
-.winner-money-stack {
-  grid-area: money;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  align-items: stretch;
+/* Бейджи Вывод и Деп */
+.winner-payout-wrap { 
+  position: relative; display: flex; align-items: center; justify-content: center; width: 92px; height: 22px; 
+  padding: 0 16px 0 8px; border-radius: 11px; 
+  background: linear-gradient(135deg, var(--accent-hover) 0%, var(--accent) 55%, var(--accent-dark) 100%); 
+  border: 1px solid var(--accent-hover); 
+  box-shadow: 0 3px 10px rgba(230, 56, 88, 0.4), 0 1px 2px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.3); 
+  box-sizing: border-box; transition: background 0.2s, border-color 0.2s, box-shadow 0.2s; 
 }
-
-/* Вывод — компактная акцентная плашка с ярким градиентом */
-.winner-payout-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 92px;
-  height: 22px;
-  padding: 0 16px 0 8px;
-  border-radius: 11px;
-  background: linear-gradient(135deg, var(--accent-hover) 0%, var(--accent) 55%, var(--accent-dark) 100%);
-  border: 1px solid var(--accent-hover);
-  box-shadow:
-    0 3px 10px rgba(230, 56, 88, 0.4),
-    0 1px 2px rgba(0, 0, 0, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  box-sizing: border-box;
-  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
-}
-.winner-payout-input {
-  background: transparent;
-  border: none;
-  padding: 0;
-  width: 100%;
-  min-width: 0;
-  color: #fff;
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 900;
-  text-align: center;
-  outline: none;
-  -webkit-text-fill-color: #fff;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+.winner-payout-input { 
+  background: transparent; border: none; padding: 0; width: 100%; min-width: 0; 
+  color: #fff; font-family: inherit; font-size: 12px; font-weight: 900; text-align: center; 
+  outline: none; -webkit-text-fill-color: #fff; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35); 
 }
 .winner-payout-input:disabled { opacity: 1; cursor: default; }
-.winner-payout-input::placeholder {
-  color: rgba(255, 255, 255, 0.65);
-  -webkit-text-fill-color: rgba(255, 255, 255, 0.65);
-  text-shadow: none;
-}
-.winner-payout-currency {
-  position: absolute;
-  right: 6px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 10px;
-  font-weight: 800;
-  color: rgba(255, 255, 255, 0.9);
-  -webkit-text-fill-color: rgba(255, 255, 255, 0.9);
-  pointer-events: none;
-}
+.winner-payout-input::placeholder { color: rgba(255, 255, 255, 0.65); -webkit-text-fill-color: rgba(255, 255, 255, 0.65); text-shadow: none; }
+.winner-payout-currency { position: absolute; right: 5px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 800; color: rgba(255, 255, 255, 0.9); -webkit-text-fill-color: rgba(255, 255, 255, 0.9); pointer-events: none; }
 
-/* Вывод в режиме карандаша — обычное поле */
-.winner-payout-wrap:has(.winner-payout-input:not(:disabled)) {
-  background: rgba(0, 0, 0, 0.5);
-  border-color: var(--border);
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+.winner-dep-wrap { 
+  position: relative; display: flex; align-items: center; justify-content: center; width: 92px; height: 18px; 
+  padding: 0 16px 0 8px; border-radius: 9px; 
+  background: linear-gradient(135deg, #34d399 0%, #10b981 55%, #047857 100%); 
+  border: 1px solid #22c55e; 
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35), 0 1px 2px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3); 
+  box-sizing: border-box; transition: background 0.2s, border-color 0.2s; 
 }
-.winner-payout-wrap:has(.winner-payout-input:not(:disabled)) .winner-payout-input {
-  color: var(--text);
-  -webkit-text-fill-color: var(--text);
-  text-shadow: none;
-}
-.winner-payout-wrap:has(.winner-payout-input:not(:disabled)) .winner-payout-input::placeholder {
-  color: var(--text-muted);
-  -webkit-text-fill-color: var(--text-muted);
-}
-.winner-payout-wrap:has(.winner-payout-input:not(:disabled)) .winner-payout-currency {
-  color: var(--text-muted);
-  -webkit-text-fill-color: var(--text-muted);
-}
-.winner-payout-wrap:has(.winner-payout-input:not(:disabled)):focus-within {
-  border-color: var(--accent);
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4), 0 0 0 2px var(--bg-glow-1);
-}
-
-/* Деп — зелёный градиент (деньги внесены), компактный */
-.winner-dep-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 92px;
-  height: 18px;
-  padding: 0 16px 0 8px;
-  border-radius: 9px;
-  background: linear-gradient(135deg, #34d399 0%, #10b981 55%, #047857 100%);
-  border: 1px solid #22c55e;
-  box-shadow:
-    0 2px 8px rgba(16, 185, 129, 0.35),
-    0 1px 2px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  box-sizing: border-box;
-  transition: background 0.2s, border-color 0.2s;
-}
-.winner-dep-input {
-  background: transparent;
-  border: none;
-  padding: 0;
-  width: 100%;
-  min-width: 0;
-  color: #fff;
-  font-family: inherit;
-  font-size: 11px;
-  font-weight: 800;
-  text-align: center;
-  outline: none;
-  -webkit-text-fill-color: #fff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+.winner-dep-input { 
+  background: transparent; border: none; padding: 0; width: 100%; min-width: 0; 
+  color: #fff; font-family: inherit; font-size: 11px; font-weight: 800; text-align: center; 
+  outline: none; -webkit-text-fill-color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4); 
 }
 .winner-dep-input:disabled { opacity: 1; cursor: default; }
-.winner-dep-input::placeholder {
-  color: var(--text-dim);
-  -webkit-text-fill-color: var(--text-dim);
-  opacity: 0.6;
-}
-.winner-dep-currency {
-  position: absolute;
-  right: 6px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 9px;
-  font-weight: 800;
-  color: rgba(255, 255, 255, 0.9);
-  -webkit-text-fill-color: rgba(255, 255, 255, 0.9);
-  pointer-events: none;
-}
+.winner-dep-input::placeholder { color: rgba(255, 255, 255, 0.65); -webkit-text-fill-color: rgba(255, 255, 255, 0.65); text-shadow: none; }
+.winner-dep-currency { position: absolute; right: 5px; top: 50%; transform: translateY(-50%); font-size: 9px; font-weight: 800; color: rgba(255, 255, 255, 0.9); -webkit-text-fill-color: rgba(255, 255, 255, 0.9); pointer-events: none; }
 
-/* Деп в режиме карандаша — обычное поле */
-.winner-dep-wrap:has(.winner-dep-input:not(:disabled)) {
-  background: rgba(0, 0, 0, 0.5);
-  border-color: var(--border);
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
-}
-.winner-dep-wrap:has(.winner-dep-input:not(:disabled)) .winner-dep-input {
-  color: var(--text);
-  -webkit-text-fill-color: var(--text);
-  text-shadow: none;
-}
-.winner-dep-wrap:has(.winner-dep-input:not(:disabled)) .winner-dep-currency {
-  color: var(--text-muted);
-  -webkit-text-fill-color: var(--text-muted);
-}
-.winner-dep-wrap:has(.winner-dep-input:not(:disabled)) .winner-dep-input::placeholder {
-  color: var(--text-muted);
-  -webkit-text-fill-color: var(--text-muted);
-}
-.winner-dep-wrap:has(.winner-dep-input:not(:disabled)):focus-within {
-  border-color: var(--accent);
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4), 0 0 0 2px var(--bg-glow-1);
-}
+/* Режим редактирования для полей */
+.winner-payout-wrap:has(.winner-payout-input:not(:disabled)) { background: rgba(0, 0, 0, 0.5); border-color: var(--border); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4); }
+.winner-payout-wrap:has(.winner-payout-input:not(:disabled)) .winner-payout-input { color: var(--text); -webkit-text-fill-color: var(--text); text-shadow: none; }
+.winner-payout-wrap:has(.winner-payout-input:not(:disabled)) .winner-payout-input::placeholder { color: var(--text-muted); -webkit-text-fill-color: var(--text-muted); }
+.winner-payout-wrap:has(.winner-payout-input:not(:disabled)) .winner-payout-currency { color: var(--text-muted); -webkit-text-fill-color: var(--text-muted); }
+.winner-payout-wrap:has(.winner-payout-input:not(:disabled)):focus-within { border-color: var(--accent); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4), 0 0 0 2px var(--bg-glow-1); }
 
-.winner-delete-btn {
-  grid-area: del;
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  width: 22px;
-  height: 22px;
-  border-radius: var(--r-sm);
-  cursor: pointer;
-  font-size: 11px;
-}
+.winner-dep-wrap:has(.winner-dep-input:not(:disabled)) { background: rgba(0, 0, 0, 0.5); border-color: var(--border); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4); }
+.winner-dep-wrap:has(.winner-dep-input:not(:disabled)) .winner-dep-input { color: var(--text); -webkit-text-fill-color: var(--text); text-shadow: none; }
+.winner-dep-wrap:has(.winner-dep-input:not(:disabled)) .winner-dep-input::placeholder { color: var(--text-muted); -webkit-text-fill-color: var(--text-muted); }
+.winner-dep-wrap:has(.winner-dep-input:not(:disabled)) .winner-dep-currency { color: var(--text-muted); -webkit-text-fill-color: var(--text-muted); }
+.winner-dep-wrap:has(.winner-dep-input:not(:disabled)):focus-within { border-color: var(--accent); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4), 0 0 0 2px var(--bg-glow-1); }
+
+.winner-delete-btn { grid-area: del; background: transparent; border: 1px solid var(--border); color: var(--text-muted); width: 22px; height: 22px; border-radius: var(--r-sm); cursor: pointer; font-size: 11px; }
 .winner-delete-btn:hover { border-color: var(--accent); color: var(--accent); }
 
-/* Форма «добавить победителя» в режиме карандаша */
-.winner-add-form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  padding: 8px;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px dashed var(--border-light);
-  border-radius: var(--r-sm);
-  margin-bottom: 4px;
-}
-.winner-add-form input,
-.winner-add-form select {
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid var(--border);
-  border-radius: var(--r-sm);
-  color: var(--text);
-  font-family: inherit;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 4px 6px;
-  outline: none;
-  min-width: 0;
-}
-.winner-add-form input:focus,
-.winner-add-form select:focus { border-color: var(--accent); }
-.winner-add-name   { flex: 1 1 90px; }
-.winner-add-site   { flex: 1 1 90px; }
+/* Форма добавления */
+.winner-add-form { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px; background: rgba(0, 0, 0, 0.3); border: 1px dashed var(--border-light); border-radius: var(--r-sm); margin-bottom: 4px; }
+.winner-add-form input, .winner-add-form select { background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border); border-radius: var(--r-sm); color: var(--text); font-family: inherit; font-size: 11px; font-weight: 600; padding: 4px 6px; outline: none; min-width: 0; }
+.winner-add-form input:focus, .winner-add-form select:focus { border-color: var(--accent); }
+.winner-add-name { flex: 1 1 90px; }
+.winner-add-site { flex: 1 1 90px; }
 .winner-add-payout { flex: 1 1 55px; }
-.winner-add-dep    { flex: 1 1 55px; }
-.winner-add-btn {
-  width: 28px;
-  height: 28px;
-  border-radius: var(--r-sm);
-  background: var(--accent);
-  border: none;
-  color: #fff;
-  font-size: 18px;
-  font-weight: 800;
-  cursor: pointer;
-  flex-shrink: 0;
-}
+.winner-add-dep { flex: 1 1 55px; }
+.winner-add-btn { width: 28px; height: 28px; border-radius: var(--r-sm); background: var(--accent); border: none; color: #fff; font-size: 18px; font-weight: 800; cursor: pointer; flex-shrink: 0; }
 .winner-add-btn:hover { filter: brightness(1.1); }
 
+/* --- Топ по сообщениям --- */
 .top-chatters { border-top: 1px solid var(--border); padding-top: 16px; display: flex; flex-direction: column; flex: 1; min-height: 0; }
-.top-chatters h3 { font-size: 12px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 12px; font-weight: 800; }
+.top-chatters-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.top-chatters-header h3 { font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 800; margin-bottom: 0 !important; }
 .top-list { display: flex; flex-direction: column; gap: 4px; flex: 1; overflow-y: auto; padding-right: 2px; }
 .top-list::-webkit-scrollbar { width: 6px; }
 .top-list::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
@@ -504,37 +369,30 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 .top-count { font-weight: 800; color: var(--accent); font-size: 12px; }
 
 /* =========================================================
-   МОДАЛКИ
+   МОДАЛКИ (ОБЩИЕ)
    ========================================================= */
 .modal { display: none; position: fixed; inset: 0; z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
 .modal.active { display: flex; }
 .modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.85); }
-.modal-content { position: relative; background: var(--bg-panel); border: 1px solid var(--accent); border-radius: var(--r-xl); width: 100%; max-width: 800px; max-height: 90vh; padding: 24px; box-shadow: 0 0 50px var(--bg-glow-1); z-index: 1; min-height: 300px; display: flex; flex-direction: column; }
+.modal-content { 
+  position: relative; background: var(--bg-panel); border: 1px solid var(--accent); border-radius: var(--r-xl); 
+  width: 100%; max-width: 800px; max-height: 90vh; padding: 24px; 
+  box-shadow: 0 0 50px var(--bg-glow-1); z-index: 1; min-height: 300px; display: flex; flex-direction: column; 
+}
 .modal-content.spinning > :not(.modal-spin) { display: none !important; }
 .modal-spin { flex: 1; display: flex; align-items: center; justify-content: center; padding: 10px; width: 100%; overflow: hidden; }
 .spin-view { width: 100%; max-width: 600px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-
-.settings-modal-content { max-width: 600px; min-height: 0; padding: 0; }
-.settings-modal-content .modal-header { padding: 20px 20px 0; margin-bottom: 10px; }
-.settings-body { padding: 0 24px 24px; }
-.settings-body h3 { font-size: 13px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px; font-weight: 800; }
-.theme-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
-.theme-option { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px; background: rgba(0,0,0,0.3); border: 2px solid var(--border); border-radius: var(--r-md); cursor: pointer; color: #fff; transition: 0.2s; }
-.theme-option.active { border-color: var(--accent); box-shadow: 0 0 12px var(--bg-glow-1); }
-.theme-preview { width: 40px; height: 40px; border-radius: 50%; }
-.theme-preview-red-light { background: radial-gradient(circle at 30% 30%, #ff5678, #b01840); }
-.theme-preview-red-dark { background: radial-gradient(circle at 30% 30%, #e63858, #6b0018); }
-.theme-preview-purple { background: radial-gradient(circle at 30% 30%, #c084fc, #7e22ce); }
-.theme-preview-orange { background: radial-gradient(circle at 30% 30%, #fb923c, #c2410c); }
-.theme-preview-blue { background: radial-gradient(circle at 30% 30%, #60a5fa, #1d4ed8); }
 
 .modal-header { text-align: center; margin-bottom: 20px; padding: 10px; }
 .trophy { font-size: 48px; line-height: 1; margin-bottom: 10px; filter: drop-shadow(0 0 20px var(--accent)); animation: bounce 1s ease infinite; }
 @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
 .modal-header h2 { font-size: 14px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px; }
 .winner-name { font-size: 28px; font-weight: 900; color: var(--accent); text-shadow: 0 0 20px var(--accent); word-break: break-word; }
-
-.modal-timer { position: absolute; top: 20px; right: 20px; z-index: 2; font-family: 'SF Mono', monospace; font-size: 18px; font-weight: 800; padding: 6px 12px; border-radius: var(--r-md); background: rgba(0,0,0,0.4); border: 1px solid var(--accent); color: var(--accent); box-shadow: inset 0 1px 0 rgba(255,255,255,0.1); }
+.modal-timer { 
+  position: absolute; top: 20px; right: 20px; z-index: 2; font-family: 'SF Mono', monospace; font-size: 18px; 
+  font-weight: 800; padding: 6px 12px; border-radius: var(--r-md); background: rgba(0,0,0,0.4); 
+  border: 1px solid var(--accent); color: var(--accent); box-shadow: inset 0 1px 0 rgba(255,255,255,0.1); 
+}
 .modal-timer.timer-done { color: var(--success); border-color: var(--success); text-shadow: 0 0 10px var(--success); }
 
 .modal-body { flex: 1; overflow-y: auto; max-height: 250px; padding: 0 10px; margin-bottom: 20px; }
@@ -545,72 +403,99 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 .winner-msg.winner-msg-new { background: rgba(58, 158, 58, 0.15); border-left-color: var(--success); }
 .winner-msg-time { color: var(--text-dim); font-size: 11px; margin-right: 6px; font-weight: 700; }
 
-/* Секции «Вывод» и «Деп» в модалке — компактные */
-.modal-payout-section {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 0;
-  border-top: 1px solid var(--border);
-}
-.modal-dep-section {
-  border-top: none;
-  padding-top: 0;
-}
-.modal-payout-label {
-  font-size: 10px;
-  font-weight: 800;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  white-space: nowrap;
-  min-width: 58px;
-}
-.modal-payout-input {
-  flex: 1;
-  min-width: 0;
-  height: 28px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid var(--border);
-  border-radius: var(--r-sm);
-  padding: 0 10px;
-  color: var(--accent);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 800;
-  text-align: right;
-  outline: none;
-}
-.modal-payout-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--bg-glow-1); }
-.modal-payout-currency { font-size: 13px; font-weight: 800; color: var(--text-muted); }
-.modal-payout-btn {
-  height: 28px;
-  background: linear-gradient(180deg, #48b348, #2e7d2e);
-  color: #fff;
-  border: none;
-  padding: 0 14px;
-  border-radius: var(--r-sm);
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 800;
-  cursor: pointer;
-  white-space: nowrap;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
-}
-.modal-payout-btn:hover:not(:disabled) { filter: brightness(1.1); }
-.modal-payout-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-  filter: grayscale(0.3);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
-}
 .modal-actions { display: flex; gap: 12px; padding-top: 16px; border-top: 1px solid var(--border); }
 .modal-actions .btn { flex: 1; padding: 14px; }
 
 /* =========================================================
-   МИНИ-ИГРЫ
+   МОДАЛКА ПОБЕДИТЕЛЯ (СПЕЦИФИЧНЫЕ ЭЛЕМЕНТЫ)
    ========================================================= */
-.spin-roulette-name { font-size: 34px; font-weight: 900; color: var(--accent); text-align: center; padding: 40px 20px; background: var(--bg-tertiary); border-radius: var(--r-lg); word-break: break-word; overflow-wrap: anywhere; line-height: 1.2; max-width: 100%; }
+.modal-top-left { position: absolute; top: 20px; left: 20px; z-index: 2; display: flex; gap: 8px; align-items: center; }
+.winner-check-btn { 
+  font-family: inherit; font-size: 12px; font-weight: 800; padding: 6px 12px; border-radius: var(--r-md); 
+  background: rgba(0, 0, 0, 0.4); border: 1px solid var(--accent); color: var(--accent); 
+  text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: background 0.2s ease, color 0.2s ease; 
+}
+.winner-check-btn:hover { background: var(--accent); color: #fff; }
+.winner-half-btn { 
+  background: rgba(0, 0, 0, 0.4); border: 1px solid var(--accent); color: var(--accent); width: 32px; height: 32px; 
+  border-radius: var(--r-md); cursor: pointer; font-size: 14px; font-weight: 800; 
+  display: inline-flex; align-items: center; justify-content: center; transition: 0.2s; 
+}
+.winner-half-btn:hover, .winner-half-btn.active { background: var(--accent); color: #fff; }
+
+.winner-name-row { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; }
+.winner-name-row .winner-name { margin: 0; }
+.winner-copy-btn { 
+  background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border); color: var(--text-muted); 
+  width: 32px; height: 32px; border-radius: var(--r-sm); cursor: pointer; font-size: 14px; 
+  transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; 
+}
+.winner-copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+.winner-copy-btn.copied { border-color: var(--success); color: var(--success); }
+
+.modal.half-window { justify-content: flex-end; align-items: stretch; padding: 0; }
+.modal.half-window .modal-content { max-width: none; width: 50vw; height: 100vh; max-height: 100vh; border-radius: 0; margin: 0; }
+.modal.half-window .modal-body { max-height: none; }
+@media (max-width: 900px) { .modal.half-window .modal-content { width: 100vw; } }
+
+.modal-site-section { display: flex; align-items: center; gap: 10px; padding: 14px 0; border-top: 1px solid var(--border); flex-wrap: wrap; }
+.modal-site-label { font-size: 12px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+.site-buttons { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
+.site-btn { 
+  background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border); color: var(--text-muted); 
+  font-family: inherit; font-size: 12px; font-weight: 700; padding: 6px 12px; 
+  border-radius: var(--r-md); cursor: pointer; transition: 0.2s; white-space: nowrap; 
+}
+.site-btn:hover { border-color: var(--accent); color: var(--accent-hover); }
+.site-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: 0 0 12px var(--bg-glow-1); }
+
+.modal-payout-section { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--border); }
+.modal-dep-section { border-top: none; padding-top: 0; }
+.modal-payout-label { font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap; min-width: 58px; }
+.modal-payout-input { 
+  flex: 1; min-width: 0; height: 28px; background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border); 
+  border-radius: var(--r-sm); padding: 0 10px; color: var(--accent); font-family: inherit; 
+  font-size: 13px; font-weight: 800; text-align: right; outline: none; 
+}
+.modal-payout-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--bg-glow-1); }
+.modal-payout-currency { font-size: 13px; font-weight: 800; color: var(--text-muted); }
+.modal-payout-btn { 
+  height: 28px; background: linear-gradient(180deg, #48b348, #2e7d2e); color: #fff; border: none; 
+  padding: 0 14px; border-radius: var(--r-sm); font-family: inherit; font-size: 12px; font-weight: 800; 
+  cursor: pointer; white-space: nowrap; box-shadow: inset 0 1px 0 rgba(255,255,255,0.2); 
+}
+.modal-payout-btn:hover:not(:disabled) { filter: brightness(1.1); }
+.modal-payout-btn:disabled { opacity: 0.4; cursor: not-allowed; filter: grayscale(0.3); box-shadow: inset 0 1px 0 rgba(255,255,255,0.1); }
+
+/* =========================================================
+   МОДАЛКА НАСТРОЕК
+   ========================================================= */
+.settings-modal-content { max-width: 600px; min-height: 0; padding: 0; }
+.settings-modal-content .modal-header { padding: 20px 20px 0; margin-bottom: 10px; }
+.settings-body { padding: 0 24px 24px; }
+.settings-body h3 { font-size: 13px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px; font-weight: 800; }
+.theme-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+.theme-option { 
+  display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px; 
+  background: rgba(0,0,0,0.3); border: 2px solid var(--border); border-radius: var(--r-md); 
+  cursor: pointer; color: #fff; transition: 0.2s; 
+}
+.theme-option.active { border-color: var(--accent); box-shadow: 0 0 12px var(--bg-glow-1); }
+.theme-preview { width: 40px; height: 40px; border-radius: 50%; }
+.theme-preview-red-light { background: radial-gradient(circle at 30% 30%, #ff5678, #b01840); }
+.theme-preview-red-dark { background: radial-gradient(circle at 30% 30%, #e63858, #6b0018); }
+.theme-preview-purple { background: radial-gradient(circle at 30% 30%, #c084fc, #7e22ce); }
+.theme-preview-orange { background: radial-gradient(circle at 30% 30%, #fb923c, #c2410c); }
+.theme-preview-blue { background: radial-gradient(circle at 30% 30%, #60a5fa, #1d4ed8); }
+
+/* =========================================================
+   МИНИ-ИГРЫ (СПИНЫ)
+   ========================================================= */
+.spin-roulette-name { 
+  font-size: 34px; font-weight: 900; color: var(--accent); text-align: center; padding: 40px 20px; 
+  background: var(--bg-tertiary); border-radius: var(--r-lg); word-break: break-word; 
+  overflow-wrap: anywhere; line-height: 1.2; max-width: 100%; 
+}
 .spin-roulette-name.spin-name-long { font-size: 22px; }
 .spin-roulette-name.spin-name-xlong { font-size: 16px; }
 .spin-roulette-name.spin-name-final { color: var(--success); animation: finalPop 0.4s; }
@@ -659,129 +544,3 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 .bingo-cell.winner { border-color: var(--accent); box-shadow: 0 0 20px var(--accent); opacity: 1; transform: scale(1.05); background: var(--bg-glow-1); z-index: 2; }
 .bingo-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; color: #fff; flex-shrink: 0; margin-bottom: 4px; }
 .bingo-name { font-size: 9px; font-weight: 600; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-
-/* =========================================================
-   КНОПКИ МОДАЛКИ ПОБЕДИТЕЛЯ
-   ========================================================= */
-.modal-top-left {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  z-index: 2;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-.winner-check-btn {
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 800;
-  padding: 6px 12px;
-  border-radius: var(--r-md);
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid var(--accent);
-  color: var(--accent);
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: background 0.2s ease, color 0.2s ease;
-}
-.winner-check-btn:hover { background: var(--accent); color: #fff; }
-
-.winner-half-btn {
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid var(--accent);
-  color: var(--accent);
-  width: 32px;
-  height: 32px;
-  border-radius: var(--r-md);
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 800;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: 0.2s;
-}
-.winner-half-btn:hover,
-.winner-half-btn.active { background: var(--accent); color: #fff; }
-
-.winner-name-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.winner-name-row .winner-name { margin: 0; }
-
-.winner-copy-btn {
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  width: 32px;
-  height: 32px;
-  border-radius: var(--r-sm);
-  cursor: pointer;
-  font-size: 14px;
-  transition: 0.2s;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.winner-copy-btn:hover { border-color: var(--accent); color: var(--accent); }
-.winner-copy-btn.copied { border-color: var(--success); color: var(--success); }
-
-.modal.half-window { justify-content: flex-end; align-items: stretch; padding: 0; }
-.modal.half-window .modal-content {
-  max-width: none;
-  width: 50vw;
-  height: 100vh;
-  max-height: 100vh;
-  border-radius: 0;
-  margin: 0;
-}
-.modal.half-window .modal-body { max-height: none; }
-@media (max-width: 900px) {
-  .modal.half-window .modal-content { width: 100vw; }
-}
-
-.modal-site-section {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 0;
-  border-top: 1px solid var(--border);
-  flex-wrap: wrap;
-}
-.modal-site-label {
-  font-size: 12px;
-  font-weight: 800;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  white-space: nowrap;
-}
-.site-buttons { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
-.site-btn {
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  padding: 6px 12px;
-  border-radius: var(--r-md);
-  cursor: pointer;
-  transition: 0.2s;
-  white-space: nowrap;
-}
-.site-btn:hover { border-color: var(--accent); color: var(--accent-hover); }
-.site-btn.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-  box-shadow: 0 0 12px var(--bg-glow-1);
-}

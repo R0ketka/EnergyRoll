@@ -103,10 +103,11 @@
             🏆 Выбрать победителя
           </button>
 
+          <!-- Блок победителей (с сортировкой и карандашом) -->
           <div class="winner-history">
             <div class="winner-history-header">
               <h3>Победители</h3>
-              <button id="sort-winners-btn" class="sort-winners-btn" type="button" title="Сортировка: по времени">🕒</button>
+              <button id="sort-winners-btn" class="sort-winners-btn" type="button" title="Сортировка: по времени (новые сверху)">🕒</button>
               <button id="edit-winners-btn" class="edit-winners-btn" type="button" title="Режим редактирования">✏️</button>
             </div>
             <div id="winners-history" class="winners-list">
@@ -114,8 +115,12 @@
             </div>
           </div>
 
+          <!-- Блок топа по сообщениям (с кнопкой очистки) -->
           <div class="top-chatters">
-            <h3>🔥 Топ по сообщениям</h3>
+            <div class="top-chatters-header">
+              <h3>🔥 Топ по сообщениям</h3>
+              <button id="clear-top-btn" class="btn-clear btn-clear-trash" title="Очистить топ" type="button">🗑</button>
+            </div>
             <div id="top-chatters-list" class="top-list">
               <div class="empty">Пока никого</div>
             </div>
@@ -218,11 +223,13 @@
         <span class="modal-payout-currency">₽</span>
         <button id="modal-payout-btn" class="modal-payout-btn">Добавить</button>
       </div>
+      
       <div class="modal-payout-section modal-dep-section">
         <span class="modal-payout-label">💳 Деп:</span>
         <input type="text" id="modal-dep-input" class="modal-payout-input" placeholder="0" inputmode="numeric" autocomplete="off" spellcheck="false" />
         <span class="modal-payout-currency">₽</span>
       </div>
+
       <div class="modal-actions">
         <button id="reroll-btn" class="btn btn-primary">🔄 Рерол</button>
         <button id="close-modal" class="btn btn-secondary">Закрыть</button>
