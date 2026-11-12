@@ -1,5 +1,5 @@
 
-const API_BASE = 'https://energyroll.onrender.com/'; 
+const API_BASE = 'https://energyroll.onrender.com/api'; 
 
 /* =========================================================
    Состояние
