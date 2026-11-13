@@ -375,7 +375,8 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
   flex-shrink: 1; 
 }
 
-/* УВЕЛИЧЕННЫЙ ШРИФТ САЙТА + ИКОНКА */
+
+/* УВЕЛИЧЕННЫЙ ШРИФТ САЙТА + КАРТИНКА СПРАВА */
 .winner-item-site { 
   font-size: 13px; 
   font-weight: 800; 
@@ -383,21 +384,21 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
   letter-spacing: 0.4px; 
   color: var(--accent); 
   background: var(--bg-glow-1); 
-  padding: 4px 8px; 
-  border-radius: 6px; 
+  padding: 4px 8px 4px 10px; 
+  border-radius: 8px; 
   white-space: nowrap; 
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px; 
 }
 
-/* РАЗМЕР КАРТИНКИ САЙТА (18x18) */
 .site-icon {
-  width: 18px;
-  height: 18px;
+  width: 26px;
+  height: 26px;
   object-fit: contain;
-  border-radius: 3px;
+  border-radius: 4px;
+  flex-shrink: 0;
 }
 
 .winner-site-select { 

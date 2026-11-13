@@ -759,7 +759,7 @@ function renderWinnersHistory() {
     
     if (siteMeta) {
       const iconFile = SITE_ICONS[siteMeta.id] || '';
-      siteSpan.innerHTML = `<img src="${iconFile}" class="site-icon" alt="${siteMeta.name}"> ${siteMeta.name}`;
+      siteSpan.innerHTML = `${siteMeta.name} <img src="${iconFile}" class="site-icon" alt="${siteMeta.name}">`;
     }
     
     siteSpan.hidden = !siteMeta || state.editWinnersMode;
