@@ -103,10 +103,14 @@
             🏆 Выбрать победителя
           </button>
 
-          <!-- Блок победителей (с сортировкой и карандашом) -->
+          <!-- Блок победителей (с вкладками, сортировкой и карандашом) -->
           <div class="winner-history">
             <div class="winner-history-header">
-              <h3>Победители</h3>
+              <div class="winner-tabs">
+                <button id="tab-stream" class="winner-tab active" type="button">За стрим</button>
+                <button id="tab-all" class="winner-tab" type="button">Все время</button>
+              </div>
+              <button id="clear-stream-winners-btn" class="btn-clear btn-clear-trash" title="Очистить победителей за стрим" type="button">🗑</button>
               <button id="sort-winners-btn" class="sort-winners-btn" type="button" title="Сортировка: по времени (новые сверху)">🕒</button>
               <button id="edit-winners-btn" class="edit-winners-btn" type="button" title="Режим редактирования">✏️</button>
             </div>
