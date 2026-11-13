@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EnergyRoll</title>
+  <title>⚡ EnergyRoll</title>
   <link rel="icon" type="image/svg+xml"
         href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
   <link rel="stylesheet" href="style.css">
@@ -71,6 +71,12 @@
             <div class="minigame-info"><div class="minigame-title">Бинго</div></div>
             <span class="minigame-check">✓</span>
           </button>
+          <!-- НОВАЯ ИГРА -->
+          <button class="minigame-item" data-mode="hotpotato">
+            <span class="minigame-icon">💣</span>
+            <div class="minigame-info"><div class="minigame-title">Горячая картошка</div></div>
+            <span class="minigame-check">✓</span>
+          </button>
 
           <div class="top-mode-divider"></div>
           <button id="top-mode-toggle" class="top-mode-btn">
@@ -103,7 +109,6 @@
             🏆 Выбрать победителя
           </button>
 
-          <!-- Блок победителей -->
           <div class="winner-history">
             <div class="winner-history-header">
               <div class="winner-tabs">
@@ -111,14 +116,12 @@
                 <button id="tab-all" class="winner-tab" type="button">Все время</button>
               </div>
               <button id="clear-stream-winners-btn" class="btn-clear btn-clear-trash" title="Очистить победителей за стрим" type="button">🗑</button>
-              <button id="sort-winners-btn" class="sort-winners-btn" type="button" title="Сортировка">🕒</button>
+              <button id="sort-winners-btn" class="sort-winners-btn" type="button" title="Сортировка: по времени (новые сверху)">🕒</button>
               <button id="edit-winners-btn" class="edit-winners-btn" type="button" title="Режим редактирования">✏️</button>
             </div>
             <div id="winners-history" class="winners-list">
               <div class="empty">Пока никого</div>
             </div>
-            
-            <!-- Итоговые суммы -->
             <div class="winners-totals" id="winners-totals">
               <div class="total-item">
                 <span>Итог вывод:</span>
@@ -131,7 +134,6 @@
             </div>
           </div>
 
-          <!-- Блок топа по сообщениям (с кнопкой очистки) -->
           <div class="top-chatters">
             <div class="top-chatters-header">
               <h3>🔥 Топ по сообщениям</h3>
@@ -197,6 +199,16 @@
         <div class="spin-view" id="spin-bingo" hidden>
           <div class="bingo-grid" id="bingo-grid"></div>
         </div>
+        
+        <!-- НОВАЯ ИГРА -->
+        <div class="spin-view" id="spin-hotpotato" hidden>
+          <div class="hotpotato-container" id="hotpotato-container">
+            <div class="hotpotato-bomb" id="hotpotato-bomb">💣</div>
+            <div class="hotpotato-timer" id="hotpotato-timer">5.0</div>
+            <div class="hotpotato-spark" id="hotpotato-spark"></div>
+          </div>
+        </div>
+
       </div>
 
       <div class="modal-top-left">

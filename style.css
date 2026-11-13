@@ -364,7 +364,6 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 }
 .winner-item-info { grid-area: info; min-width: 0; display: flex; flex-direction: row; align-items: center; gap: 6px; min-height: 24px; }
 
-/* УВЕЛИЧЕННЫЙ ШРИФТ НИКА */
 .winner-item-name { 
   font-size: 16px; 
   font-weight: 700; 
@@ -375,8 +374,6 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
   flex-shrink: 1; 
 }
 
-
-/* УВЕЛИЧЕННЫЙ БЕЙДЖ САЙТА ПОД БОЛЬШУЮ КАРТИНКУ */
 .winner-item-site { 
   font-size: 13px; 
   font-weight: 800; 
@@ -390,7 +387,7 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  gap: 10px; 
+  gap: 10px;
 }
 
 .site-icon {
@@ -471,6 +468,41 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 .winner-add-dep { flex: 1 1 55px; }
 .winner-add-btn { width: 28px; height: 28px; border-radius: var(--r-sm); background: var(--accent); border: none; color: #fff; font-size: 18px; font-weight: 800; cursor: pointer; flex-shrink: 0; }
 .winner-add-btn:hover { filter: brightness(1.1); }
+
+/* Итоговые суммы */
+.winners-totals {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 8px 0 8px;
+  margin-top: 6px;
+  border-top: 1px dashed var(--border-light);
+  flex-shrink: 0;
+  font-size: 13px;
+}
+.total-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.total-item:last-child {
+  align-items: flex-end;
+}
+.total-item span:first-child {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+.total-value {
+  font-size: 14px;
+  font-weight: 900;
+}
+.payout-val {
+  color: var(--accent-hover);
+}
+.dep-val {
+  color: #34d399;
+}
 
 /* --- Топ по сообщениям --- */
 .top-chatters { border-top: 1px solid var(--border); padding-top: 16px; display: flex; flex-direction: column; flex: 1; min-height: 0; }
@@ -664,37 +696,104 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 .bingo-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; color: #fff; flex-shrink: 0; margin-bottom: 4px; }
 .bingo-name { font-size: 9px; font-weight: 600; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 
-/* Блок итоговых сумм под списком победителей */
-.winners-totals {
-  display: flex;
-  justify-content: space-between;
-  padding: 10px 8px 0 8px;
-  margin-top: 6px;
-  border-top: 1px dashed var(--border-light);
-  flex-shrink: 0;
-  font-size: 13px;
+/* =========================================================
+   ГОРЯЧАЯ КАРТОШКА (НОВОЕ)
+   ========================================================= */
+.hotpotato-container {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  aspect-ratio: 1;
+  margin: 0 auto;
 }
-.total-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.hotpotato-bomb {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 60px;
+  z-index: 2;
+  filter: drop-shadow(0 0 20px red);
+  animation: bombPulse 0.5s infinite alternate;
 }
-.total-item:last-child {
-  align-items: flex-end;
+@keyframes bombPulse {
+  from { transform: translate(-50%, -50%) scale(1); }
+  to { transform: translate(-50%, -50%) scale(1.1); }
 }
-.total-item span:first-child {
-  font-size: 10px;
-  font-weight: 800;
-  color: var(--text-muted);
-  text-transform: uppercase;
-}
-.total-value {
-  font-size: 14px;
+.hotpotato-timer {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, 30px);
+  font-size: 24px;
   font-weight: 900;
+  color: #fff;
+  text-shadow: 0 0 10px red, 0 0 20px red;
+  z-index: 2;
 }
-.payout-val {
-  color: var(--accent-hover);
+.hotpotato-node {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  margin: -30px 0 0 -30px; /* Center on coordinate */
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  overflow: visible;
+  transition: all 0.3s ease;
+  z-index: 1;
 }
-.dep-val {
-  color: #34d399; 
+.hotpotato-node .avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: #fff;
+  font-size: 18px;
+}
+.hotpotato-node .name {
+  position: absolute;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--text-muted);
+  text-shadow: 0 1px 2px #000;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hotpotato-node.winner {
+  border-color: var(--success);
+  box-shadow: 0 0 20px var(--success);
+  transform: scale(1.2);
+  z-index: 3;
+}
+.hotpotato-spark {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 15px 5px orange, 0 0 30px 10px red;
+  z-index: 5;
+  pointer-events: none;
+}
+@keyframes explode {
+  0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  50% { transform: translate(-50%, -50%) scale(3); opacity: 0.8; }
+  100% { transform: translate(-50%, -50%) scale(5); opacity: 0; }
+}
+.hotpotato-bomb.explode {
+  animation: explode 0.5s forwards;
 }
