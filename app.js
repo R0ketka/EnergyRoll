@@ -8,8 +8,7 @@ const state = {
   winnersHistory: [], currentStreamWinners: [], winnersTab: 'stream',      
   miniGame: 'instant', topModeEnabled: false, theme: 'red-light',
   winnerSelectedAt: null, winnerHasResponded: false, timerInterval: null, isSpinning: false,
-  selectedSite: null, editWinnersMode: false, sortMode: 'time',
-  proxyAwake: false
+  selectedSite: null, editWinnersMode: false, sortMode: 'time'
 };
 
 const SITES = [
@@ -229,7 +228,7 @@ function updateParticipantVisual(login) {
 }
 
 /* =========================================================
-   ДОБАВЛЕНИЕ И ЧАТ (ЧЕРЕЗ ПРОКСИ)
+   ДОБАВЛЕНИЕ И ЧАТ (ПРЯМОЕ ПОДКЛЮЧЕНИЕ)
    ========================================================= */
 function addParticipantByLogin() {
   const raw = els.addParticipantInput.value.trim(); if (!raw) return;
@@ -245,34 +244,8 @@ function addParticipantByLogin() {
   els.addParticipantInput.value = ''; els.addParticipantInput.focus();
 }
 
-async function wakeProxy() {
-  if (state.proxyAwake) return true;
-  const PROXY_URL = 'wss://energyroll-proxy.onrender.com';
-  const httpUrl = PROXY_URL.replace(/^wss:\/\//, 'https://').replace(/^ws:\/\//, 'http://').replace(/\/+$/, '');
-  
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 90000); 
-  
-  try {
-    const res = await fetch(httpUrl + '/', { signal: controller.signal });
-    clearTimeout(timeoutId);
-    if (res.ok) { 
-      state.proxyAwake = true; 
-      return true; 
-    }
-    console.error('Proxy response not OK:', res.status);
-    return false;
-  } catch (e) {
-    clearTimeout(timeoutId);
-    console.error('Fetch proxy error:', e); 
-    if (e.name === 'AbortError') {
-      addSystemMessage('⚠ Прокси не проснулся за 90 секунд.');
-    }
-    return false;
-  }
-}
-async function connectChatAnonymously(channelName) {
-  if (state.ws) { state.ws.onclose = null; state.ws.close(); state.ws = null; }
+function connectChatAnonymously(channelName) {
+  if (state.ws) { state.ws.onclose = null; state.ws.close(); }
   const channel = channelName.toLowerCase().trim().replace(/^#/, '').replace(/[^a-z0-9_]/g, '');
   if (!channel) { addSystemMessage('⚠ Введите корректное имя канала.'); setStatus('Введите имя канала', 'off'); return; }
   
@@ -283,20 +256,9 @@ async function connectChatAnonymously(channelName) {
   }
   
   localStorage.setItem('energyroll_channel', channel);
-  
-  if (!state.proxyAwake) {
-    setStatus('Пробуждение сервера...', 'wait');
-    const proxyOk = await wakeProxy();
-    if (!proxyOk) {
-      setStatus('Прокси недоступен', 'off');
-      addSystemMessage('❌ Прокси не отвечает. Проверьте, что Web Service на Render запущен и URL в app.js правильный.');
-      return;
-    }
-  }
-  
   setStatus('Подключение...', 'wait');
-  const PROXY_URL = 'wss://energyroll-proxy.onrender.com';
-  const ws = new WebSocket(PROXY_URL);
+  
+  const ws = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
   state.ws = ws;
   
   ws.onopen = () => {
@@ -317,27 +279,25 @@ async function connectChatAnonymously(channelName) {
   };
   
   ws.onclose = () => {
-    if (state.ws !== ws) return;
-    reconnectAttempts++;
-    if (reconnectAttempts > 10) {
-      setStatus('Ошибка подключения', 'off');
-      addSystemMessage('❌ Не удалось подключиться за 10 попыток. Проверьте логи прокси на Render.');
-      state.proxyAwake = false;
-      return;
+    if (state.ws === ws) {
+      reconnectAttempts++;
+      if (reconnectAttempts > 5) {
+        setStatus('Ошибка подключения', 'off');
+        addSystemMessage('❌ Twitch отклоняет подключение. Попробуйте перезагрузить страницу.');
+        return;
+      }
+      setStatus('Переподключение (' + reconnectAttempts + '/5)...', 'wait');
+      setTimeout(() => { if (state.ws === ws) connectChatAnonymously(channel); }, 3000);
     }
-    const delay = Math.min(3000 * reconnectAttempts, 15000);
-    setStatus(`Переподключение через ${delay/1000}с (${reconnectAttempts}/10)...`, 'wait');
-    setTimeout(() => { 
-      if (state.ws === ws || state.ws === null) connectChatAnonymously(channel); 
-    }, delay);
   };
   
-  ws.onerror = () => { if (state.ws === ws) setStatus('Ошибка сети', 'off'); };
+  ws.onerror = () => { 
+    if (state.ws === ws) setStatus('Ошибка сети', 'off'); 
+  };
 }
 
 function disconnectChat() {
   if (state.ws) { state.ws.onclose = null; state.ws.close(); state.ws = null; }
-  state.proxyAwake = false;
   setStatus('Отключено', 'off'); 
   els.connectBtn.disabled = false; 
   els.disconnectBtn.disabled = true; 
@@ -657,6 +617,9 @@ async function playZeusLightning(pool, winnerLogin, winnerName) {
   });
 }
 
+/* =========================================================
+   ВЫБОР ПОБЕДИТЕЛЯ И СТАРТ
+   ========================================================= */
 async function pickWinner() {
   if (state.isSpinning) return;
   const basePool = getActiveWinnerPool();
@@ -740,6 +703,9 @@ function closeWinnerModal() {
   if (els.copyWinnerBtn) { els.copyWinnerBtn.classList.remove('copied'); els.copyWinnerBtn.textContent = '📋'; }
 }
 
+/* =========================================================
+   РЕНДЕР ПОБЕДИТЕЛЕЙ
+   ========================================================= */
 function getSortedWinners(list) {
   const arr = [...list];
   if (state.sortMode === 'payout') {
