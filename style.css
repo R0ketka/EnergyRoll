@@ -206,7 +206,7 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 .chat-msg-avatar { 
   width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; 
   font-weight: 800; font-size: 13px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.5); 
-  box-shadow: inset 0 0 0 1.5px rgba(255,255,255,0.15), 0 2px 6px rgba(0,0,0,0.35); 
+  box-shadow: inset 0 0 0 1.5px rgba(255,255,255,0.15), 0 2px 6px rgba(0,0,0,0.35); flex-shrink: 0;
 }
 .chat-author { color: var(--accent-hover); font-weight: 700; font-size: 13px; }
 .chat-text { color: var(--text); }
@@ -214,7 +214,7 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 .chat-empty, .empty { color: var(--text-dim); text-align: center; padding: 36px 20px; font-size: 13px; font-style: italic; }
 
 /* =========================================================
-   УЧАСТНИКИ
+   УЧАСТНИКИ (ИСПРАВЛЕННЫЕ СТИЛИ)
    ========================================================= */
 .participants-panel { min-height: 0; }
 .participants-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 22px; padding: 0 8px; background: var(--accent); color: #fff; border-radius: 999px; font-size: 11px; font-weight: 800; margin-left: 6px; }
@@ -229,8 +229,9 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 
 .add-participant-row { display: flex; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--border); background: rgba(0,0,0,0.2); }
 .add-participant-input { flex: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 7px; color: #fff; outline: none; font-size: 12px; }
-.add-participant-btn { width: 32px; height: 32px; border-radius: var(--r-sm); background: var(--accent); border: none; color: #fff; cursor: pointer; font-size: 18px; font-weight: 800; }
+.add-participant-btn { width: 32px; height: 32px; border-radius: var(--r-sm); background: var(--accent); border: none; color: #fff; cursor: pointer; font-size: 18px; font-weight: 800; flex-shrink: 0; }
 
+/* Список участников: элементы появляются снизу и толкают список вверх */
 .participants-list { 
   flex: 1; 
   min-height: 0; 
@@ -244,10 +245,67 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 .participants-list::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
 
 .participant-item { 
-  padding: 7px 10px 7px 8px; background: var(--bg-tertiary); border-left: 3px solid var(--accent-dark); 
-  border-radius: var(--r-sm); font-size: 13px; display: flex; align-items: center; gap: 10px; min-width: 0; 
-  transition: 0.2s; animation: slideUpFade 0.3s ease-out; 
+  padding: 7px 10px 7px 8px; 
+  background: var(--bg-tertiary); 
+  border-left: 3px solid var(--accent-dark); 
+  border-radius: var(--r-sm); 
+  font-size: 13px; 
+  display: flex; 
+  align-items: center; 
+  gap: 10px; 
+  min-width: 0; 
+  width: 100%;
+  transition: 0.2s; 
+  animation: slideUpFade 0.3s ease-out; 
 }
+.participant-item:hover { background: var(--bg-elevated); transform: translateX(2px); }
+
+/* Жесткая фиксация аватарки (чтобы не сжималась длинным ником) */
+.participant-avatar { 
+  width: 28px; 
+  height: 28px; 
+  border-radius: 50%; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  font-weight: 800; 
+  font-size: 12px; 
+  color: #fff; 
+  flex-shrink: 0; 
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2);
+}
+
+.participant-name { 
+  flex: 1; 
+  overflow: hidden; 
+  text-overflow: ellipsis; 
+  white-space: nowrap; 
+  font-weight: 600; 
+  min-width: 0;
+}
+
+/* Жесткая фиксация крестика */
+.participant-exclude-btn { 
+  background: transparent; 
+  border: 1px solid var(--border); 
+  color: var(--text-muted); 
+  width: 24px; 
+  height: 24px; 
+  border-radius: var(--r-sm); 
+  cursor: pointer; 
+  transition: 0.2s; 
+  flex-shrink: 0; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 12px;
+}
+.participant-exclude-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.participant-item.participant-excluded { opacity: 0.4; filter: saturate(0.3); }
+.participant-item.participant-excluded .participant-name { text-decoration: line-through; }
 
 @keyframes slideUpFade {
   from { opacity: 0; transform: translateY(15px); }
@@ -265,14 +323,13 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 .winner-history { border-top: 1px solid var(--border); padding-top: 16px; display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .winner-history-header { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
 
-/* Вкладки "За стрим" / "Все время" */
 .winner-tabs {
   display: flex;
   background: rgba(0, 0, 0, 0.3);
   border-radius: var(--r-sm);
   padding: 2px;
   gap: 2px;
-  margin-right: auto; /* Прижимает иконки вправо */
+  margin-right: auto; 
 }
 .winner-tab {
   background: transparent;
@@ -287,10 +344,7 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
   transition: 0.2s;
 }
 .winner-tab:hover { color: var(--text); }
-.winner-tab.active {
-  background: var(--accent);
-  color: #fff;
-}
+.winner-tab.active { background: var(--accent); color: #fff; }
 
 .edit-winners-btn, .sort-winners-btn { 
   background: transparent; border: 1px solid var(--border); color: var(--text-muted); width: 26px; height: 26px; 
@@ -375,7 +429,7 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 .winner-dep-wrap:has(.winner-dep-input:not(:disabled)) .winner-dep-currency { color: var(--text-muted); -webkit-text-fill-color: var(--text-muted); }
 .winner-dep-wrap:has(.winner-dep-input:not(:disabled)):focus-within { border-color: var(--accent); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4), 0 0 0 2px var(--bg-glow-1); }
 
-.winner-delete-btn { grid-area: del; background: transparent; border: 1px solid var(--border); color: var(--text-muted); width: 22px; height: 22px; border-radius: var(--r-sm); cursor: pointer; font-size: 11px; }
+.winner-delete-btn { grid-area: del; background: transparent; border: 1px solid var(--border); color: var(--text-muted); width: 22px; height: 22px; border-radius: var(--r-sm); cursor: pointer; font-size: 11px; flex-shrink: 0; }
 .winner-delete-btn:hover { border-color: var(--accent); color: var(--accent); }
 
 /* Форма добавления */
@@ -397,12 +451,12 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 .top-list::-webkit-scrollbar { width: 6px; }
 .top-list::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
 .top-item { display: flex; align-items: center; gap: 10px; padding: 7px 10px; background: var(--bg-tertiary); border-radius: var(--r-sm); font-size: 13px; }
-.top-rank { width: 24px; height: 24px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; }
+.top-rank { width: 24px; height: 24px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; flex-shrink: 0; }
 .top-item:nth-child(1) .top-rank { background: linear-gradient(180deg, #ffe14a, #b8860b); color: #000; }
 .top-item:nth-child(2) .top-rank { background: linear-gradient(180deg, #e8e8e8, #8a8a8a); color: #000; }
 .top-item:nth-child(3) .top-rank { background: linear-gradient(180deg, #e09260, #8b4513); color: #fff; }
 .top-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
-.top-count { font-weight: 800; color: var(--accent); font-size: 12px; }
+.top-count { font-weight: 800; color: var(--accent); font-size: 12px; flex-shrink: 0; }
 
 /* =========================================================
    МОДАЛКИ (ОБЩИЕ)
