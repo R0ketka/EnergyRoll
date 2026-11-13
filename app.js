@@ -12,8 +12,8 @@ const state = {
   users: new Map(), messages: new Map(), 
   currentWinner: null, 
   
-  winnersHistory: [],        // Победители за все время (из MongoDB)
-  currentStreamWinners: [],  // Победители за текущий стрим (локально)
+  winnersHistory: [],        // Победители текущего стримера (из БД)
+  currentStreamWinners: [],  // Победители за текущий сеанс (локально)
   winnersTab: 'stream',      // 'stream' | 'all'
 
   miniGame: 'instant', topModeEnabled: false, theme: 'red-light',
@@ -97,23 +97,12 @@ const els = {
 };
 
 /* =========================================================
-   Ключи для LocalStorage (зависит от канала)
+   Сохранение топа (LocalStorage)
    ========================================================= */
-function getChannelKey() {
-  return state.userLogin ? state.userLogin.toLowerCase() : 'offline';
-}
-
-function getStreamWinnersKey() {
-  return `energyroll_stream_winners_${getChannelKey()}`;
-}
-
 function getChatStateKey() {
-  return `energyroll_chat_state_${getChannelKey()}`;
+  return `energyroll_chat_state_${state.userLogin || 'offline'}`;
 }
 
-/* =========================================================
-   Сохранение/Загрузка Топа чата
-   ========================================================= */
 function saveChatState() {
   try {
     const usersArr = Array.from(state.users.entries());
@@ -128,10 +117,7 @@ function saveChatState() {
 
 function scheduleChatSave() {
   if (chatSaveTimeout) return;
-  chatSaveTimeout = setTimeout(() => {
-    chatSaveTimeout = null;
-    saveChatState();
-  }, 2000);
+  chatSaveTimeout = setTimeout(() => { chatSaveTimeout = null; saveChatState(); }, 2000);
 }
 
 function loadChatState() {
@@ -139,9 +125,7 @@ function loadChatState() {
     const raw = localStorage.getItem(getChatStateKey());
     if (!raw) return;
     const data = JSON.parse(raw);
-    if (data.users) {
-      for (const [login, name] of data.users) state.users.set(login, name);
-    }
+    if (data.users) { for (const [login, name] of data.users) state.users.set(login, name); }
     if (data.messages) {
       for (const [login, msgs] of data.messages) {
         state.messages.set(login, msgs.map(m => ({ text: m.text, time: new Date(m.time) })));
@@ -151,70 +135,56 @@ function loadChatState() {
 }
 
 /* =========================================================
-   Сохранение/Загрузка Победителей за стрим
-   ========================================================= */
-function saveStreamWinners() {
-  try {
-    localStorage.setItem(getStreamWinnersKey(), JSON.stringify(state.currentStreamWinners));
-  } catch (e) { console.warn(e); }
-}
-
-function loadStreamWinners() {
-  try {
-    const raw = localStorage.getItem(getStreamWinnersKey());
-    if (raw) {
-      state.currentStreamWinners = JSON.parse(raw);
-    } else {
-      state.currentStreamWinners = [];
-    }
-  } catch (e) { state.currentStreamWinners = []; }
-  renderWinnersHistory();
-}
-
-/* =========================================================
-   API-запросы к MongoDB (Победители за все время)
+   API-запросы к MongoDB (Победители)
    ========================================================= */
 async function loadWinnersFromApi() {
+  if (!state.userLogin) return;
   try {
-    const res = await fetch(`${API_BASE}/winners`);
+    const res = await fetch(`${API_BASE}/winners?streamer=${state.userLogin}`);
     if (!res.ok) throw new Error(res.status);
     const list = await res.json();
     state.winnersHistory = list.map((w) => ({
-      id: w.id,
-      name: w.name,
-      payout: w.payout || '',
-      site: w.site || null,
-      dep: w.dep || ''
+      id: w.id, 
+      name: w.name, 
+      payout: w.payout || '', 
+      site: w.site || null, 
+      dep: w.dep || '',
+      createdAt: w.createdAt // Важно для сортировки
     }));
-    if (state.winnersTab === 'all') renderWinnersHistory();
+    renderWinnersHistory();
   } catch (e) {
     console.error(e);
+    addSystemMessage('⚠ Не удалось загрузить победителей из базы.');
   }
 }
 
 async function addWinnerToHistory(displayName, payout = '', site = null, dep = '') {
-  // 1. Сохраняем в текущий стрим (локально)
-  const localId = Date.now(); // Уникальный ID для локального списка
-  const newWinner = { id: localId, name: displayName, payout, site, dep };
+  const localId = Date.now();
+  const newWinner = { id: localId, name: displayName, payout, site, dep, createdAt: new Date().toISOString() };
   state.currentStreamWinners.unshift(newWinner);
-  saveStreamWinners();
 
-  // 2. Отправляем в базу (навсегда)
+  if (!state.userLogin) return;
+
   try {
     const res = await fetch(`${API_BASE}/winners`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: displayName, payout, dep, site })
+      body: JSON.stringify({ name: displayName, payout, dep, site, streamer: state.userLogin })
     });
     if (res.ok) {
       const saved = await res.json();
       state.winnersHistory.unshift({
-        id: saved.id, name: saved.name, payout: saved.payout, site: saved.site, dep: saved.dep
+        id: saved.id, 
+        name: saved.name, 
+        payout: saved.payout, 
+        site: saved.site, 
+        dep: saved.dep,
+        createdAt: saved.createdAt
       });
       if (state.winnersHistory.length > 100) state.winnersHistory.length = 100;
     }
   } catch (e) {
-    addSystemMessage('⚠ Ошибка сохранения в базу (в стрим сохранено).');
+    addSystemMessage('⚠ Ошибка сохранения в базу.');
   }
   
   renderWinnersHistory();
@@ -395,17 +365,19 @@ function connectChatAnonymously(channelName) {
   const channel = channelName.toLowerCase().trim().replace(/^#/, '').replace(/[^a-z0-9_]/g, '');
   if (!channel) { addSystemMessage('⚠ Введите корректное имя канала.'); setStatus('Введите имя канала', 'off'); return; }
 
-  // При смене канала сбрасываем текущие данные и грузим новые
+  // Если стример сменился, очищаем данные предыдущего
   if (state.userLogin !== channel) {
     state.users.clear();
     state.messages.clear();
     topElements.clear();
     state.currentStreamWinners = [];
+    state.winnersHistory = [];
     state.userLogin = channel; 
+    
     loadChatState();
-    loadStreamWinners();
     renderTopChatters();
     renderWinnersHistory();
+    loadWinnersFromApi(); // Грузим победителей НОВОГО стримера
   }
 
   localStorage.setItem('energyroll_channel', channel);
@@ -461,8 +433,19 @@ function clearChat() { els.chatMessages.innerHTML = ''; addSystemMessage('🧹 �
 function handleConnectClick() { const channel = els.channelInput.value.trim(); if (!channel) { addSystemMessage('⚠ Введите имя канала.'); return; } connectChatAnonymously(channel); }
 
 /* =========================================================
-   Парсинг IRC
+   Парсинг IRC (возвращен для совместимости)
    ========================================================= */
+function parseTags(raw) {
+  const tags = {};
+  if (!raw) return tags;
+  for (const pair of raw.split(';')) {
+    const idx = pair.indexOf('=');
+    if (idx === -1) continue;
+    tags[pair.slice(0, idx)] = pair.slice(idx + 1);
+  }
+  return tags;
+}
+
 function handleIrcLine(line, ws) {
   if (line.startsWith('PING')) { ws.send('PONG :tmi.twitch.tv\r\n'); return; }
   if (line.indexOf('PRIVMSG') === -1) return;
@@ -520,7 +503,6 @@ function addMessage(login, displayName, text) {
   scheduleChatSave(); 
 }
 
-// Отрисовка участника с анимацией снизу вверх
 function renderParticipant(login, displayName, isNew = false) {
   const empty = els.participantsList.querySelector('.empty'); if (empty) empty.remove();
   const el = document.createElement('div'); el.className = 'participant-item' + (isNew ? ' participant-new' : ''); el.dataset.login = login;
@@ -529,10 +511,8 @@ function renderParticipant(login, displayName, isNew = false) {
   const excludeBtn = document.createElement('button'); excludeBtn.className = 'participant-exclude-btn'; excludeBtn.type = 'button'; excludeBtn.textContent = state.excludedUsers.has(login) ? '↺' : '✕'; excludeBtn.title = state.excludedUsers.has(login) ? 'Вернуть' : 'Исключить'; excludeBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleExcludeParticipant(login); });
   el.appendChild(avatar); el.appendChild(name); el.appendChild(excludeBtn); if (state.excludedUsers.has(login)) el.classList.add('participant-excluded');
   
-  // Добавляем в начало (визуально вниз благодаря flex-direction: column-reverse)
-  els.participantsList.prepend(el);
-  // Камера сама прокрутится вниз до нового элемента
-  els.participantsList.scrollTo({ top: 0, behavior: 'smooth' });
+  els.participantsList.appendChild(el);
+  els.participantsList.scrollTop = els.participantsList.scrollHeight;
 }
 
 function updateParticipantCount() {
@@ -576,7 +556,7 @@ function fillWinnerInfo(login) {
 }
 
 /* =========================================================
-   Мини-игры (сокращено для читаемости, логика та же)
+   Мини-игры
    ========================================================= */
 function initMinigames() {
   const known = ['instant', 'roulette', 'drum', 'case', 'cards', 'wheel', 'bingo'];
@@ -700,7 +680,7 @@ function closeWinnerModal() {
 }
 
 /* =========================================================
-   Рендер победителей (с учетом вкладок)
+   Рендер победителей (Вкладки)
    ========================================================= */
 function getSortedWinners(list) {
   const arr = [...list];
@@ -709,10 +689,12 @@ function getSortedWinners(list) {
       const pa = parseFloat(String(a.payout || '').replace(',', '.').replace(/[^\d.-]/g, '')) || 0;
       const pb = parseFloat(String(b.payout || '').replace(',', '.').replace(/[^\d.-]/g, '')) || 0;
       if (pb !== pa) return pb - pa;
-      return b.id - a.id;
+      // Сортируем по дате создания (убывание)
+      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
     });
   } else {
-    arr.sort((a, b) => b.id - a.id);
+    // Сортируем по дате создания (убывание)
+    arr.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
   }
   return arr;
 }
@@ -731,7 +713,6 @@ function createAddWinnerForm() {
   const nameInput = document.createElement('input');
   nameInput.className = 'winner-add-name';
   nameInput.placeholder = 'Ник';
-  nameInput.autocomplete = 'off';
 
   const siteSelect = document.createElement('select');
   siteSelect.className = 'winner-add-site';
@@ -759,25 +740,17 @@ function createAddWinnerForm() {
     if (newName) newName.focus();
   });
 
-  form.appendChild(nameInput);
-  form.appendChild(siteSelect);
-  form.appendChild(payoutInput);
-  form.appendChild(depInput);
-  form.appendChild(addBtn);
+  form.appendChild(nameInput); form.appendChild(siteSelect); form.appendChild(payoutInput); form.appendChild(depInput); form.appendChild(addBtn);
   return form;
 }
 
 function renderWinnersHistory() {
-  // Показываем или скрываем кнопку "Очистить стрим"
   if (els.clearStreamWinnersBtn) {
     els.clearStreamWinnersBtn.style.display = (state.winnersTab === 'stream') ? 'inline-flex' : 'none';
   }
-
-  // Подсветка активной вкладки
   els.tabStream.classList.toggle('active', state.winnersTab === 'stream');
   els.tabAll.classList.toggle('active', state.winnersTab === 'all');
 
-  // Выбираем источник данных
   let listToRender = state.winnersTab === 'stream' ? state.currentStreamWinners : state.winnersHistory;
 
   if (listToRender.length === 0) {
@@ -810,8 +783,7 @@ function renderWinnersHistory() {
 
     const siteSelect = document.createElement('select');
     siteSelect.className = 'winner-site-select';
-    siteSelect.innerHTML = '<option value="">— сайт —</option>' +
-      SITES.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    siteSelect.innerHTML = '<option value="">— сайт —</option>' + SITES.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
     siteSelect.value = w.site || '';
     siteSelect.hidden = !state.editWinnersMode;
     siteSelect.addEventListener('change', (e) => {
@@ -819,10 +791,7 @@ function renderWinnersHistory() {
       const item = targetList.find((x) => x.id === w.id);
       if (!item) return;
       item.site = e.target.value || null;
-      
-      if (state.winnersTab === 'stream') saveStreamWinners();
-      else updateWinnerInApi(item.id, item.payout, item.dep, item.site);
-      
+      if (state.winnersTab === 'all') updateWinnerInApi(item.id, item.payout, item.dep, item.site);
       renderWinnersHistory();
     });
     info.appendChild(siteSelect);
@@ -831,18 +800,12 @@ function renderWinnersHistory() {
 
     const wrap = document.createElement('div'); wrap.className = 'winner-payout-wrap';
     const input = document.createElement('input');
-    input.type = 'text';
-    input.className = 'winner-payout-input';
-    input.placeholder = '0';
-    input.value = w.payout || '';
+    input.type = 'text'; input.className = 'winner-payout-input'; input.placeholder = '0'; input.value = w.payout || '';
     input.disabled = !state.editWinnersMode;
-    input.addEventListener('blur', (e) => {
+    input.addEventListener('blur', () => {
       const targetList = state.winnersTab === 'stream' ? state.currentStreamWinners : state.winnersHistory;
       const item = targetList.find((x) => x.id === w.id);
-      if (item) {
-        if (state.winnersTab === 'stream') saveStreamWinners();
-        else updateWinnerInApi(item.id, item.payout, item.dep, item.site);
-      }
+      if (item && state.winnersTab === 'all') updateWinnerInApi(item.id, item.payout, item.dep, item.site);
       if (state.sortMode === 'payout' && state.editWinnersMode) renderWinnersHistory();
     });
     input.addEventListener('input', (e) => {
@@ -854,15 +817,10 @@ function renderWinnersHistory() {
     wrap.appendChild(input); wrap.appendChild(cur);
     moneyStack.appendChild(wrap);
 
-    const depWrap = document.createElement('div');
-    depWrap.className = 'winner-dep-wrap';
-    const hasDep = !!(w.dep && String(w.dep).trim());
-    if (!state.editWinnersMode && !hasDep) depWrap.hidden = true;
+    const depWrap = document.createElement('div'); depWrap.className = 'winner-dep-wrap';
+    if (!state.editWinnersMode && !(w.dep && String(w.dep).trim())) depWrap.hidden = true;
     const depInput = document.createElement('input');
-    depInput.type = 'text';
-    depInput.className = 'winner-dep-input';
-    depInput.placeholder = 'деп';
-    depInput.value = w.dep || '';
+    depInput.type = 'text'; depInput.className = 'winner-dep-input'; depInput.placeholder = 'деп'; depInput.value = w.dep || '';
     depInput.disabled = !state.editWinnersMode;
     depInput.addEventListener('input', (e) => {
       const targetList = state.winnersTab === 'stream' ? state.currentStreamWinners : state.winnersHistory;
@@ -870,13 +828,10 @@ function renderWinnersHistory() {
       if (item) item.dep = e.target.value;
       if (!state.editWinnersMode) depWrap.hidden = !e.target.value.trim();
     });
-    depInput.addEventListener('blur', (e) => {
+    depInput.addEventListener('blur', () => {
       const targetList = state.winnersTab === 'stream' ? state.currentStreamWinners : state.winnersHistory;
       const item = targetList.find((x) => x.id === w.id);
-      if (item) {
-        if (state.winnersTab === 'stream') saveStreamWinners();
-        else updateWinnerInApi(item.id, item.payout, item.dep, item.site);
-      }
+      if (item && state.winnersTab === 'all') updateWinnerInApi(item.id, item.payout, item.dep, item.site);
     });
     const depCur = document.createElement('span'); depCur.className = 'winner-dep-currency'; depCur.textContent = '₽';
     depWrap.appendChild(depInput); depWrap.appendChild(depCur);
@@ -886,7 +841,6 @@ function renderWinnersHistory() {
     del.addEventListener('click', () => {
       if (state.winnersTab === 'stream') {
         state.currentStreamWinners = state.currentStreamWinners.filter((x) => x.id !== w.id);
-        saveStreamWinners();
         renderWinnersHistory();
       } else {
         deleteWinnerFromApi(w.id);
@@ -938,28 +892,21 @@ if (els.modalDepInput) els.modalDepInput.addEventListener('input', updateCommitB
 els.closeModal.addEventListener('click', closeWinnerModal);
 els.modal.querySelector('.modal-backdrop').addEventListener('click', closeWinnerModal);
 
-// Вкладки победителей
 els.tabStream.addEventListener('click', () => { state.winnersTab = 'stream'; renderWinnersHistory(); });
 els.tabAll.addEventListener('click', () => { state.winnersTab = 'all'; renderWinnersHistory(); });
 
-// Очистка победителей за стрим
 if (els.clearStreamWinnersBtn) {
   els.clearStreamWinnersBtn.addEventListener('click', () => {
     if (confirm('Очистить победителей за текущий стрим?')) {
       state.currentStreamWinners = [];
-      saveStreamWinners();
       renderWinnersHistory();
     }
   });
 }
 
-// Очистка Топа по сообщениям
 if (els.clearTopBtn) {
   els.clearTopBtn.addEventListener('click', () => {
-    state.messages.clear();
-    topElements.clear();
-    renderTopChatters();
-    saveChatState(); // Мгновенное сохранение
+    state.messages.clear(); topElements.clear(); renderTopChatters(); saveChatState(); 
     addSystemMessage('🔥 Топ по сообщениям очищен.');
   });
 }
@@ -986,8 +933,7 @@ if (els.copyWinnerBtn) {
     if (!state.currentWinner) return;
     try {
       await navigator.clipboard.writeText(state.currentWinner);
-      els.copyWinnerBtn.classList.add('copied');
-      els.copyWinnerBtn.textContent = '✓';
+      els.copyWinnerBtn.classList.add('copied'); els.copyWinnerBtn.textContent = '✓';
       setTimeout(() => { els.copyWinnerBtn.classList.remove('copied'); els.copyWinnerBtn.textContent = '📋'; }, 1200);
     } catch (e) { addSystemMessage('⚠ Не удалось скопировать ник.'); }
   });
@@ -1011,23 +957,13 @@ if (els.siteButtons) {
   });
 }
 
-window.addEventListener('beforeunload', () => {
-  if (chatSaveTimeout) { clearTimeout(chatSaveTimeout); saveChatState(); }
-});
-
+window.addEventListener('beforeunload', () => { if (chatSaveTimeout) { clearTimeout(chatSaveTimeout); saveChatState(); } });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (els.modal.classList.contains('active')) closeWinnerModal(); if (els.settingsModal.classList.contains('active')) closeSettings(); } });
 
 function init() {
-  initTheme(); 
-  initMinigames(); 
-  initRipple();
-  
-  loadWinnersFromApi(); // Грузим "Все время" из базы
-  updateCommitButton();
-  updateTopModeButton();
-  updateSortWinnersButton();
-  renderWinnersHistory();
-  updateParticipantCount();
+  initTheme(); initMinigames(); initRipple();
+  updateCommitButton(); updateTopModeButton(); updateSortWinnersButton();
+  renderWinnersHistory(); updateParticipantCount();
   
   els.connectBtn.addEventListener('click', handleConnectClick);
   els.channelInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleConnectClick(); });
@@ -1038,7 +974,6 @@ function init() {
     connectChatAnonymously(savedChannel); 
   } else { 
     setStatus('Введите имя канала', 'off'); 
-    loadStreamWinners(); // Загружаем "оффлайн" победителей, если канал не выбран
   }
 }
 

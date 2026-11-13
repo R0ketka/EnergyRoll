@@ -231,30 +231,23 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 .add-participant-input { flex: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 7px; color: #fff; outline: none; font-size: 12px; }
 .add-participant-btn { width: 32px; height: 32px; border-radius: var(--r-sm); background: var(--accent); border: none; color: #fff; cursor: pointer; font-size: 18px; font-weight: 800; }
 
-/* Анимация участников (снизу вверх) */
 .participants-list { 
   flex: 1; 
   min-height: 0; 
   overflow-y: auto; 
   padding: 10px; 
   display: flex; 
-  flex-direction: column-reverse; /* Новые элементы добавляются снизу */
+  flex-direction: column; 
   gap: 5px; 
 }
 .participants-list::-webkit-scrollbar { width: 6px; }
 .participants-list::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
+
 .participant-item { 
   padding: 7px 10px 7px 8px; background: var(--bg-tertiary); border-left: 3px solid var(--accent-dark); 
   border-radius: var(--r-sm); font-size: 13px; display: flex; align-items: center; gap: 10px; min-width: 0; 
-  transition: 0.2s; animation: slideUpFade 0.3s ease-out; /* Анимация появления */
+  transition: 0.2s; animation: slideUpFade 0.3s ease-out; 
 }
-.participant-item:hover { background: var(--bg-elevated); transform: translateX(2px); }
-.participant-avatar { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px; color: #fff; }
-.participant-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
-.participant-exclude-btn { background: transparent; border: 1px solid var(--border); color: var(--text-muted); width: 24px; height: 24px; border-radius: var(--r-sm); cursor: pointer; transition: 0.2s; }
-.participant-exclude-btn:hover { border-color: var(--accent); color: var(--accent); }
-.participant-item.participant-excluded { opacity: 0.4; filter: saturate(0.3); }
-.participant-item.participant-excluded .participant-name { text-decoration: line-through; }
 
 @keyframes slideUpFade {
   from { opacity: 0; transform: translateY(15px); }

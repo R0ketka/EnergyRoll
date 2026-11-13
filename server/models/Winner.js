@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 
 const winnerSchema = new mongoose.Schema({
+  streamer: { type: String, required: true, index: true }, 
   name:   { type: String, required: true },
   payout: { type: String, default: '' },
   dep:    { type: String, default: '' },
