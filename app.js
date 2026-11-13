@@ -12,9 +12,9 @@ const state = {
   users: new Map(), messages: new Map(), 
   currentWinner: null, 
   
-  winnersHistory: [],        // Победители текущего стримера (из БД)
-  currentStreamWinners: [],  // Победители за текущий сеанс (локально)
-  winnersTab: 'stream',      // 'stream' | 'all'
+  winnersHistory: [],        
+  currentStreamWinners: [],  
+  winnersTab: 'stream',      
 
   miniGame: 'instant', topModeEnabled: false, theme: 'red-light',
   winnerSelectedAt: null, winnerHasResponded: false, timerInterval: null, isSpinning: false,
@@ -26,6 +26,13 @@ const SITES = [
   { id: 'ninjacase', name: 'NinjaCase' },
   { id: 'zavod', name: 'Zavod' }
 ];
+
+// Карта иконок сайтов
+const SITE_ICONS = {
+  magicdrop: 'magic.png',
+  ninjacase: 'ninja.png',
+  zavod: 'zavod.png'
+};
 
 let spinCancel = false;
 let cardsCancelFn = null;
@@ -135,7 +142,7 @@ function loadChatState() {
 }
 
 /* =========================================================
-   API-запросы к MongoDB (Победители)
+   API-запросы к MongoDB
    ========================================================= */
 async function loadWinnersFromApi() {
   if (!state.userLogin) return;
@@ -144,12 +151,7 @@ async function loadWinnersFromApi() {
     if (!res.ok) throw new Error(res.status);
     const list = await res.json();
     state.winnersHistory = list.map((w) => ({
-      id: w.id, 
-      name: w.name, 
-      payout: w.payout || '', 
-      site: w.site || null, 
-      dep: w.dep || '',
-      createdAt: w.createdAt // Важно для сортировки
+      id: w.id, name: w.name, payout: w.payout || '', site: w.site || null, dep: w.dep || '', createdAt: w.createdAt
     }));
     renderWinnersHistory();
   } catch (e) {
@@ -174,18 +176,11 @@ async function addWinnerToHistory(displayName, payout = '', site = null, dep = '
     if (res.ok) {
       const saved = await res.json();
       state.winnersHistory.unshift({
-        id: saved.id, 
-        name: saved.name, 
-        payout: saved.payout, 
-        site: saved.site, 
-        dep: saved.dep,
-        createdAt: saved.createdAt
+        id: saved.id, name: saved.name, payout: saved.payout, site: saved.site, dep: saved.dep, createdAt: saved.createdAt
       });
       if (state.winnersHistory.length > 100) state.winnersHistory.length = 100;
     }
-  } catch (e) {
-    addSystemMessage('⚠ Ошибка сохранения в базу.');
-  }
+  } catch (e) { addSystemMessage('⚠ Ошибка сохранения в базу.'); }
   
   renderWinnersHistory();
 }
@@ -196,9 +191,7 @@ async function deleteWinnerFromApi(id) {
     if (!res.ok) throw new Error(res.status);
     state.winnersHistory = state.winnersHistory.filter((x) => x.id !== id);
     renderWinnersHistory();
-  } catch (e) {
-    addSystemMessage('⚠ Не удалось удалить победителя из базы.');
-  }
+  } catch (e) { addSystemMessage('⚠ Не удалось удалить из базы.'); }
 }
 
 async function updateWinnerInApi(id, payout, dep, site) {
@@ -365,7 +358,6 @@ function connectChatAnonymously(channelName) {
   const channel = channelName.toLowerCase().trim().replace(/^#/, '').replace(/[^a-z0-9_]/g, '');
   if (!channel) { addSystemMessage('⚠ Введите корректное имя канала.'); setStatus('Введите имя канала', 'off'); return; }
 
-  // Если стример сменился, очищаем данные предыдущего
   if (state.userLogin !== channel) {
     state.users.clear();
     state.messages.clear();
@@ -377,7 +369,7 @@ function connectChatAnonymously(channelName) {
     loadChatState();
     renderTopChatters();
     renderWinnersHistory();
-    loadWinnersFromApi(); // Грузим победителей НОВОГО стримера
+    loadWinnersFromApi();
   }
 
   localStorage.setItem('energyroll_channel', channel);
@@ -433,19 +425,8 @@ function clearChat() { els.chatMessages.innerHTML = ''; addSystemMessage('🧹 �
 function handleConnectClick() { const channel = els.channelInput.value.trim(); if (!channel) { addSystemMessage('⚠ Введите имя канала.'); return; } connectChatAnonymously(channel); }
 
 /* =========================================================
-   Парсинг IRC (возвращен для совместимости)
+   Парсинг IRC
    ========================================================= */
-function parseTags(raw) {
-  const tags = {};
-  if (!raw) return tags;
-  for (const pair of raw.split(';')) {
-    const idx = pair.indexOf('=');
-    if (idx === -1) continue;
-    tags[pair.slice(0, idx)] = pair.slice(idx + 1);
-  }
-  return tags;
-}
-
 function handleIrcLine(line, ws) {
   if (line.startsWith('PING')) { ws.send('PONG :tmi.twitch.tv\r\n'); return; }
   if (line.indexOf('PRIVMSG') === -1) return;
@@ -503,6 +484,7 @@ function addMessage(login, displayName, text) {
   scheduleChatSave(); 
 }
 
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ: добавляет сверху и скроллит наверх
 function renderParticipant(login, displayName, isNew = false) {
   const empty = els.participantsList.querySelector('.empty'); if (empty) empty.remove();
   const el = document.createElement('div'); el.className = 'participant-item' + (isNew ? ' participant-new' : ''); el.dataset.login = login;
@@ -511,8 +493,10 @@ function renderParticipant(login, displayName, isNew = false) {
   const excludeBtn = document.createElement('button'); excludeBtn.className = 'participant-exclude-btn'; excludeBtn.type = 'button'; excludeBtn.textContent = state.excludedUsers.has(login) ? '↺' : '✕'; excludeBtn.title = state.excludedUsers.has(login) ? 'Вернуть' : 'Исключить'; excludeBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleExcludeParticipant(login); });
   el.appendChild(avatar); el.appendChild(name); el.appendChild(excludeBtn); if (state.excludedUsers.has(login)) el.classList.add('participant-excluded');
   
-  els.participantsList.appendChild(el);
-  els.participantsList.scrollTop = els.participantsList.scrollHeight;
+  // Добавляем в начало списка (визуально сверху)
+  els.participantsList.prepend(el);
+  // Прокручиваем контейнер наверх к новому элементу
+  els.participantsList.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function updateParticipantCount() {
@@ -689,11 +673,9 @@ function getSortedWinners(list) {
       const pa = parseFloat(String(a.payout || '').replace(',', '.').replace(/[^\d.-]/g, '')) || 0;
       const pb = parseFloat(String(b.payout || '').replace(',', '.').replace(/[^\d.-]/g, '')) || 0;
       if (pb !== pa) return pb - pa;
-      // Сортируем по дате создания (убывание)
       return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
     });
   } else {
-    // Сортируем по дате создания (убывание)
     arr.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
   }
   return arr;
@@ -777,7 +759,11 @@ function renderWinnersHistory() {
     const siteMeta = w.site ? SITES.find(s => s.id === w.site) : null;
     const siteSpan = document.createElement('span');
     siteSpan.className = 'winner-item-site';
-    siteSpan.textContent = siteMeta ? siteMeta.name : '';
+    if (siteMeta) {
+      // ДОБАВЛЕНИЕ ИКОНКИ САЙТА
+      const iconFile = SITE_ICONS[siteMeta.id] || '';
+      siteSpan.innerHTML = `<img src="${iconFile}" class="site-icon" alt="${siteMeta.name}" onerror="this.style.display='none'"> ${siteMeta.name}`;
+    }
     siteSpan.hidden = !siteMeta || state.editWinnersMode;
     info.appendChild(siteSpan);
 
