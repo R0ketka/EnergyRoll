@@ -1,36 +1,60 @@
+import http from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 
 const PORT = process.env.PORT || 8080;
 const TWITCH_IRC = 'wss://irc-ws.chat.twitch.tv:443';
 
-const wss = new WebSocketServer({ port: PORT });
+// HTTP сервер нужен для пробуждения (pre-warm через fetch) и проверки "жив ли"
+const server = http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.end('Twitch IRC Proxy OK');
+});
 
-wss.on('connection', (client) => {
-  console.log('Клиент подключился, открываю соединение с Twitch...');
+const wss = new WebSocketServer({ server });
+
+wss.on('connection', (client, req) => {
+  console.log(`[${new Date().toISOString()}] Client connected from ${req.socket.remoteAddress}`);
+  
   const twitch = new WebSocket(TWITCH_IRC);
-
-  // Браузер → Twitch
+  const pending = []; // ← БУФЕР: копим сообщения, пока Twitch не подключится
+  
   client.on('message', (msg) => {
-    if (twitch.readyState === WebSocket.OPEN) twitch.send(msg);
+    if (twitch.readyState === WebSocket.OPEN) {
+      twitch.send(msg);
+    } else {
+      pending.push(msg);
+    }
   });
-
-  // Twitch → Браузер
+  
+  twitch.on('open', () => {
+    console.log(`Flushing ${pending.length} buffered messages to Twitch`);
+    while (pending.length) {
+      twitch.send(pending.shift());
+    }
+  });
+  
   twitch.on('message', (msg) => {
     if (client.readyState === WebSocket.OPEN) client.send(msg);
   });
-
-  // Корректное закрытие
-  const closeBoth = () => {
-    if (client.readyState === WebSocket.OPEN) client.close();
+  
+  twitch.on('error', (e) => {
+    console.error('Twitch error:', e.message);
+    if (client.readyState === WebSocket.OPEN) client.close(1011, 'Twitch error');
+  });
+  
+  client.on('error', (e) => console.error('Client error:', e.message));
+  
+  client.on('close', () => {
+    console.log(`[${new Date().toISOString()}] Client disconnected`);
     if (twitch.readyState === WebSocket.OPEN) twitch.close();
-  };
-
-  client.on('close', closeBoth);
-  twitch.on('close', closeBoth);
-  client.on('error', closeBoth);
-  twitch.on('error', closeBoth);
-
-  twitch.on('open', () => console.log('Соединение с Twitch установлено'));
+  });
+  
+  twitch.on('close', () => {
+    console.log(`[${new Date().toISOString()}] Twitch disconnected`);
+    if (client.readyState === WebSocket.OPEN) client.close();
+  });
 });
 
-console.log(`Прокси-сервер запущен на порту ${PORT}`);
+server.listen(PORT, () => {
+  console.log(`Proxy listening on port ${PORT}`);
+});

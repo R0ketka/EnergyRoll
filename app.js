@@ -8,7 +8,8 @@ const state = {
   winnersHistory: [], currentStreamWinners: [], winnersTab: 'stream',      
   miniGame: 'instant', topModeEnabled: false, theme: 'red-light',
   winnerSelectedAt: null, winnerHasResponded: false, timerInterval: null, isSpinning: false,
-  selectedSite: null, editWinnersMode: false, sortMode: 'time'
+  selectedSite: null, editWinnersMode: false, sortMode: 'time',
+  proxyAwake: false
 };
 
 const SITES = [
@@ -228,7 +229,7 @@ function updateParticipantVisual(login) {
 }
 
 /* =========================================================
-   ДОБАВЛЕНИЕ И ЧАТ
+   ДОБАВЛЕНИЕ И ЧАТ (ЧЕРЕЗ ПРОКСИ)
    ========================================================= */
 function addParticipantByLogin() {
   const raw = els.addParticipantInput.value.trim(); if (!raw) return;
@@ -244,8 +245,33 @@ function addParticipantByLogin() {
   els.addParticipantInput.value = ''; els.addParticipantInput.focus();
 }
 
-function connectChatAnonymously(channelName) {
-  if (state.ws) { state.ws.onclose = null; state.ws.close(); }
+async function wakeProxy() {
+  if (state.proxyAwake) return true;
+  const PROXY_URL = 'wss://energyroll-proxy.onrender.com';
+  const httpUrl = PROXY_URL.replace(/^wss:\/\//, 'https://').replace(/^ws:\/\//, 'http://').replace(/\/+$/, '');
+  
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 60000);
+  
+  try {
+    const res = await fetch(httpUrl + '/', { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (res.ok) { 
+      state.proxyAwake = true; 
+      return true; 
+    }
+    return false;
+  } catch (e) {
+    clearTimeout(timeoutId);
+    if (e.name === 'AbortError') {
+      addSystemMessage('⚠ Прокси не проснулся за 60 секунд.');
+    }
+    return false;
+  }
+}
+
+async function connectChatAnonymously(channelName) {
+  if (state.ws) { state.ws.onclose = null; state.ws.close(); state.ws = null; }
   const channel = channelName.toLowerCase().trim().replace(/^#/, '').replace(/[^a-z0-9_]/g, '');
   if (!channel) { addSystemMessage('⚠ Введите корректное имя канала.'); setStatus('Введите имя канала', 'off'); return; }
   
@@ -256,38 +282,67 @@ function connectChatAnonymously(channelName) {
   }
   
   localStorage.setItem('energyroll_channel', channel);
-  setStatus('Подключение...', 'wait');
   
-  // =======================================================
-  // ПОДКЛЮЧЕНИЕ ЧЕРЕЗ ПРОКСИ RENDER
-  // Замените URL на ваш адрес Web Service, созданного для папки proxy!
-  // =======================================================
-  const PROXY_URL = 'wss://energyroll-proxy.onrender.com'; 
-  const ws = new WebSocket(PROXY_URL); 
+  if (!state.proxyAwake) {
+    setStatus('Пробуждение сервера...', 'wait');
+    const proxyOk = await wakeProxy();
+    if (!proxyOk) {
+      setStatus('Прокси недоступен', 'off');
+      addSystemMessage('❌ Прокси не отвечает. Проверьте, что Web Service на Render запущен и URL в app.js правильный.');
+      return;
+    }
+  }
+  
+  setStatus('Подключение...', 'wait');
+  const PROXY_URL = 'wss://energyroll-proxy.onrender.com';
+  const ws = new WebSocket(PROXY_URL);
   state.ws = ws;
   
   ws.onopen = () => {
-    reconnectAttempts = 0; const anonNick = 'justinfan' + Math.floor(Math.random() * 99999);
+    reconnectAttempts = 0;
+    const anonNick = 'justinfan' + Math.floor(Math.random() * 99999);
     ws.send('CAP REQ :twitch.tv/tags twitch.tv/commands\r\n'); 
     ws.send('PASS SCHMOOPIIE\r\n'); 
     ws.send('NICK ' + anonNick + '\r\n'); 
     ws.send('JOIN #' + channel + '\r\n');
-    setStatus('В чате: #' + channel, 'ok'); addSystemMessage('✅ Подключено к #' + channel);
+    setStatus('В чате: #' + channel, 'ok'); 
+    addSystemMessage('✅ Подключено к #' + channel);
     els.connectBtn.disabled = true; els.disconnectBtn.disabled = false;
   };
-  ws.onmessage = (event) => { const lines = event.data.split('\r\n'); for (const line of lines) if (line) handleIrcLine(line, ws); };
-  ws.onclose = () => {
-    if (state.ws === ws) {
-      reconnectAttempts++;
-      if (reconnectAttempts > 5) { setStatus('Ошибка подключения', 'off'); addSystemMessage('❌ Прокси-сервер не отвечает.'); return; }
-      setStatus('Переподключение (' + reconnectAttempts + '/5)...', 'wait');
-      setTimeout(() => { if (state.ws === ws) connectChatAnonymously(channel); }, 3000);
-    }
+  
+  ws.onmessage = (event) => { 
+    const lines = event.data.split('\r\n'); 
+    for (const line of lines) if (line) handleIrcLine(line, ws); 
   };
+  
+  ws.onclose = () => {
+    if (state.ws !== ws) return;
+    reconnectAttempts++;
+    if (reconnectAttempts > 10) {
+      setStatus('Ошибка подключения', 'off');
+      addSystemMessage('❌ Не удалось подключиться за 10 попыток. Проверьте логи прокси на Render.');
+      state.proxyAwake = false;
+      return;
+    }
+    const delay = Math.min(3000 * reconnectAttempts, 15000);
+    setStatus(`Переподключение через ${delay/1000}с (${reconnectAttempts}/10)...`, 'wait');
+    setTimeout(() => { 
+      if (state.ws === ws || state.ws === null) connectChatAnonymously(channel); 
+    }, delay);
+  };
+  
   ws.onerror = () => { if (state.ws === ws) setStatus('Ошибка сети', 'off'); };
 }
 
-function disconnectChat() { if (state.ws) { state.ws.onclose = null; state.ws.close(); state.ws = null; } setStatus('Отключено', 'off'); els.connectBtn.disabled = false; els.disconnectBtn.disabled = true; addSystemMessage('🔌 Отключено от чата.'); }
+function disconnectChat() {
+  if (state.ws) { state.ws.onclose = null; state.ws.close(); state.ws = null; }
+  state.proxyAwake = false;
+  setStatus('Отключено', 'off'); 
+  els.connectBtn.disabled = false; 
+  els.disconnectBtn.disabled = true; 
+  addSystemMessage('🔌 Отключено от чата.');
+}
+
 function clearChat() { els.chatMessages.innerHTML = ''; addSystemMessage('🧹 Чат очищен.'); }
 function handleConnectClick() { const c = els.channelInput.value.trim(); if (!c) { addSystemMessage('⚠ Введите имя канала.'); return; } connectChatAnonymously(c); }
 
