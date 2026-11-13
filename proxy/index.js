@@ -4,8 +4,20 @@ import { WebSocketServer, WebSocket } from 'ws';
 const PORT = process.env.PORT || 8080;
 const TWITCH_IRC = 'wss://irc-ws.chat.twitch.tv:443';
 
-// HTTP сервер нужен для пробуждения (pre-warm через fetch) и проверки "жив ли"
+// HTTP сервер для пробуждения и проверки
 const server = http.createServer((req, res) => {
+  // РАЗРЕШАЕМ ЗАПРОСЫ С ЛЮБЫХ ДОМЕНОВ (CORS)
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // Обработка preflight-запросов
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
   res.writeHead(200, { 'Content-Type': 'text/plain' });
   res.end('Twitch IRC Proxy OK');
 });
@@ -16,7 +28,7 @@ wss.on('connection', (client, req) => {
   console.log(`[${new Date().toISOString()}] Client connected from ${req.socket.remoteAddress}`);
   
   const twitch = new WebSocket(TWITCH_IRC);
-  const pending = []; // ← БУФЕР: копим сообщения, пока Twitch не подключится
+  const pending = [];
   
   client.on('message', (msg) => {
     if (twitch.readyState === WebSocket.OPEN) {
@@ -45,16 +57,15 @@ wss.on('connection', (client, req) => {
   client.on('error', (e) => console.error('Client error:', e.message));
   
   client.on('close', () => {
-    console.log(`[${new Date().toISOString()}] Client disconnected`);
     if (twitch.readyState === WebSocket.OPEN) twitch.close();
   });
   
   twitch.on('close', () => {
-    console.log(`[${new Date().toISOString()}] Twitch disconnected`);
     if (client.readyState === WebSocket.OPEN) client.close();
   });
 });
 
+// ВАЖНО: слушаем на 0.0.0.0 для Render
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Proxy listening on port ${PORT}`);
 });

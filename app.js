@@ -251,7 +251,7 @@ async function wakeProxy() {
   const httpUrl = PROXY_URL.replace(/^wss:\/\//, 'https://').replace(/^ws:\/\//, 'http://').replace(/\/+$/, '');
   
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 60000);
+  const timeoutId = setTimeout(() => controller.abort(), 90000); 
   
   try {
     const res = await fetch(httpUrl + '/', { signal: controller.signal });
@@ -260,16 +260,17 @@ async function wakeProxy() {
       state.proxyAwake = true; 
       return true; 
     }
+    console.error('Proxy response not OK:', res.status);
     return false;
   } catch (e) {
     clearTimeout(timeoutId);
+    console.error('Fetch proxy error:', e); 
     if (e.name === 'AbortError') {
-      addSystemMessage('⚠ Прокси не проснулся за 60 секунд.');
+      addSystemMessage('⚠ Прокси не проснулся за 90 секунд.');
     }
     return false;
   }
 }
-
 async function connectChatAnonymously(channelName) {
   if (state.ws) { state.ws.onclose = null; state.ws.close(); state.ws = null; }
   const channel = channelName.toLowerCase().trim().replace(/^#/, '').replace(/[^a-z0-9_]/g, '');
