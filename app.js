@@ -27,7 +27,7 @@ const SITES = [
   { id: 'zavod', name: 'Zavod' }
 ];
 
-// ИЗМЕНЕНО: Теперь расширение .jpg
+// Карта иконок сайтов
 const SITE_ICONS = {
   magicdrop: 'magic.jpg',
   ninjacase: 'ninja.jpg',
@@ -61,6 +61,8 @@ const els = {
   pickWinner: document.getElementById('pick-winner'),
   
   winnersHistory: document.getElementById('winners-history'),
+  totalPayoutEl: document.getElementById('total-payout'), // НОВОЕ
+  totalDepEl: document.getElementById('total-dep'),       // НОВОЕ
   tabStream: document.getElementById('tab-stream'),
   tabAll: document.getElementById('tab-all'),
   clearStreamWinnersBtn: document.getElementById('clear-stream-winners-btn'),
@@ -661,7 +663,7 @@ function closeWinnerModal() {
 }
 
 /* =========================================================
-   Рендер победителей (Вкладки)
+   Рендер победителей (Вкладки и Подсчет)
    ========================================================= */
 function getSortedWinners(list) {
   const arr = [...list];
@@ -676,6 +678,26 @@ function getSortedWinners(list) {
     arr.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
   }
   return arr;
+}
+
+// НОВАЯ ФУНКЦИЯ: Подсчет итоговых сумм
+function updateWinnersTotals() {
+  if (!els.totalPayoutEl || !els.totalDepEl) return;
+
+  let listToRender = state.winnersTab === 'stream' ? state.currentStreamWinners : state.winnersHistory;
+  
+  let sumPayout = 0;
+  let sumDep = 0;
+
+  listToRender.forEach((w) => {
+    const p = parseFloat(String(w.payout || '').replace(',', '.').replace(/[^\d.-]/g, '')) || 0;
+    const d = parseFloat(String(w.dep || '').replace(',', '.').replace(/[^\d.-]/g, '')) || 0;
+    sumPayout += p;
+    sumDep += d;
+  });
+
+  els.totalPayoutEl.textContent = sumPayout.toLocaleString('ru-RU') + ' ₽';
+  els.totalDepEl.textContent = sumDep.toLocaleString('ru-RU') + ' ₽';
 }
 
 function updateSortWinnersButton() {
@@ -738,6 +760,7 @@ function renderWinnersHistory() {
       els.winnersHistory.innerHTML = '';
       els.winnersHistory.appendChild(createAddWinnerForm());
     }
+    updateWinnersTotals(); // Обновляем итоги даже если пусто
     return;
   }
   
@@ -796,6 +819,7 @@ function renderWinnersHistory() {
       const targetList = state.winnersTab === 'stream' ? state.currentStreamWinners : state.winnersHistory;
       const item = targetList.find((x) => x.id === w.id);
       if (item) item.payout = e.target.value;
+      updateWinnersTotals(); // ЖИВОЙ ПЕРЕСЧЕТ
     });
     const cur = document.createElement('span'); cur.className = 'winner-payout-currency'; cur.textContent = '₽';
     wrap.appendChild(input); wrap.appendChild(cur);
@@ -811,6 +835,7 @@ function renderWinnersHistory() {
       const item = targetList.find((x) => x.id === w.id);
       if (item) item.dep = e.target.value;
       if (!state.editWinnersMode) depWrap.hidden = !e.target.value.trim();
+      updateWinnersTotals(); // ЖИВОЙ ПЕРЕСЧЕТ
     });
     depInput.addEventListener('blur', () => {
       const targetList = state.winnersTab === 'stream' ? state.currentStreamWinners : state.winnersHistory;
@@ -834,6 +859,9 @@ function renderWinnersHistory() {
     row.appendChild(info); row.appendChild(moneyStack); row.appendChild(del);
     els.winnersHistory.appendChild(row);
   }
+
+  // Обновляем итоги в самом конце рендера
+  updateWinnersTotals();
 }
 
 function initRipple() {

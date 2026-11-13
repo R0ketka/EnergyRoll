@@ -663,3 +663,38 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 .bingo-cell.winner { border-color: var(--accent); box-shadow: 0 0 20px var(--accent); opacity: 1; transform: scale(1.05); background: var(--bg-glow-1); z-index: 2; }
 .bingo-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; color: #fff; flex-shrink: 0; margin-bottom: 4px; }
 .bingo-name { font-size: 9px; font-weight: 600; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+/* Блок итоговых сумм под списком победителей */
+.winners-totals {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 8px 0 8px;
+  margin-top: 6px;
+  border-top: 1px dashed var(--border-light);
+  flex-shrink: 0;
+  font-size: 13px;
+}
+.total-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.total-item:last-child {
+  align-items: flex-end;
+}
+.total-item span:first-child {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+.total-value {
+  font-size: 14px;
+  font-weight: 900;
+}
+.payout-val {
+  color: var(--accent-hover);
+}
+.dep-val {
+  color: #34d399; 
+}

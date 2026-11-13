@@ -103,7 +103,7 @@
             🏆 Выбрать победителя
           </button>
 
-          <!-- Блок победителей (с вкладками, сортировкой и карандашом) -->
+          <!-- Блок победителей -->
           <div class="winner-history">
             <div class="winner-history-header">
               <div class="winner-tabs">
@@ -111,11 +111,23 @@
                 <button id="tab-all" class="winner-tab" type="button">Все время</button>
               </div>
               <button id="clear-stream-winners-btn" class="btn-clear btn-clear-trash" title="Очистить победителей за стрим" type="button">🗑</button>
-              <button id="sort-winners-btn" class="sort-winners-btn" type="button" title="Сортировка: по времени (новые сверху)">🕒</button>
+              <button id="sort-winners-btn" class="sort-winners-btn" type="button" title="Сортировка">🕒</button>
               <button id="edit-winners-btn" class="edit-winners-btn" type="button" title="Режим редактирования">✏️</button>
             </div>
             <div id="winners-history" class="winners-list">
               <div class="empty">Пока никого</div>
+            </div>
+            
+            <!-- Итоговые суммы -->
+            <div class="winners-totals" id="winners-totals">
+              <div class="total-item">
+                <span>Итог вывод:</span>
+                <span id="total-payout" class="total-value payout-val">0 ₽</span>
+              </div>
+              <div class="total-item">
+                <span>Итог деп:</span>
+                <span id="total-dep" class="total-value dep-val">0 ₽</span>
+              </div>
             </div>
           </div>
 
