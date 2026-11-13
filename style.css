@@ -118,26 +118,32 @@ header::after {
 @keyframes rippleAnim { to { transform: scale(4); opacity: 0; } }
 
 /* =========================================================
-   СЕТКА И ПАНЕЛИ
+   СЕТКА — 5 КОЛОНОК
    ========================================================= */
 #app { position: relative; z-index: 1; width: 100%; margin: 0; padding: 0 20px 20px 20px; }
-main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; height: calc(100vh - 130px); align-items: stretch; }
 
-@media (max-width: 1200px) { 
-  main { grid-template-columns: 1fr 3fr 1.2fr; height: auto; } 
-  #participants-panel { grid-column: 1 / -1; } 
-  .chat-messages { min-height: 240px; max-height: 460px; } 
-  .participants-list { min-height: 160px; max-height: 300px; } 
-}
-@media (max-width: 900px) { 
-  main { grid-template-columns: 1fr; } 
-  #participants-panel { grid-column: auto; } 
+main { 
+  display: grid; 
+  grid-template-columns: 1fr 1fr 2.5fr 1.7fr 1fr; 
+  gap: 16px; 
+  height: calc(100vh - 130px); 
+  align-items: stretch; 
 }
 
-#chat-panel { width: 100%; max-width: 760px; justify-self: end; min-width: 0; margin-right: -8px; }
-@media (max-width: 900px) {
-  #chat-panel { justify-self: stretch; max-width: none; margin-right: 0; }
+@media (max-width: 1300px) { 
+  main { grid-template-columns: 1fr 1fr 2.3fr 1.5fr; height: auto; }
+  #participants-panel { grid-column: 1 / -1; }
+  .chat-messages { min-height: 240px; max-height: 460px; }
+  .participants-list { min-height: 160px; max-height: 260px; }
 }
+
+@media (max-width: 1000px) { 
+  main { grid-template-columns: 1fr; height: auto; }
+  #participants-panel { grid-column: auto; }
+  #top-chatters-panel { max-height: 300px; }
+}
+
+#chat-panel { width: 100%; min-width: 0; }
 
 .panel { 
   position: relative; background: var(--panel-bg); border: 1px solid var(--border); 
@@ -191,6 +197,29 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 .top-mode-btn.active .top-mode-state { background: var(--accent); color: #fff; }
 
 /* =========================================================
+   ТОП ПО СООБЩЕНИЯМ (отдельная панель)
+   ========================================================= */
+.top-chatters-panel { min-height: 0; }
+.top-chatters-panel .top-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.top-chatters-panel .top-list::-webkit-scrollbar { width: 6px; }
+.top-chatters-panel .top-list::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
+.top-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: var(--bg-tertiary); border-radius: var(--r-sm); font-size: 12px; }
+.top-rank { width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; flex-shrink: 0; }
+.top-item:nth-child(1) .top-rank { background: linear-gradient(180deg, #ffe14a, #b8860b); color: #000; }
+.top-item:nth-child(2) .top-rank { background: linear-gradient(180deg, #e8e8e8, #8a8a8a); color: #000; }
+.top-item:nth-child(3) .top-rank { background: linear-gradient(180deg, #e09260, #8b4513); color: #fff; }
+.top-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; min-width: 0; }
+.top-count { font-weight: 800; color: var(--accent); font-size: 11px; flex-shrink: 0; }
+
+/* =========================================================
    ЧАТ
    ========================================================= */
 .chat-header-right { display: flex; align-items: center; gap: 10px; }
@@ -228,7 +257,7 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 .btn-clear-trash:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
 
 .add-participant-row { display: flex; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--border); background: rgba(0,0,0,0.2); }
-.add-participant-input { flex: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 7px; color: #fff; outline: none; font-size: 12px; }
+.add-participant-input { flex: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 7px; color: #fff; outline: none; font-size: 12px; min-width: 0; }
 .add-participant-btn { width: 32px; height: 32px; border-radius: var(--r-sm); background: var(--accent); border: none; color: #fff; cursor: pointer; font-size: 18px; font-weight: 800; flex-shrink: 0; }
 
 .participants-list { 
@@ -310,15 +339,14 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 }
 
 /* =========================================================
-   ПАНЕЛЬ УПРАВЛЕНИЯ (ПОБЕДИТЕЛИ И ТОП)
+   УПРАВЛЕНИЕ (ПОБЕДИТЕЛИ)
    ========================================================= */
-.control-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; flex: 1; min-height: 0; overflow-y: auto; }
+.control-body { padding: 16px; display: flex; flex-direction: column; gap: 16px; flex: 1; min-height: 0; overflow: hidden; }
 .control-body::-webkit-scrollbar { width: 6px; }
 .control-body::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
 
-/* --- Список победителей --- */
-.winner-history { border-top: 1px solid var(--border); padding-top: 16px; display: flex; flex-direction: column; flex: 1; min-height: 0; }
-.winner-history-header { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+.winner-history { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.winner-history-header { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
 
 .winner-tabs {
   display: flex;
@@ -339,6 +367,7 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
   border-radius: 4px;
   cursor: pointer;
   transition: 0.2s;
+  white-space: nowrap;
 }
 .winner-tab:hover { color: var(--text); }
 .winner-tab.active { background: var(--accent); color: #fff; }
@@ -356,45 +385,56 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 .winners-list::-webkit-scrollbar { width: 6px; }
 .winners-list::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
 
-/* Карточка победителя */
+/* Карточка победителя: ник сверху, бейдж сайта под ним */
 .winner-item { 
   display: grid; grid-template-columns: 1fr auto auto; grid-template-areas: "info money del"; 
   gap: 6px; align-items: start; padding: 8px; background: var(--bg-tertiary); 
   border-radius: var(--r-sm); border-left: 3px solid var(--accent); font-size: 13px; 
 }
-.winner-item-info { grid-area: info; min-width: 0; display: flex; flex-direction: row; align-items: center; gap: 6px; min-height: 24px; }
+
+.winner-item-info { 
+  grid-area: info; 
+  min-width: 0; 
+  display: flex; 
+  flex-direction: column; 
+  align-items: flex-start; 
+  gap: 4px; 
+}
 
 .winner-item-name { 
-  font-size: 16px; 
+  font-size: 14px; 
   font-weight: 700; 
   overflow: hidden; 
   text-overflow: ellipsis; 
   white-space: nowrap; 
+  width: 100%; 
   min-width: 0; 
-  flex-shrink: 1; 
+  line-height: 1.2; 
 }
 
 .winner-item-site { 
-  font-size: 13px; 
+  font-size: 11px; 
   font-weight: 800; 
   text-transform: uppercase; 
-  letter-spacing: 0.4px; 
+  letter-spacing: 0.3px; 
   color: var(--accent); 
   background: var(--bg-glow-1); 
-  padding: 6px 12px; 
-  border-radius: 10px; 
+  padding: 3px 8px; 
+  border-radius: 6px; 
   white-space: nowrap; 
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 5px;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .site-icon {
-  width: 36px;
-  height: 36px;
+  width: 22px;
+  height: 22px;
   object-fit: contain;
-  border-radius: 6px;
+  border-radius: 4px;
   flex-shrink: 0;
 }
 
@@ -407,7 +447,6 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 
 .winner-money-stack { grid-area: money; display: flex; flex-direction: column; gap: 3px; align-items: stretch; }
 
-/* Бейджи Вывод и Деп */
 .winner-payout-wrap { 
   position: relative; display: flex; align-items: center; justify-content: center; width: 92px; height: 22px; 
   padding: 0 16px 0 8px; border-radius: 11px; 
@@ -442,7 +481,6 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 .winner-dep-input::placeholder { color: rgba(255, 255, 255, 0.65); -webkit-text-fill-color: rgba(255, 255, 255, 0.65); text-shadow: none; }
 .winner-dep-currency { position: absolute; right: 5px; top: 50%; transform: translateY(-50%); font-size: 9px; font-weight: 800; color: rgba(255, 255, 255, 0.9); -webkit-text-fill-color: rgba(255, 255, 255, 0.9); pointer-events: none; }
 
-/* Режим редактирования для полей */
 .winner-payout-wrap:has(.winner-payout-input:not(:disabled)) { background: rgba(0, 0, 0, 0.5); border-color: var(--border); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4); }
 .winner-payout-wrap:has(.winner-payout-input:not(:disabled)) .winner-payout-input { color: var(--text); -webkit-text-fill-color: var(--text); text-shadow: none; }
 .winner-payout-wrap:has(.winner-payout-input:not(:disabled)) .winner-payout-input::placeholder { color: var(--text-muted); -webkit-text-fill-color: var(--text-muted); }
@@ -458,7 +496,6 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 .winner-delete-btn { grid-area: del; background: transparent; border: 1px solid var(--border); color: var(--text-muted); width: 22px; height: 22px; border-radius: var(--r-sm); cursor: pointer; font-size: 11px; flex-shrink: 0; }
 .winner-delete-btn:hover { border-color: var(--accent); color: var(--accent); }
 
-/* Форма добавления */
 .winner-add-form { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px; background: rgba(0, 0, 0, 0.3); border: 1px dashed var(--border-light); border-radius: var(--r-sm); margin-bottom: 4px; }
 .winner-add-form input, .winner-add-form select { background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border); border-radius: var(--r-sm); color: var(--text); font-family: inherit; font-size: 11px; font-weight: 600; padding: 4px 6px; outline: none; min-width: 0; }
 .winner-add-form input:focus, .winner-add-form select:focus { border-color: var(--accent); }
@@ -469,7 +506,6 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 .winner-add-btn { width: 28px; height: 28px; border-radius: var(--r-sm); background: var(--accent); border: none; color: #fff; font-size: 18px; font-weight: 800; cursor: pointer; flex-shrink: 0; }
 .winner-add-btn:hover { filter: brightness(1.1); }
 
-/* Итоговые суммы */
 .winners-totals {
   display: flex;
   justify-content: space-between;
@@ -479,48 +515,15 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
   flex-shrink: 0;
   font-size: 13px;
 }
-.total-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.total-item:last-child {
-  align-items: flex-end;
-}
-.total-item span:first-child {
-  font-size: 10px;
-  font-weight: 800;
-  color: var(--text-muted);
-  text-transform: uppercase;
-}
-.total-value {
-  font-size: 14px;
-  font-weight: 900;
-}
-.payout-val {
-  color: var(--accent-hover);
-}
-.dep-val {
-  color: #34d399;
-}
-
-/* --- Топ по сообщениям --- */
-.top-chatters { border-top: 1px solid var(--border); padding-top: 16px; display: flex; flex-direction: column; flex: 1; min-height: 0; }
-.top-chatters-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.top-chatters-header h3 { font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 800; margin-bottom: 0 !important; }
-.top-list { display: flex; flex-direction: column; gap: 4px; flex: 1; overflow-y: auto; padding-right: 2px; }
-.top-list::-webkit-scrollbar { width: 6px; }
-.top-list::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
-.top-item { display: flex; align-items: center; gap: 10px; padding: 7px 10px; background: var(--bg-tertiary); border-radius: var(--r-sm); font-size: 13px; }
-.top-rank { width: 24px; height: 24px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; flex-shrink: 0; }
-.top-item:nth-child(1) .top-rank { background: linear-gradient(180deg, #ffe14a, #b8860b); color: #000; }
-.top-item:nth-child(2) .top-rank { background: linear-gradient(180deg, #e8e8e8, #8a8a8a); color: #000; }
-.top-item:nth-child(3) .top-rank { background: linear-gradient(180deg, #e09260, #8b4513); color: #fff; }
-.top-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
-.top-count { font-weight: 800; color: var(--accent); font-size: 12px; flex-shrink: 0; }
+.total-item { display: flex; flex-direction: column; gap: 2px; }
+.total-item:last-child { align-items: flex-end; }
+.total-item span:first-child { font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; }
+.total-value { font-size: 14px; font-weight: 900; }
+.payout-val { color: var(--accent-hover); }
+.dep-val { color: #34d399; }
 
 /* =========================================================
-   МОДАЛКИ (ОБЩИЕ)
+   МОДАЛКИ
    ========================================================= */
 .modal { display: none; position: fixed; inset: 0; z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
 .modal.active { display: flex; }
@@ -558,7 +561,7 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 .modal-actions .btn { flex: 1; padding: 14px; }
 
 /* =========================================================
-   МОДАЛКА ПОБЕДИТЕЛЯ (СПЕЦИФИЧНЫЕ ЭЛЕМЕНТЫ)
+   МОДАЛКА ПОБЕДИТЕЛЯ
    ========================================================= */
 .modal-top-left { position: absolute; top: 20px; left: 20px; z-index: 2; display: flex; gap: 8px; align-items: center; }
 .winner-check-btn { 
@@ -640,7 +643,7 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 .theme-preview-blue { background: radial-gradient(circle at 30% 30%, #60a5fa, #1d4ed8); }
 
 /* =========================================================
-   МИНИ-ИГРЫ (СПИНЫ)
+   МИНИ-ИГРЫ (СТАРЫЕ)
    ========================================================= */
 .spin-roulette-name { 
   font-size: 34px; font-weight: 900; color: var(--accent); text-align: center; padding: 40px 20px; 
@@ -697,103 +700,156 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 .bingo-name { font-size: 9px; font-weight: 600; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 
 /* =========================================================
-   ГОРЯЧАЯ КАРТОШКА (НОВОЕ)
+   ГОРЯЧАЯ КАРТОШКА
    ========================================================= */
-.hotpotato-container {
+.hotpotato-container { position: relative; width: 100%; max-width: 400px; min-height: 300px; aspect-ratio: 1; margin: 0 auto; }
+.hotpotato-bomb { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 60px; z-index: 2; filter: drop-shadow(0 0 20px red); animation: bombPulse 0.5s infinite alternate; }
+@keyframes bombPulse { from { transform: translate(-50%, -50%) scale(1); } to { transform: translate(-50%, -50%) scale(1.1); } }
+.hotpotato-timer { position: absolute; top: 50%; left: 50%; transform: translate(-50%, 30px); font-size: 24px; font-weight: 900; color: #fff; text-shadow: 0 0 10px red, 0 0 20px red; z-index: 2; }
+.hotpotato-node { position: absolute; width: 60px; height: 60px; margin: -30px 0 0 -30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--bg-tertiary); border: 2px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.5); overflow: visible; transition: all 0.3s ease; z-index: 1; }
+.hotpotato-node .avatar { width: 100%; height: 100%; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #fff; font-size: 18px; }
+.hotpotato-node .name { position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); font-size: 10px; font-weight: 700; white-space: nowrap; color: var(--text-muted); text-shadow: 0 1px 2px #000; max-width: 80px; overflow: hidden; text-overflow: ellipsis; }
+.hotpotato-node.winner { border-color: var(--success); box-shadow: 0 0 20px var(--success); transform: scale(1.2); z-index: 3; }
+.hotpotato-spark { position: absolute; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%; background: #fff; box-shadow: 0 0 15px 5px orange, 0 0 30px 10px red; z-index: 5; pointer-events: none; }
+@keyframes explode { 0% { transform: translate(-50%, -50%) scale(1); opacity: 1; } 50% { transform: translate(-50%, -50%) scale(3); opacity: 0.8; } 100% { transform: translate(-50%, -50%) scale(5); opacity: 0; } }
+.hotpotato-bomb.explode { animation: explode 0.5s forwards; }
+
+/* =========================================================
+   ЛАЗЕРНЫЙ ТИР
+   ========================================================= */
+.laser-container {
   position: relative;
   width: 100%;
-  max-width: 400px;
-  aspect-ratio: 1;
+  max-width: 700px;
+  height: 500px;
   margin: 0 auto;
+  background: radial-gradient(circle at center, #1a1a2e 0%, #0f0f1a 100%);
+  border: 2px solid #30305a;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: inset 0 0 30px rgba(0,0,0,0.8);
 }
-.hotpotato-bomb {
+.laser-participant {
   position: absolute;
-  top: 50%;
-  left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 60px;
-  z-index: 2;
-  filter: drop-shadow(0 0 20px red);
-  animation: bombPulse 0.5s infinite alternate;
-}
-@keyframes bombPulse {
-  from { transform: translate(-50%, -50%) scale(1); }
-  to { transform: translate(-50%, -50%) scale(1.1); }
-}
-.hotpotato-timer {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, 30px);
-  font-size: 24px;
-  font-weight: 900;
+  padding: 5px 10px;
+  border-radius: 20px;
+  background: rgba(30, 30, 45, 0.9);
+  border: 1px solid var(--accent);
   color: #fff;
-  text-shadow: 0 0 10px red, 0 0 20px red;
+  font-weight: 800;
+  font-size: 12px;
+  white-space: nowrap;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
   z-index: 2;
+  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
 }
-.hotpotato-node {
+.laser-crosshair {
   position: absolute;
   width: 60px;
   height: 60px;
-  margin: -30px 0 0 -30px; /* Center on coordinate */
+  margin: -30px 0 0 -30px;
+  border: 2px solid rgba(255, 0, 0, 0.8);
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-tertiary);
-  border: 2px solid var(--border);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
-  overflow: visible;
-  transition: all 0.3s ease;
-  z-index: 1;
-}
-.hotpotato-node .avatar {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  color: #fff;
-  font-size: 18px;
-}
-.hotpotato-node .name {
-  position: absolute;
-  bottom: -20px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 10px;
-  font-weight: 700;
-  white-space: nowrap;
-  color: var(--text-muted);
-  text-shadow: 0 1px 2px #000;
-  max-width: 80px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.hotpotato-node.winner {
-  border-color: var(--success);
-  box-shadow: 0 0 20px var(--success);
-  transform: scale(1.2);
-  z-index: 3;
-}
-.hotpotato-spark {
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  margin: -10px 0 0 -10px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 0 15px 5px orange, 0 0 30px 10px red;
-  z-index: 5;
+  z-index: 10;
   pointer-events: none;
 }
-@keyframes explode {
-  0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-  50% { transform: translate(-50%, -50%) scale(3); opacity: 0.8; }
-  100% { transform: translate(-50%, -50%) scale(5); opacity: 0; }
+.laser-crosshair::before, .laser-crosshair::after {
+  content: ''; position: absolute; background: rgba(255, 0, 0, 0.8);
 }
-.hotpotato-bomb.explode {
-  animation: explode 0.5s forwards;
+.laser-crosshair::before { top: 50%; left: -10px; right: -10px; height: 2px; margin-top: -1px; }
+.laser-crosshair::after { left: 50%; top: -10px; bottom: -10px; width: 2px; margin-left: -1px; }
+.laser-beam {
+  position: absolute;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(255,0,0,0), rgba(255,0,0,1));
+  box-shadow: 0 0 10px red;
+  transform-origin: 0 50%;
+  z-index: 9;
+  pointer-events: none;
+}
+.laser-participant.hit {
+  background: red;
+  border-color: #fff;
+  box-shadow: 0 0 20px red, inset 0 0 10px red;
+  transform: translate(-50%, -50%) scale(1.2);
+  z-index: 15;
+}
+
+/* =========================================================
+   МОЛНИЯ ЗЕВСА
+   ========================================================= */
+.zeus-container {
+  position: relative;
+  width: 100%;
+  max-width: 700px;
+  height: 500px;
+  margin: 0 auto;
+  background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  border: 2px solid #334155;
+}
+.zeus-clouds {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 80px;
+  background: radial-gradient(circle at 20% 50%, #334155 0%, transparent 50%),
+              radial-gradient(circle at 50% 30%, #475569 0%, transparent 60%),
+              radial-gradient(circle at 80% 50%, #334155 0%, transparent 50%);
+  opacity: 0.8;
+  filter: drop-shadow(0 5px 10px rgba(0,0,0,0.5));
+}
+.zeus-participant {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  padding: 5px 10px;
+  border-radius: 6px;
+  background: rgba(30, 41, 59, 0.9);
+  border: 1px solid #60a5fa;
+  color: #fff;
+  font-weight: 800;
+  font-size: 12px;
+  white-space: nowrap;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  z-index: 2;
+  transition: all 0.2s ease;
+}
+.zeus-bolt {
+  position: absolute;
+  top: 0;
+  width: 4px;
+  background: #fff;
+  box-shadow: 0 0 20px 5px #60a5fa, 0 0 40px 10px #3b82f6;
+  z-index: 10;
+  pointer-events: none;
+  transform-origin: top center;
+}
+.zeus-participant.struck {
+  background: #fff !important;
+  border-color: #fff;
+  color: #3b82f6;
+  box-shadow: 0 0 30px #60a5fa;
+  z-index: 15;
+  transform: translate(-50%, -50%) scale(1.2);
+}
+.zeus-flash {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 20;
+}
+@keyframes flashAnim {
+  0% { opacity: 0.8; }
+  20% { opacity: 0; }
+  40% { opacity: 0.5; }
+  100% { opacity: 0; }
 }

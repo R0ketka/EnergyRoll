@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>⚡ EnergyRoll</title>
+  <title>EnergyRoll   ⚡</title>
   <link rel="icon" type="image/svg+xml"
         href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
   <link rel="stylesheet" href="style.css">
@@ -31,6 +31,7 @@
 
   <div id="app">
     <main>
+      <!-- ========== 1. МИНИ-ИГРЫ ========== -->
       <section id="minigames-panel" class="panel minigames-panel">
         <div class="panel-header">
           <h2>🎮 Мини-игра</h2>
@@ -71,10 +72,22 @@
             <div class="minigame-info"><div class="minigame-title">Бинго</div></div>
             <span class="minigame-check">✓</span>
           </button>
-          <!-- НОВАЯ ИГРА -->
           <button class="minigame-item" data-mode="hotpotato">
             <span class="minigame-icon">💣</span>
             <div class="minigame-info"><div class="minigame-title">Горячая картошка</div></div>
+            <span class="minigame-check">✓</span>
+          </button>
+
+          <div class="top-mode-divider"></div>
+
+          <button class="minigame-item" data-mode="laser">
+            <span class="minigame-icon">🎯</span>
+            <div class="minigame-info"><div class="minigame-title">Лазерный тир</div></div>
+            <span class="minigame-check">✓</span>
+          </button>
+          <button class="minigame-item" data-mode="zeus">
+            <span class="minigame-icon">⚡</span>
+            <div class="minigame-info"><div class="minigame-title">Молния Зевса</div></div>
             <span class="minigame-check">✓</span>
           </button>
 
@@ -87,6 +100,18 @@
         </div>
       </section>
 
+      <!-- ========== 2. ТОП ПО СООБЩЕНИЯМ ========== -->
+      <section id="top-chatters-panel" class="panel top-chatters-panel">
+        <div class="panel-header">
+          <h2>🔥 Топ по сообщениям</h2>
+          <button id="clear-top-btn" class="btn-clear btn-clear-trash" title="Очистить топ" type="button">🗑</button>
+        </div>
+        <div id="top-chatters-list" class="top-list">
+          <div class="empty">Пока никого</div>
+        </div>
+      </section>
+
+      <!-- ========== 3. ЧАТ ========== -->
       <section id="chat-panel" class="panel">
         <div class="panel-header">
           <h2>💬 Чат</h2>
@@ -100,6 +125,7 @@
         </div>
       </section>
 
+      <!-- ========== 4. УПРАВЛЕНИЕ ========== -->
       <aside id="control-panel" class="panel">
         <div class="panel-header">
           <h2>⚙️ Управление</h2>
@@ -116,7 +142,7 @@
                 <button id="tab-all" class="winner-tab" type="button">Все время</button>
               </div>
               <button id="clear-stream-winners-btn" class="btn-clear btn-clear-trash" title="Очистить победителей за стрим" type="button">🗑</button>
-              <button id="sort-winners-btn" class="sort-winners-btn" type="button" title="Сортировка: по времени (новые сверху)">🕒</button>
+              <button id="sort-winners-btn" class="sort-winners-btn" type="button" title="Сортировка">🕒</button>
               <button id="edit-winners-btn" class="edit-winners-btn" type="button" title="Режим редактирования">✏️</button>
             </div>
             <div id="winners-history" class="winners-list">
@@ -133,19 +159,10 @@
               </div>
             </div>
           </div>
-
-          <div class="top-chatters">
-            <div class="top-chatters-header">
-              <h3>🔥 Топ по сообщениям</h3>
-              <button id="clear-top-btn" class="btn-clear btn-clear-trash" title="Очистить топ" type="button">🗑</button>
-            </div>
-            <div id="top-chatters-list" class="top-list">
-              <div class="empty">Пока никого</div>
-            </div>
-          </div>
         </div>
       </aside>
 
+      <!-- ========== 5. УЧАСТНИКИ ========== -->
       <section id="participants-panel" class="panel participants-panel">
         <div class="panel-header">
           <h2>👥 Участники <span id="participant-count" class="participants-badge">0</span></h2>
@@ -199,8 +216,6 @@
         <div class="spin-view" id="spin-bingo" hidden>
           <div class="bingo-grid" id="bingo-grid"></div>
         </div>
-        
-        <!-- НОВАЯ ИГРА -->
         <div class="spin-view" id="spin-hotpotato" hidden>
           <div class="hotpotato-container" id="hotpotato-container">
             <div class="hotpotato-bomb" id="hotpotato-bomb">💣</div>
@@ -208,16 +223,22 @@
             <div class="hotpotato-spark" id="hotpotato-spark"></div>
           </div>
         </div>
-
+        <div class="spin-view" id="spin-laser" hidden>
+          <div class="laser-container" id="laser-container">
+            <div class="laser-crosshair" id="laser-crosshair"></div>
+          </div>
+        </div>
+        <div class="spin-view" id="spin-zeus" hidden>
+          <div class="zeus-container" id="zeus-container">
+            <div class="zeus-clouds"></div>
+            <div class="zeus-flash" id="zeus-flash"></div>
+          </div>
+        </div>
       </div>
 
       <div class="modal-top-left">
-        <a id="check-winner-btn" class="winner-check-btn"
-           href="https://followage.showmasterokda.com/"
-           target="_blank" rel="noopener noreferrer"
-           title="Открыть followage.showmasterokda.com">🔍 Проверить</a>
-        <button id="half-window-btn" class="winner-half-btn" type="button"
-                title="На половину окна">◧</button>
+        <a id="check-winner-btn" class="winner-check-btn" href="https://followage.showmasterokda.com/" target="_blank" rel="noopener noreferrer" title="Открыть followage">🔍 Проверить</a>
+        <button id="half-window-btn" class="winner-half-btn" type="button" title="На половину окна">◧</button>
       </div>
 
       <div class="modal-timer" id="winner-timer">0:00</div>
@@ -227,8 +248,7 @@
         <h2>Победитель</h2>
         <div class="winner-name-row">
           <div id="winner-name" class="winner-name">—</div>
-          <button id="copy-winner-btn" class="winner-copy-btn" type="button"
-                  title="Скопировать ник">📋</button>
+          <button id="copy-winner-btn" class="winner-copy-btn" type="button" title="Скопировать ник">📋</button>
         </div>
       </div>
       <div class="modal-body">
