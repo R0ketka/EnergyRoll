@@ -573,19 +573,22 @@ function playWheel(pool, winnerLogin, winnerName) { return new Promise((resolve)
 function playBingo(pool, winnerLogin, winnerName) { return new Promise((resolve) => { els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = false; els.spinHotPotato.hidden = true; const grid = els.bingoGrid; grid.innerHTML = ''; let bingoLogins = [...pool]; if (bingoLogins.length > 25) { bingoLogins = bingoLogins.slice(0, 25); if (!bingoLogins.includes(winnerLogin)) bingoLogins[24] = winnerLogin; } else if (bingoLogins.length < 25) { while (bingoLogins.length < 25) { bingoLogins.push(bingoLogins[Math.floor(Math.random() * bingoLogins.length)] || winnerLogin); } } for (let i = bingoLogins.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [bingoLogins[i], bingoLogins[j]] = [bingoLogins[j], bingoLogins[i]]; } const cells = []; bingoLogins.forEach((login) => { const name = state.users.get(login) || login; const cell = document.createElement('div'); cell.className = 'bingo-cell'; const avatar = document.createElement('div'); avatar.className = 'bingo-avatar'; avatar.style.background = avatarGradient(login); avatar.textContent = (name || '?').charAt(0).toUpperCase(); const nameEl = document.createElement('div'); nameEl.className = 'bingo-name'; nameEl.textContent = name; cell.appendChild(avatar); cell.appendChild(nameEl); grid.appendChild(cell); cells.push({ el: cell, login }); }); const toCross = cells.filter(c => c.login !== winnerLogin); for (let i = toCross.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [toCross[i], toCross[j]] = [toCross[j], toCross[i]]; } let index = 0; const interval = 400; function crossNext() { if (spinCancel) { resolve(); return; } if (index < toCross.length) { toCross[index].el.classList.add('crossed'); index++; setTimeout(crossNext, interval); } else { const winnerCell = cells.find(c => c.login === winnerLogin); if (winnerCell) winnerCell.el.classList.add('winner'); setTimeout(() => { els.spinBingo.hidden = true; resolve(); }, 1500); } } setTimeout(crossNext, 500); }); }
 
 /* =========================================================
-   ГОРЯЧАЯ КАРТОШКА (НОВАЯ ИГРА)
+   ГОРЯЧАЯ КАРТОШКА (ИСПРАВЛЕННАЯ)
    ========================================================= */
 async function playHotPotato(pool, winnerLogin, winnerName) {
+  els.spinRoulette.hidden = true;
+  els.spinDrum.hidden = true;
+  els.spinCase.hidden = true;
+  els.spinCards.hidden = true;
+  els.spinWheel.hidden = true;
+  els.spinBingo.hidden = true;
+  
+  els.spinHotPotato.hidden = false;
+  
+  // Ждем 50мс, чтобы браузер отрисовал контейнер и мы узнали его точные размеры
+  await sleep(50);
+  
   return new Promise((resolve) => {
-    els.spinRoulette.hidden = true;
-    els.spinDrum.hidden = true;
-    els.spinCase.hidden = true;
-    els.spinCards.hidden = true;
-    els.spinWheel.hidden = true;
-    els.spinBingo.hidden = true;
-    
-    els.spinHotPotato.hidden = false;
-    
     const container = document.getElementById('hotpotato-container');
     const bomb = document.getElementById('hotpotato-bomb');
     const timerEl = document.getElementById('hotpotato-timer');
@@ -608,7 +611,9 @@ async function playHotPotato(pool, winnerLogin, winnerName) {
     const N = hpPool.length;
     const winnerIndex = hpPool.indexOf(winnerLogin);
     
-    const containerSize = container.clientWidth || 400;
+    // Берем реальные размеры контейнера
+    const rect = container.getBoundingClientRect();
+    const containerSize = rect.width || 400; // Страховка на 400px
     const cx = containerSize / 2;
     const cy = containerSize / 2;
     const radius = containerSize * 0.35;
@@ -642,9 +647,10 @@ async function playHotPotato(pool, winnerLogin, winnerName) {
     const startAngle = 0; 
     const targetAngle = 3 * 2 * Math.PI + (winnerIndex / N) * 2 * Math.PI;
     
-    function animate(now) {
+    function animate() {
       if (spinCancel) { resolve(); return; }
       
+      const now = performance.now();
       const elapsed = now - startTime;
       const t = Math.min(elapsed / duration, 1);
       
