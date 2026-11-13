@@ -27,11 +27,11 @@ const SITES = [
   { id: 'zavod', name: 'Zavod' }
 ];
 
-// Карта иконок сайтов
+// ИЗМЕНЕНО: Теперь расширение .jpg
 const SITE_ICONS = {
-  magicdrop: 'magic.png',
-  ninjacase: 'ninja.png',
-  zavod: 'zavod.png'
+  magicdrop: 'magic.jpg',
+  ninjacase: 'ninja.jpg',
+  zavod: 'zavod.jpg'
 };
 
 let spinCancel = false;
@@ -484,7 +484,6 @@ function addMessage(login, displayName, text) {
   scheduleChatSave(); 
 }
 
-// ИСПРАВЛЕННАЯ ФУНКЦИЯ: добавляет сверху и скроллит наверх
 function renderParticipant(login, displayName, isNew = false) {
   const empty = els.participantsList.querySelector('.empty'); if (empty) empty.remove();
   const el = document.createElement('div'); el.className = 'participant-item' + (isNew ? ' participant-new' : ''); el.dataset.login = login;
@@ -493,9 +492,7 @@ function renderParticipant(login, displayName, isNew = false) {
   const excludeBtn = document.createElement('button'); excludeBtn.className = 'participant-exclude-btn'; excludeBtn.type = 'button'; excludeBtn.textContent = state.excludedUsers.has(login) ? '↺' : '✕'; excludeBtn.title = state.excludedUsers.has(login) ? 'Вернуть' : 'Исключить'; excludeBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleExcludeParticipant(login); });
   el.appendChild(avatar); el.appendChild(name); el.appendChild(excludeBtn); if (state.excludedUsers.has(login)) el.classList.add('participant-excluded');
   
-  // Добавляем в начало списка (визуально сверху)
   els.participantsList.prepend(el);
-  // Прокручиваем контейнер наверх к новому элементу
   els.participantsList.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -759,11 +756,12 @@ function renderWinnersHistory() {
     const siteMeta = w.site ? SITES.find(s => s.id === w.site) : null;
     const siteSpan = document.createElement('span');
     siteSpan.className = 'winner-item-site';
+    
     if (siteMeta) {
-      // ДОБАВЛЕНИЕ ИКОНКИ САЙТА
       const iconFile = SITE_ICONS[siteMeta.id] || '';
-      siteSpan.innerHTML = `<img src="${iconFile}" class="site-icon" alt="${siteMeta.name}" onerror="this.style.display='none'"> ${siteMeta.name}`;
+      siteSpan.innerHTML = `<img src="${iconFile}" class="site-icon" alt="${siteMeta.name}"> ${siteMeta.name}`;
     }
+    
     siteSpan.hidden = !siteMeta || state.editWinnersMode;
     info.appendChild(siteSpan);
 

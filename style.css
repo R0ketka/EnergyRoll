@@ -231,7 +231,6 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 .add-participant-input { flex: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 7px; color: #fff; outline: none; font-size: 12px; }
 .add-participant-btn { width: 32px; height: 32px; border-radius: var(--r-sm); background: var(--accent); border: none; color: #fff; cursor: pointer; font-size: 18px; font-weight: 800; flex-shrink: 0; }
 
-/* Список участников: новые элементы добавляются сверху (prepend) */
 .participants-list { 
   flex: 1; 
   min-height: 0; 
@@ -260,7 +259,6 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 }
 .participant-item:hover { background: var(--bg-elevated); transform: translateX(2px); }
 
-/* Жесткая фиксация аватарки */
 .participant-avatar { 
   width: 28px; 
   height: 28px; 
@@ -285,7 +283,6 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
   min-width: 0;
 }
 
-/* Жесткая фиксация крестика */
 .participant-exclude-btn { 
   background: transparent; 
   border: 1px solid var(--border); 
@@ -307,7 +304,6 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 .participant-item.participant-excluded { opacity: 0.4; filter: saturate(0.3); }
 .participant-item.participant-excluded .participant-name { text-decoration: line-through; }
 
-/* Анимация появления сверху */
 @keyframes slideDownFade {
   from { opacity: 0; transform: translateY(-15px); }
   to { opacity: 1; transform: translateY(0); }
@@ -370,7 +366,7 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 
 /* УВЕЛИЧЕННЫЙ ШРИФТ НИКА */
 .winner-item-name { 
-  font-size: 15px; 
+  font-size: 16px; 
   font-weight: 700; 
   overflow: hidden; 
   text-overflow: ellipsis; 
@@ -381,27 +377,27 @@ main { display: grid; grid-template-columns: 1fr 3.4fr 1.2fr 1fr; gap: 16px; hei
 
 /* УВЕЛИЧЕННЫЙ ШРИФТ САЙТА + ИКОНКА */
 .winner-item-site { 
-  font-size: 11px; 
+  font-size: 13px; 
   font-weight: 800; 
   text-transform: uppercase; 
   letter-spacing: 0.4px; 
   color: var(--accent); 
   background: var(--bg-glow-1); 
-  padding: 3px 8px; 
+  padding: 4px 8px; 
   border-radius: 6px; 
   white-space: nowrap; 
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
 }
 
-/* Стиль для картинки сайта */
+/* РАЗМЕР КАРТИНКИ САЙТА (18x18) */
 .site-icon {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   object-fit: contain;
-  border-radius: 2px;
+  border-radius: 3px;
 }
 
 .winner-site-select { 
