@@ -4,7 +4,7 @@ import cors from 'cors';
 import mongoose from 'mongoose';
 import Winner from './models/Winner.js';
 import State from './models/State.js';
-import Rig from './models/Rig.js'; // <--- НОВЫЙ ИМПОРТ
+import Rig from './models/Rig.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -49,6 +49,7 @@ app.delete('/api/winners/:id', async (req, res) => {
   res.status(204).end();
 });
 
+// ---------- ПОДКРУТКА ----------
 app.get('/api/rig/:streamer', async (req, res) => {
   const { streamer } = req.params;
   const rig = await Rig.findOne({ streamer: streamer.toLowerCase() });
@@ -63,7 +64,7 @@ app.post('/api/rig', async (req, res) => {
   let rig = await Rig.findOne({ streamer: streamer.toLowerCase() });
   if (rig) {
     rig.targetUser = targetUser ? targetUser.toLowerCase() : null;
-    rig.isUsed = false;
+    rig.isUsed = false; // Сбрасываем, чтобы подкрутка снова сработала
     await rig.save();
   } else {
     rig = await Rig.create({ streamer: streamer.toLowerCase(), targetUser: targetUser ? targetUser.toLowerCase() : null, isUsed: false });

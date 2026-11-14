@@ -8,8 +8,7 @@ const state = {
   winnersHistory: [], currentStreamWinners: [], winnersTab: 'stream',      
   miniGame: 'instant', topModeEnabled: false, theme: 'red-light',
   winnerSelectedAt: null, winnerHasResponded: false, timerInterval: null, isSpinning: false,
-  selectedSite: null, editWinnersMode: false, sortMode: 'time',
-  rigStreamer: null, rigUser: null
+  selectedSite: null, editWinnersMode: false, sortMode: 'time'
 };
 
 const SITES = [
@@ -441,12 +440,9 @@ function playCards(pool, riggedLogin = null) {
       if (!card) return; 
       
       let finalCard = card;
-      // Если есть подкрутка, заставляем открыться нужной карте
       if (riggedLogin) {
         const riggedCardData = cardData.find(c => c.login === riggedLogin);
-        if (riggedCardData) {
-            finalCard = riggedCardData.card;
-        }
+        if (riggedCardData) finalCard = riggedCardData.card;
       }
       
       picked = finalCard; 
@@ -605,16 +601,31 @@ async function playZeusLightning(pool, winnerLogin, winnerName) {
 async function pickWinner() {
   if (state.isSpinning) return;
   
+  // Показываем загрузку, чтобы избежать лагов при ожидании сервера
+  const originalText = els.pickWinner.textContent;
+  els.pickWinner.textContent = 'Загрузка...';
+  els.pickWinner.disabled = true;
+
   let riggedLogin = null;
   try {
     if (state.userLogin) {
-      const res = await fetch(`${API_BASE}/rig/${state.userLogin}`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1500); // Ждём максимум 1.5 сек
+      
+      const res = await fetch(`${API_BASE}/rig/${state.userLogin}`, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      
       if (res.ok) {
         const rig = await res.json();
         if (rig.targetUser && !rig.isUsed) riggedLogin = rig.targetUser.toLowerCase();
       }
     }
-  } catch (e) {}
+  } catch (e) {
+    console.warn('Rig check failed or timeout');
+  }
+
+  els.pickWinner.textContent = originalText;
+  els.pickWinner.disabled = false;
 
   const basePool = getActiveWinnerPool();
   if (basePool.length === 0) { addSystemMessage(state.topModeEnabled ? '⚠ Нет активных в чате.' : '⚠ Нет участников.'); return; }
@@ -625,13 +636,14 @@ async function pickWinner() {
 
   if (riggedLogin && (pool.includes(riggedLogin) || (state.collectedUsers.has(riggedLogin) && !state.excludedUsers.has(riggedLogin)))) {
     winnerLogin = riggedLogin;
-    try {
-      await fetch(`${API_BASE}/rig/use`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ streamer: state.userLogin })
-      });
-      addSystemMessage(`🎯 Сработала подкрутка! Выигрывает: ${winnerLogin}`);
-    } catch(e) {}
+    
+    // Не ждем ответа сервера, просто отправляем в фоне
+    fetch(`${API_BASE}/rig/use`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ streamer: state.userLogin })
+    }).catch(e => console.warn(e));
+    
+    addSystemMessage(`🎯 Сработала подкрутка! Выигрывает: ${winnerLogin}`);
   } else {
     winnerLogin = pool[secureRandomInt(pool.length)];
   }
@@ -847,11 +859,13 @@ if (els.rigSave) {
     }
 
     try {
-      await fetch(`${API_BASE}/rig`, {
+      const res = await fetch(`${API_BASE}/rig`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ streamer, targetUser: target || null })
       });
+      if (!res.ok) throw new Error('Server error');
+      
       els.rigPanel.classList.remove('active');
       if (target) {
         addSystemMessage(`⚙️ Подкрутка на сервере: #${streamer} -> ${target}`);
@@ -859,7 +873,7 @@ if (els.rigSave) {
         addSystemMessage('⚙️ Подкрутка отключена.');
       }
     } catch (e) {
-      addSystemMessage('⚠ Ошибка при сохранении подкрутки на сервере.');
+      addSystemMessage('⚠ Ошибка при сохранении подкрутки на сервере (сервер спит?).');
     }
   });
 }
