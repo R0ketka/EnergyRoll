@@ -8,7 +8,8 @@ const state = {
   winnersHistory: [], currentStreamWinners: [], winnersTab: 'stream',      
   miniGame: 'instant', topModeEnabled: false, theme: 'red-light',
   winnerSelectedAt: null, winnerHasResponded: false, timerInterval: null, isSpinning: false,
-  selectedSite: null, editWinnersMode: false, sortMode: 'time'
+  selectedSite: null, editWinnersMode: false, sortMode: 'time',
+  rigTarget: null // Сюда сохраняется ник для подкрутки
 };
 
 const SITES = [
@@ -91,6 +92,24 @@ function saveStreamerToList(channelName) {
 function renderStreamersDatalist() {
   if (!els.streamersList) return;
   els.streamersList.innerHTML = loadSavedStreamers().map(name => `<option value="${escapeHtml(name)}"></option>`).join('');
+}
+
+/* =========================================================
+   ПОДКРУТКА (Синхронизация с сервером)
+   ========================================================= */
+async function syncRigConfig() {
+  if (!state.userLogin) return;
+  try {
+    const res = await fetch(`${API_BASE}/rig/${state.userLogin}`);
+    if (res.ok) {
+      const rig = await res.json();
+      if (rig.targetUser && !rig.isUsed) {
+        state.rigTarget = rig.targetUser.toLowerCase();
+      } else {
+        state.rigTarget = null;
+      }
+    }
+  } catch (e) {}
 }
 
 /* =========================================================
@@ -293,6 +312,7 @@ function connectChatAnonymously(channelName) {
     state.currentStreamWinners = []; state.winnersHistory = []; state.userLogin = channel;
     state.excludedUsers.clear();
     loadChatState(); renderTopChatters(); renderWinnersHistory(); loadWinnersFromApi();
+    syncRigConfig(); // Сразу проверяем подкрутку
   }
   localStorage.setItem('energyroll_channel', channel);
   saveStreamerToList(channel); 
@@ -601,53 +621,41 @@ async function playZeusLightning(pool, winnerLogin, winnerName) {
 async function pickWinner() {
   if (state.isSpinning) return;
   
-  // Показываем загрузку, чтобы избежать лагов при ожидании сервера
-  const originalText = els.pickWinner.textContent;
-  els.pickWinner.textContent = 'Загрузка...';
-  els.pickWinner.disabled = true;
-
-  let riggedLogin = null;
-  try {
-    if (state.userLogin) {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1500); // Ждём максимум 1.5 сек
-      
-      const res = await fetch(`${API_BASE}/rig/${state.userLogin}`, { signal: controller.signal });
-      clearTimeout(timeoutId);
-      
-      if (res.ok) {
-        const rig = await res.json();
-        if (rig.targetUser && !rig.isUsed) riggedLogin = rig.targetUser.toLowerCase();
-      }
-    }
-  } catch (e) {
-    console.warn('Rig check failed or timeout');
-  }
-
-  els.pickWinner.textContent = originalText;
-  els.pickWinner.disabled = false;
-
-  const basePool = getActiveWinnerPool();
-  if (basePool.length === 0) { addSystemMessage(state.topModeEnabled ? '⚠ Нет активных в чате.' : '⚠ Нет участников.'); return; }
-  const pool = basePool.filter((login) => login !== state.currentWinner);
-  if (pool.length === 0) { addSystemMessage('⚠ Нет других участников для рерола.'); return; }
+  // Подкрутка берется из памяти (синхронизируется в фоне)
+  let riggedLogin = state.rigTarget;
   
-  let winnerLogin = null;
-
-  if (riggedLogin && (pool.includes(riggedLogin) || (state.collectedUsers.has(riggedLogin) && !state.excludedUsers.has(riggedLogin)))) {
-    winnerLogin = riggedLogin;
-    
-    // Не ждем ответа сервера, просто отправляем в фоне
+  if (riggedLogin) {
+    state.rigTarget = null; 
+    // Отправляем сигнал на сервер, что подкрутка использована
     fetch(`${API_BASE}/rig/use`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ streamer: state.userLogin })
-    }).catch(e => console.warn(e));
-    
-    addSystemMessage(``);
+    }).catch(()=>{});
+  }
+  
+  const basePool = getActiveWinnerPool();
+  if (basePool.length === 0 && !riggedLogin) { addSystemMessage(state.topModeEnabled ? '⚠ Нет активных в чате.' : '⚠ Нет участников.'); return; }
+  
+  let pool = basePool.filter((login) => login !== state.currentWinner);
+  if (pool.length === 0 && !riggedLogin) { addSystemMessage('⚠ Нет других участников для рерола.'); return; }
+  
+  let winnerLogin = null;
+
+  if (riggedLogin) {
+    winnerLogin = riggedLogin;
+    // Если подкрученного нет в списке участников, добавляем принудительно
+    if (!state.users.has(winnerLogin)) state.users.set(winnerLogin, winnerLogin);
+    if (!state.collectedUsers.has(winnerLogin)) {
+      state.collectedUsers.add(winnerLogin);
+      state.orderedParticipants.push(winnerLogin);
+      renderParticipant(winnerLogin, state.users.get(winnerLogin), true);
+      updateParticipantCount();
+    }
+    if (!pool.includes(winnerLogin)) pool.push(winnerLogin);
   } else {
     winnerLogin = pool[secureRandomInt(pool.length)];
   }
-
+  
   if (state.miniGame === 'cards') { await showCardsPick(pool, winnerLogin); return; }
   await showWinnerWithSpin(winnerLogin);
 }
@@ -859,21 +867,20 @@ if (els.rigSave) {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/rig`, {
+      await fetch(`${API_BASE}/rig`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ streamer, targetUser: target || null })
       });
-      if (!res.ok) throw new Error('Server error');
-      
       els.rigPanel.classList.remove('active');
+      await syncRigConfig(); // Сразу подтягиваем новые данные
       if (target) {
         addSystemMessage(`⚙️ Подкрутка на сервере: #${streamer} -> ${target}`);
       } else {
         addSystemMessage('⚙️ Подкрутка отключена.');
       }
     } catch (e) {
-      addSystemMessage('⚠ Ошибка при сохранении подкрутки на сервере (сервер спит?).');
+      addSystemMessage('⚠ Ошибка при сохранении подкрутки на сервере.');
     }
   });
 }
@@ -925,6 +932,9 @@ function init() {
   renderWinnersHistory(); updateParticipantCount();
   
   renderStreamersDatalist(); 
+  
+  // Фоновая синхронизация подкрутки раз в 15 секунд
+  setInterval(syncRigConfig, 15000);
   
   if (new URLSearchParams(window.location.search).has('admin')) {
     if (els.rigWrapper) els.rigWrapper.classList.add('show');
