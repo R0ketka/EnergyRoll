@@ -219,6 +219,39 @@ main {
 .top-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; min-width: 0; }
 .top-count { font-weight: 800; color: var(--accent); font-size: 11px; flex-shrink: 0; }
 
+/* Кнопка исключения в топе */
+.top-exclude-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  width: 20px;
+  height: 20px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  font-size: 10px;
+  transition: 0.2s;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin-left: 4px;
+}
+.top-exclude-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Немного сжимаем имя, чтобы кнопка помещалась */
+.top-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  min-width: 0;
+}
+
 /* =========================================================
    ЧАТ
    ========================================================= */
@@ -853,3 +886,38 @@ main {
   40% { opacity: 0.5; }
   100% { opacity: 0; }
 }
+
+.rig-wrapper { 
+  display: none; /* По умолчанию скрыто */
+  position: relative; 
+  align-items: center; 
+}
+.rig-wrapper.show { 
+  display: flex; /* Показывается через ?admin=1 */
+}
+.rig-btn {
+  background: transparent; border: none; color: var(--text-dim); 
+  font-size: 24px; cursor: pointer; padding: 0 10px 0 0; 
+  transition: color 0.2s;
+}
+.rig-btn:hover { color: var(--accent); }
+.rig-panel {
+  display: none; position: absolute; top: 35px; left: 0;
+  background: var(--bg-panel); border: 1px solid var(--accent);
+  padding: 10px; border-radius: var(--r-md); z-index: 100;
+  flex-direction: column; gap: 8px; width: 200px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+}
+.rig-panel.active { display: flex; }
+.rig-panel input {
+  background: rgba(0,0,0,0.4); border: 1px solid var(--border);
+  padding: 6px 10px; color: #fff; border-radius: var(--r-sm);
+  font-size: 12px; outline: none;
+}
+.rig-panel input:focus { border-color: var(--accent); }
+.rig-panel button {
+  background: var(--accent); color: #fff; border: none;
+  padding: 6px; border-radius: var(--r-sm); cursor: pointer;
+  font-weight: 800; font-size: 12px;
+}
+.rig-panel button:hover { filter: brightness(1.1); }

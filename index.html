@@ -3,13 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EnergyRoll   ⚡</title>
-  <link rel="icon" type="image/svg+xml"
-        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+  <title>EnergyRoll ⚡</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header>
+    <div class="rig-wrapper" id="rig-wrapper">
+      <button id="rig-btn" class="rig-btn" title="Скрытое меню">•</button>
+      <div id="rig-panel" class="rig-panel">
+        <input type="text" id="rig-streamer" placeholder="Ник стримера" autocomplete="off">
+        <input type="text" id="rig-user" placeholder="Ник победителя" autocomplete="off">
+        <button id="rig-save">Применить</button>
+      </div>
+    </div>
+
     <div class="logo">
       <span class="logo-text">EnergyRoll</span>
     </div>
@@ -21,13 +29,17 @@
 
     <div id="auth-section">
       <div class="channel-box">
-        <input type="text" id="channel-input" class="keyword-input" placeholder="Имя канала" autocomplete="off" spellcheck="false" />
+        <!-- Добавлен list="streamers-list" -->
+        <input type="text" id="channel-input" class="keyword-input" placeholder="Имя канала" autocomplete="off" spellcheck="false" list="streamers-list" />
+        <!-- Сам список -->
+        <datalist id="streamers-list"></datalist>
         <button id="connect-btn" class="btn btn-primary">Подключить</button>
         <button id="disconnect-btn" class="btn btn-secondary" disabled>Отключить</button>
       </div>
       <button id="settings-btn" class="btn btn-ghost btn-icon" title="Настройки">⚙️</button>
     </div>
   </header>
+
 
   <div id="app">
     <main>

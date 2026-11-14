@@ -8,7 +8,8 @@ const state = {
   winnersHistory: [], currentStreamWinners: [], winnersTab: 'stream',      
   miniGame: 'instant', topModeEnabled: false, theme: 'red-light',
   winnerSelectedAt: null, winnerHasResponded: false, timerInterval: null, isSpinning: false,
-  selectedSite: null, editWinnersMode: false, sortMode: 'time'
+  selectedSite: null, editWinnersMode: false, sortMode: 'time',
+  rigStreamer: null, rigUser: null
 };
 
 const SITES = [
@@ -57,8 +58,41 @@ const els = {
   modalPayoutInput: document.getElementById('modal-payout-input'), modalDepInput: document.getElementById('modal-dep-input'),
   modalPayoutBtn: document.getElementById('modal-payout-btn'), rerollBtn: document.getElementById('reroll-btn'),
   closeModal: document.getElementById('close-modal'), settingsModal: document.getElementById('settings-modal'),
-  closeSettings: document.getElementById('close-settings'), themeList: document.getElementById('theme-list')
+  closeSettings: document.getElementById('close-settings'), themeList: document.getElementById('theme-list'),
+  rigWrapper: document.getElementById('rig-wrapper'), rigBtn: document.getElementById('rig-btn'), 
+  rigPanel: document.getElementById('rig-panel'), rigStreamer: document.getElementById('rig-streamer'), 
+  rigUser: document.getElementById('rig-user'), rigSave: document.getElementById('rig-save'),
+  streamersList: document.getElementById('streamers-list')
 };
+
+/* =========================================================
+   ПОДСКАЗКИ СТРИМЕРОВ (Datalist)
+   ========================================================= */
+const STREAMERS_KEY = 'energyroll_saved_streamers';
+
+function loadSavedStreamers() {
+  try {
+    const raw = localStorage.getItem(STREAMERS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) { return []; }
+}
+
+function saveStreamerToList(channelName) {
+  if (!channelName) return;
+  const name = channelName.toLowerCase().trim();
+  const list = loadSavedStreamers();
+  if (!list.includes(name)) {
+    list.unshift(name);
+    if (list.length > 20) list.length = 20;
+    try { localStorage.setItem(STREAMERS_KEY, JSON.stringify(list)); } catch (e) {}
+    renderStreamersDatalist();
+  }
+}
+
+function renderStreamersDatalist() {
+  if (!els.streamersList) return;
+  els.streamersList.innerHTML = loadSavedStreamers().map(name => `<option value="${escapeHtml(name)}"></option>`).join('');
+}
 
 /* =========================================================
    СОХРАНЕНИЕ ЧАТА
@@ -70,16 +104,24 @@ function saveChatState() {
     for (const [login, msgs] of state.messages.entries()) {
       msgsArr.push([login, msgs.slice(-100).map(m => ({ text: m.text, time: m.time.getTime() }))]);
     }
-    localStorage.setItem(getChatStateKey(), JSON.stringify({ users: usersArr, messages: msgsArr }));
+    const data = { 
+      users: usersArr, messages: msgsArr, currentStreamWinners: state.currentStreamWinners,
+      excludedUsers: Array.from(state.excludedUsers), rigStreamer: state.rigStreamer, rigUser: state.rigUser
+    };
+    localStorage.setItem(getChatStateKey(), JSON.stringify(data));
   } catch (e) {}
 }
-function scheduleChatSave() { if (chatSaveTimeout) return; chatSaveTimeout = setTimeout(() => { chatSaveTimeout = null; saveChatState(); }, 2000); }
+function scheduleChatSave() { if (chatSaveTimeout) return; chatSaveTimeout = setTimeout(() => { chatSaveTimeout = null; saveChatState(); }, 1000); }
 function loadChatState() {
   try {
     const raw = localStorage.getItem(getChatStateKey()); if (!raw) return;
     const data = JSON.parse(raw);
     if (data.users) for (const [login, name] of data.users) state.users.set(login, name);
     if (data.messages) for (const [login, msgs] of data.messages) state.messages.set(login, msgs.map(m => ({ text: m.text, time: new Date(m.time) })));
+    if (data.currentStreamWinners) state.currentStreamWinners = data.currentStreamWinners;
+    if (data.excludedUsers) state.excludedUsers = new Set(data.excludedUsers);
+    if (data.rigStreamer) { state.rigStreamer = data.rigStreamer; els.rigStreamer.value = data.rigStreamer; }
+    if (data.rigUser) { state.rigUser = data.rigUser; els.rigUser.value = data.rigUser; }
   } catch (e) {}
 }
 
@@ -92,6 +134,7 @@ async function loadWinnersFromApi() {
     const res = await fetch(`${API_BASE}/winners?streamer=${state.userLogin}`);
     if (!res.ok) throw new Error(res.status);
     const list = await res.json();
+    if (list.length === 0 && state.winnersHistory.length > 0) return; 
     state.winnersHistory = list.map((w) => ({ id: w.id, name: w.name, payout: w.payout || '', site: w.site || null, dep: w.dep || '', createdAt: w.createdAt }));
     renderWinnersHistory();
   } catch (e) { addSystemMessage('⚠ Не удалось загрузить победителей.'); }
@@ -99,26 +142,20 @@ async function loadWinnersFromApi() {
 
 async function addWinnerToHistory(displayName, payout = '', site = null, dep = '') {
   const tempId = 'temp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-  const newWinner = { 
-    id: tempId, name: displayName, payout, site, dep, createdAt: new Date().toISOString(), _pending: !!state.userLogin
-  };
-  
+  const newWinner = { id: tempId, name: displayName, payout, site, dep, createdAt: new Date().toISOString(), _pending: !!state.userLogin };
   state.currentStreamWinners.unshift(newWinner);
   state.winnersHistory.unshift(newWinner);
   if (state.winnersHistory.length > 100) state.winnersHistory.length = 100;
   renderWinnersHistory();
-  
+  saveChatState();
   if (!state.userLogin) return;
-  
   try {
     const res = await fetch(`${API_BASE}/winners`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: displayName, payout, dep, site, streamer: state.userLogin })
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const saved = await res.json();
-    
     const s = state.currentStreamWinners.find(x => x.id === tempId);
     if (s) { s.id = saved.id; s._pending = false; }
     const h = state.winnersHistory.find(x => x.id === tempId);
@@ -137,15 +174,14 @@ async function deleteWinnerFromApi(id) {
   if (typeof id === 'string' && id.startsWith('temp_')) {
     state.winnersHistory = state.winnersHistory.filter((x) => x.id !== id);
     state.currentStreamWinners = state.currentStreamWinners.filter((x) => x.id !== id);
-    renderWinnersHistory();
-    return;
+    renderWinnersHistory(); saveChatState(); return;
   }
   try {
     const res = await fetch(`${API_BASE}/winners/${id}`, { method: 'DELETE' });
     if (!res.ok) throw new Error(res.status);
     state.winnersHistory = state.winnersHistory.filter((x) => x.id !== id); 
     state.currentStreamWinners = state.currentStreamWinners.filter((x) => x.id !== id);
-    renderWinnersHistory();
+    renderWinnersHistory(); saveChatState();
   } catch (e) { addSystemMessage('⚠ Не удалось удалить.'); }
 }
 
@@ -189,26 +225,33 @@ function avatarGradient(login) {
 /* =========================================================
    ТОП ПО СООБЩЕНИЯМ
    ========================================================= */
-function getTopByMessages(n = 10) {
+function getTopByMessages(n = 11) {
   const arr = []; for (const [login, msgs] of state.messages) arr.push({ login, name: state.users.get(login) || login, count: msgs.length });
   arr.sort((a, b) => b.count - a.count); return arr.slice(0, n);
 }
-function createTopItemEl() { const row = document.createElement('div'); row.className = 'top-item'; row.innerHTML = '<span class="top-rank"></span><span class="top-name"></span><span class="top-count"></span>'; return row; }
+function createTopItemEl() { const row = document.createElement('div'); row.className = 'top-item'; row.innerHTML = '<span class="top-rank"></span><span class="top-name"></span><span class="top-count"></span><button class="top-exclude-btn" type="button" title="Исключить">✕</button>'; return row; }
 function renderTopChatters() {
-  const top = getTopByMessages(10), list = els.topChattersList;
+  const top = getTopByMessages(11), list = els.topChattersList;
   if (top.length === 0) { if (!list.querySelector('.empty')) { list.innerHTML = '<div class="empty">Пока никого</div>'; topElements.clear(); } return; }
   const empty = list.querySelector('.empty'); if (empty) empty.remove();
   const currentLogins = new Set(top.map((x) => x.login));
-  for (const [login, el] of topElements) if (!currentLogins.has(login)) { el.remove(); topElements.delete(login); }
+  for (const [login, el] of topElements) { if (!currentLogins.has(login)) { el.remove(); topElements.delete(login); } }
   top.forEach((item, i) => {
-    let el = topElements.get(item.login); if (!el) { el = createTopItemEl(); topElements.set(item.login, el); }
+    let el = topElements.get(item.login);
+    if (!el) { 
+      el = createTopItemEl(); topElements.set(item.login, el); 
+      const btn = el.querySelector('.top-exclude-btn');
+      btn.addEventListener('click', (e) => { e.stopPropagation(); toggleExcludeParticipant(item.login); });
+    }
     el.children[0].textContent = String(i + 1); el.children[1].textContent = item.name; el.children[1].title = item.name; el.children[2].textContent = String(item.count);
+    const excluded = state.excludedUsers.has(item.login); el.classList.toggle('participant-excluded', excluded);
+    const btn = el.querySelector('.top-exclude-btn'); if (btn) { btn.textContent = excluded ? '↺' : '✕'; btn.title = excluded ? 'Вернуть' : 'Исключить'; }
     const target = list.children[i]; if (target !== el) list.insertBefore(el, target || null);
   });
 }
 function scheduleTopChattersRender() { if (topChattersScheduled) return; topChattersScheduled = true; requestAnimationFrame(() => { topChattersScheduled = false; renderTopChatters(); }); }
 function getActiveWinnerPool() {
-  let pool = state.topModeEnabled ? getTopByMessages(10).map((x) => x.login) : state.orderedParticipants;
+  let pool = state.topModeEnabled ? getTopByMessages(11).map((x) => x.login) : state.orderedParticipants;
   return state.excludedUsers.size === 0 ? pool : pool.filter((login) => !state.excludedUsers.has(login));
 }
 function updateTopModeButton() { els.topModeToggle.classList.toggle('active', state.topModeEnabled); els.topModeState.textContent = state.topModeEnabled ? 'Вкл' : 'Выкл'; updatePickWinnerButton(); }
@@ -217,7 +260,7 @@ let pickWinnerScheduled = false;
 function schedulePickWinnerUpdate() { if (pickWinnerScheduled) return; pickWinnerScheduled = true; requestAnimationFrame(() => { pickWinnerScheduled = false; updatePickWinnerButton(); }); }
 function toggleExcludeParticipant(login) {
   if (state.excludedUsers.has(login)) state.excludedUsers.delete(login); else state.excludedUsers.add(login);
-  updateParticipantVisual(login); updatePickWinnerButton();
+  updateParticipantVisual(login); renderTopChatters(); updatePickWinnerButton(); saveChatState(); 
 }
 function updateParticipantVisual(login) {
   const items = els.participantsList.querySelectorAll('.participant-item'); let target = null;
@@ -228,7 +271,7 @@ function updateParticipantVisual(login) {
 }
 
 /* =========================================================
-   ДОБАВЛЕНИЕ И ЧАТ (ПРЯМОЕ ПОДКЛЮЧЕНИЕ)
+   ДОБАВЛЕНИЕ И ЧАТ
    ========================================================= */
 function addParticipantByLogin() {
   const raw = els.addParticipantInput.value.trim(); if (!raw) return;
@@ -248,62 +291,38 @@ function connectChatAnonymously(channelName) {
   if (state.ws) { state.ws.onclose = null; state.ws.close(); }
   const channel = channelName.toLowerCase().trim().replace(/^#/, '').replace(/[^a-z0-9_]/g, '');
   if (!channel) { addSystemMessage('⚠ Введите корректное имя канала.'); setStatus('Введите имя канала', 'off'); return; }
-  
   if (state.userLogin !== channel) {
     state.users.clear(); state.messages.clear(); topElements.clear();
     state.currentStreamWinners = []; state.winnersHistory = []; state.userLogin = channel;
+    state.excludedUsers.clear();
     loadChatState(); renderTopChatters(); renderWinnersHistory(); loadWinnersFromApi();
   }
-  
   localStorage.setItem('energyroll_channel', channel);
+  saveStreamerToList(channel); // <--- СОХРАНЯЕМ В ПОДСКАЗКИ
+  
   setStatus('Подключение...', 'wait');
-  
-  const ws = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
-  state.ws = ws;
-  
+  const ws = new WebSocket('wss://irc-ws.chat.twitch.tv:443'); state.ws = ws;
   ws.onopen = () => {
-    reconnectAttempts = 0;
-    const anonNick = 'justinfan' + Math.floor(Math.random() * 99999);
-    ws.send('CAP REQ :twitch.tv/tags twitch.tv/commands\r\n'); 
-    ws.send('PASS SCHMOOPIIE\r\n'); 
-    ws.send('NICK ' + anonNick + '\r\n'); 
-    ws.send('JOIN #' + channel + '\r\n');
-    setStatus('В чате: #' + channel, 'ok'); 
-    addSystemMessage('✅ Подключено к #' + channel);
+    reconnectAttempts = 0; const anonNick = 'justinfan' + Math.floor(Math.random() * 99999);
+    ws.send('CAP REQ :twitch.tv/tags twitch.tv/commands\r\n'); ws.send('PASS SCHMOOPIIE\r\n'); ws.send('NICK ' + anonNick + '\r\n'); ws.send('JOIN #' + channel + '\r\n');
+    setStatus('В чате: #' + channel, 'ok'); addSystemMessage('✅ Подключено к #' + channel);
     els.connectBtn.disabled = true; els.disconnectBtn.disabled = false;
   };
-  
-  ws.onmessage = (event) => { 
-    const lines = event.data.split('\r\n'); 
-    for (const line of lines) if (line) handleIrcLine(line, ws); 
-  };
-  
+  ws.onmessage = (event) => { const lines = event.data.split('\r\n'); for (const line of lines) if (line) handleIrcLine(line, ws); };
   ws.onclose = () => {
     if (state.ws === ws) {
       reconnectAttempts++;
-      if (reconnectAttempts > 5) {
-        setStatus('Ошибка подключения', 'off');
-        addSystemMessage('❌ Twitch отклоняет подключение. Попробуйте перезагрузить страницу.');
-        return;
-      }
+      if (reconnectAttempts > 5) { setStatus('Ошибка подключения', 'off'); addSystemMessage('❌ Twitch отклоняет подключение.'); return; }
       setStatus('Переподключение (' + reconnectAttempts + '/5)...', 'wait');
       setTimeout(() => { if (state.ws === ws) connectChatAnonymously(channel); }, 3000);
     }
   };
-  
-  ws.onerror = () => { 
-    if (state.ws === ws) setStatus('Ошибка сети', 'off'); 
-  };
+  ws.onerror = () => { if (state.ws === ws) setStatus('Ошибка сети', 'off'); };
 }
-
 function disconnectChat() {
   if (state.ws) { state.ws.onclose = null; state.ws.close(); state.ws = null; }
-  setStatus('Отключено', 'off'); 
-  els.connectBtn.disabled = false; 
-  els.disconnectBtn.disabled = true; 
-  addSystemMessage('🔌 Отключено от чата.');
+  setStatus('Отключено', 'off'); els.connectBtn.disabled = false; els.disconnectBtn.disabled = true; addSystemMessage('🔌 Отключено от чата.');
 }
-
 function clearChat() { els.chatMessages.innerHTML = ''; addSystemMessage('🧹 Чат очищен.'); }
 function handleConnectClick() { const c = els.channelInput.value.trim(); if (!c) { addSystemMessage('⚠ Введите имя канала.'); return; } connectChatAnonymously(c); }
 
@@ -340,7 +359,6 @@ function addMessage(login, displayName, text) {
   renderChatMessage(login, displayName, text);
   scheduleTopChattersRender(); schedulePickWinnerUpdate(); scheduleChatSave();
 }
-
 function renderParticipant(login, displayName, isNew = false) {
   const empty = els.participantsList.querySelector('.empty'); if (empty) empty.remove();
   const el = document.createElement('div'); el.className = 'participant-item' + (isNew ? ' participant-new' : ''); el.dataset.login = login;
@@ -350,7 +368,6 @@ function renderParticipant(login, displayName, isNew = false) {
   el.appendChild(avatar); el.appendChild(name); el.appendChild(excludeBtn); if (state.excludedUsers.has(login)) el.classList.add('participant-excluded');
   els.participantsList.prepend(el); els.participantsList.scrollTo({ top: 0, behavior: 'smooth' });
 }
-
 function updateParticipantCount() { els.participantCount.textContent = state.collectedUsers.size; els.clearCollect.disabled = state.collectedUsers.size === 0; }
 function renderChatMessage(login, displayName, text) {
   const empty = els.chatMessages.querySelector('.chat-empty'); if (empty) empty.remove();
@@ -397,24 +414,17 @@ function initMinigames() {
     btn.addEventListener('click', () => { const mode = btn.dataset.mode; state.miniGame = mode; localStorage.setItem('energyroll_minigame', mode); buttons.forEach((b) => b.classList.toggle('active', b === btn)); });
   });
 }
-
 function updateRouletteName(name) { els.spinRouletteName.textContent = name; els.spinRouletteName.title = name; const len = name.length; els.spinRouletteName.classList.toggle('spin-name-long', len > 12 && len <= 20); els.spinRouletteName.classList.toggle('spin-name-xlong', len > 20); }
 function playRoulette(displayName) { return new Promise((resolve) => { els.spinRoulette.hidden = false; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true; els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true; els.spinRouletteName.classList.remove('spin-name-final'); const duration = 2500; const start = performance.now(); const tick = () => { if (spinCancel) { resolve(); return; } const elapsed = performance.now() - start; if (elapsed >= duration) { updateRouletteName(displayName); els.spinRouletteName.classList.add('spin-name-final'); setTimeout(() => { els.spinRoulette.hidden = true; els.spinRouletteName.classList.remove('spin-name-final'); resolve(); }, 500); return; } updateRouletteName(randomParticipantName()); const progress = elapsed / duration; const interval = 45 + progress * 160; setTimeout(tick, interval); }; tick(); }); }
-
 const DRUM_ITEM_HEIGHT = 64; const DRUM_VISIBLE_ITEMS = 5; const DRUM_TOTAL_ITEMS = 50; const DRUM_WINNER_INDEX = 22; const DRUM_DURATION = 3800;
 function createDrumItem(login, name) { const item = document.createElement('div'); item.className = 'drum-item'; const avatar = document.createElement('div'); avatar.className = 'drum-avatar'; avatar.style.background = avatarGradient(login); avatar.textContent = (name || '?').charAt(0).toUpperCase(); const nameEl = document.createElement('div'); nameEl.className = 'drum-name'; nameEl.textContent = name; item.appendChild(avatar); item.appendChild(nameEl); return item; }
 function playDrum(winnerLogin, winnerName) { return new Promise((resolve) => { els.spinRoulette.hidden = true; els.spinDrum.hidden = false; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true; els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true; const strip = els.drumStrip; strip.innerHTML = ''; strip.style.transform = 'translateY(0)'; for (let i = 0; i < DRUM_TOTAL_ITEMS; i++) { let login, name; if (i === DRUM_WINNER_INDEX) { login = winnerLogin; name = winnerName; } else { login = randomParticipantLogin(); name = state.users.get(login) || login; } strip.appendChild(createDrumItem(login, name)); } void strip.offsetHeight; const centerIndex = Math.floor(DRUM_VISIBLE_ITEMS / 2); const targetTranslate = -(DRUM_WINNER_INDEX - centerIndex) * DRUM_ITEM_HEIGHT; const start = performance.now(); const tick = (now) => { if (spinCancel) { resolve(); return; } const elapsed = now - start; const t = Math.min(elapsed / DRUM_DURATION, 1); const eased = 1 - Math.pow(1 - t, 3); strip.style.transform = `translateY(${targetTranslate * eased}px)`; if (t < 1) requestAnimationFrame(tick); else { strip.style.transform = `translateY(${targetTranslate}px)`; setTimeout(() => { els.spinDrum.hidden = true; resolve(); }, 700); } }; requestAnimationFrame(tick); }); }
-
 const CASE_ITEM_WIDTH = 120; const CASE_ITEM_GAP = 8; const CASE_TOTAL_ITEMS = 40; const CASE_WINNER_IDX = 25; const CASE_DURATION = 3600;
 function playCase(winnerLogin, winnerName) { return new Promise((resolve) => { els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = false; els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true; els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true; const strip = els.caseStrip; strip.innerHTML = ''; strip.style.transform = 'translateX(0)'; const rarities = ['common', 'uncommon', 'rare', 'epic']; for (let i = 0; i < CASE_TOTAL_ITEMS; i++) { let login, name, rarity; if (i === CASE_WINNER_IDX) { login = winnerLogin; name = winnerName; rarity = 'legendary'; } else { login = randomParticipantLogin(); name = state.users.get(login) || login; rarity = rarities[Math.floor(Math.random() * rarities.length)]; } const item = document.createElement('div'); item.className = 'case-item case-rarity-' + rarity; const avatar = document.createElement('div'); avatar.className = 'case-avatar'; avatar.style.background = avatarGradient(login); avatar.textContent = (name || '?').charAt(0).toUpperCase(); const nameEl = document.createElement('div'); nameEl.className = 'case-name'; nameEl.textContent = name; item.appendChild(avatar); item.appendChild(nameEl); strip.appendChild(item); } void strip.offsetHeight; const containerWidth = els.caseContainer.clientWidth; const targetX = containerWidth / 2 - CASE_ITEM_WIDTH / 2 - (CASE_WINNER_IDX * (CASE_ITEM_WIDTH + CASE_ITEM_GAP)); const start = performance.now(); function tick(now) { if (spinCancel) { resolve(); return; } const elapsed = now - start; const t = Math.min(elapsed / CASE_DURATION, 1); const eased = 1 - Math.pow(1 - t, 4); strip.style.transform = `translateX(${targetX * eased}px)`; if (t < 1) requestAnimationFrame(tick); else { strip.style.transform = `translateX(${targetX}px)`; strip.children[CASE_WINNER_IDX].classList.add('case-item-winner'); setTimeout(() => { els.spinCase.hidden = true; resolve(); }, 900); } } requestAnimationFrame(tick); }); }
-
 async function shuffleCardsWithFlip(grid) { return new Promise((resolve) => { const cards = Array.from(grid.children); const firstRects = new Map(); cards.forEach((c) => firstRects.set(c, c.getBoundingClientRect())); const shuffled = [...cards].sort(() => Math.random() - 0.5); shuffled.forEach((c) => grid.appendChild(c)); shuffled.forEach((c) => { const first = firstRects.get(c); const last = c.getBoundingClientRect(); const dx = first.left - last.left; const dy = first.top - last.top; if (dx || dy) c.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'translate(0, 0)' }], { duration: 320, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' }); }); setTimeout(resolve, 360); }); }
 function playCards(pool) { return new Promise((resolve) => { els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = false; els.spinWheel.hidden = true; els.spinBingo.hidden = true; els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true; const grid = els.cardsGrid; grid.innerHTML = ''; const shuffled = [...pool].sort(() => Math.random() - 0.5).slice(0, Math.min(10, pool.length)); const cardData = shuffled.map((login) => { const name = state.users.get(login) || login; const card = document.createElement('div'); card.className = 'pick-card'; card.dataset.login = login; const front = document.createElement('div'); front.className = 'pick-card-face pick-card-front'; const back = document.createElement('div'); back.className = 'pick-card-face pick-card-back'; const avatar = document.createElement('div'); avatar.className = 'pick-card-avatar'; avatar.style.background = avatarGradient(login); avatar.textContent = (name || '?').charAt(0).toUpperCase(); const nameEl = document.createElement('div'); nameEl.className = 'pick-card-name'; nameEl.textContent = name; back.appendChild(avatar); back.appendChild(nameEl); card.appendChild(front); card.appendChild(back); card.classList.add('pick-card-flipped'); grid.appendChild(card); return { card, login }; }); let picked = null; const clickHandler = (e) => { if (picked) return; const card = e.target.closest('.pick-card'); if (!card) return; picked = card; cardData.forEach(({ card: c }) => { c.removeEventListener('click', clickHandler); c.dataset.clickable = 'false'; }); card.classList.add('pick-card-flipped'); card.classList.add('pick-card-winner'); setTimeout(() => { cardsCancelFn = null; resolve(card.dataset.login); }, 900); }; cardsCancelFn = () => { cardData.forEach(({ card }) => card.removeEventListener('click', clickHandler)); cardsCancelFn = null; resolve(null); }; (async () => { await sleep(1500); if (spinCancel || picked) return; cardData.forEach(({ card }) => card.classList.remove('pick-card-flipped')); await sleep(450); if (spinCancel) return; for (let i = 0; i < 3; i++) { if (spinCancel) return; await shuffleCardsWithFlip(grid); await sleep(80); } if (spinCancel) return; cardData.forEach(({ card }) => { card.dataset.clickable = 'true'; card.addEventListener('click', clickHandler); }); })(); }); }
-
 function playWheel(pool, winnerLogin, winnerName) { return new Promise((resolve) => { els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = false; els.spinBingo.hidden = true; els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true; let wheelLogins = pool.length <= 12 ? [...pool] : pool.filter(l => l !== winnerLogin).slice(0, 11).concat([winnerLogin]); for (let i = wheelLogins.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [wheelLogins[i], wheelLogins[j]] = [wheelLogins[j], wheelLogins[i]]; } const N = wheelLogins.length; const segAngle = 360 / N; const winnerIdx = wheelLogins.indexOf(winnerLogin); const svgNS = 'http://www.w3.org/2000/svg'; const g = els.wheelRotating; g.innerHTML = ''; const c1 = getComputedStyle(document.documentElement).getPropertyValue('--bg-tertiary').trim() || '#3c1a1a'; const c2 = getComputedStyle(document.documentElement).getPropertyValue('--bg-elevated').trim() || '#4d2222'; const c3 = getComputedStyle(document.documentElement).getPropertyValue('--bg-secondary').trim() || '#260f0f'; const themeColors = [c1, c2, c3]; for (let i = 0; i < N; i++) { const startAngle = -90 + i * segAngle; const endAngle = -90 + (i + 1) * segAngle; const midAngle = (startAngle + endAngle) / 2; const startRad = startAngle * Math.PI / 180; const endRad = endAngle * Math.PI / 180; const path = document.createElementNS(svgNS, 'path'); path.setAttribute('d', `M 0 0 L ${Math.cos(startRad) * 140} ${Math.sin(startRad) * 140} A 140 140 0 ${segAngle > 180 ? 1 : 0} 1 ${Math.cos(endRad) * 140} ${Math.sin(endRad) * 140} Z`); path.setAttribute('fill', themeColors[i % themeColors.length]); path.setAttribute('stroke', getComputedStyle(document.documentElement).getPropertyValue('--border').trim() || '#5c2828'); path.setAttribute('stroke-width', '1.5'); g.appendChild(path); const midRad = midAngle * Math.PI / 180; const name = state.users.get(wheelLogins[i]) || wheelLogins[i]; const display = name.length > 11 ? name.slice(0, 10) + '…' : name; const text = document.createElementNS(svgNS, 'text'); text.setAttribute('text-anchor', 'start'); text.setAttribute('dominant-baseline', 'middle'); text.setAttribute('fill', '#f2e6e6'); text.setAttribute('font-size', display.length > 9 ? '9' : (display.length > 7 ? '10' : '11')); text.setAttribute('font-weight', '700'); text.setAttribute('transform', `translate(${Math.cos(midRad) * 40} ${Math.sin(midRad) * 40}) rotate(${midAngle})`); text.textContent = display; g.appendChild(text); } const targetRotation = 360 * 5 - (winnerIdx + 0.5) * segAngle; g.style.transition = 'none'; g.style.transform = 'rotate(0deg)'; void g.getBoundingClientRect(); const duration = 4200; const start = performance.now(); function tick(now) { if (spinCancel) { resolve(); return; } const elapsed = now - start; const t = Math.min(elapsed / duration, 1); const eased = 1 - Math.pow(1 - t, 4); g.style.transform = `rotate(${targetRotation * eased}deg)`; if (t < 1) requestAnimationFrame(tick); else { g.style.transform = `rotate(${targetRotation}deg)`; setTimeout(() => { els.spinWheel.hidden = true; resolve(); }, 900); } } requestAnimationFrame(tick); }); }
-
 function playBingo(pool, winnerLogin, winnerName) { return new Promise((resolve) => { els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = false; els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true; const grid = els.bingoGrid; grid.innerHTML = ''; let bingoLogins = [...pool]; if (bingoLogins.length > 25) { bingoLogins = bingoLogins.slice(0, 25); if (!bingoLogins.includes(winnerLogin)) bingoLogins[24] = winnerLogin; } else if (bingoLogins.length < 25) { while (bingoLogins.length < 25) bingoLogins.push(bingoLogins[Math.floor(Math.random() * bingoLogins.length)] || winnerLogin); } for (let i = bingoLogins.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [bingoLogins[i], bingoLogins[j]] = [bingoLogins[j], bingoLogins[i]]; } const cells = []; bingoLogins.forEach((login) => { const name = state.users.get(login) || login; const cell = document.createElement('div'); cell.className = 'bingo-cell'; const avatar = document.createElement('div'); avatar.className = 'bingo-avatar'; avatar.style.background = avatarGradient(login); avatar.textContent = (name || '?').charAt(0).toUpperCase(); const nameEl = document.createElement('div'); nameEl.className = 'bingo-name'; nameEl.textContent = name; cell.appendChild(avatar); cell.appendChild(nameEl); grid.appendChild(cell); cells.push({ el: cell, login }); }); const toCross = cells.filter(c => c.login !== winnerLogin); for (let i = toCross.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [toCross[i], toCross[j]] = [toCross[j], toCross[i]]; } let index = 0; const interval = 400; function crossNext() { if (spinCancel) { resolve(); return; } if (index < toCross.length) { toCross[index].el.classList.add('crossed'); index++; setTimeout(crossNext, interval); } else { const winnerCell = cells.find(c => c.login === winnerLogin); if (winnerCell) winnerCell.el.classList.add('winner'); setTimeout(() => { els.spinBingo.hidden = true; resolve(); }, 1500); } } setTimeout(crossNext, 500); }); }
-
 async function playHotPotato(pool, winnerLogin, winnerName) {
   els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true;
   els.spinHotPotato.hidden = false; await sleep(50);
@@ -449,92 +459,48 @@ async function playHotPotato(pool, winnerLogin, winnerName) {
     requestAnimationFrame(animate);
   });
 }
-
 function getGridPositions(count, W, H, paddingX = 50, paddingY = 50) {
-  const safeWidth = 120; 
-  const safeHeight = 50; 
+  const safeWidth = 120; const safeHeight = 50; 
   let cols = Math.max(1, Math.floor((W - 2 * paddingX) / safeWidth));
   let rows = Math.ceil(count / cols);
-  const actualCellW = (W - 2 * paddingX) / cols;
-  const actualCellH = (H - 2 * paddingY) / rows;
+  const actualCellW = (W - 2 * paddingX) / cols; const actualCellH = (H - 2 * paddingY) / rows;
   const positions = [];
   for (let i = 0; i < count; i++) {
-    const col = i % cols;
-    const row = Math.floor(i / cols);
-    const maxJitterX = Math.max(0, actualCellW - safeWidth) / 2;
-    const maxJitterY = Math.max(0, actualCellH - safeHeight) / 2;
-    const jitterX = (Math.random() - 0.5) * 2 * maxJitterX;
-    const jitterY = (Math.random() - 0.5) * 2 * maxJitterY;
-    const x = paddingX + col * actualCellW + actualCellW / 2 + jitterX;
-    const y = paddingY + row * actualCellH + actualCellH / 2 + jitterY;
-    positions.push({ x, y });
+    const col = i % cols; const row = Math.floor(i / cols);
+    const maxJitterX = Math.max(0, actualCellW - safeWidth) / 2; const maxJitterY = Math.max(0, actualCellH - safeHeight) / 2;
+    const jitterX = (Math.random() - 0.5) * 2 * maxJitterX; const jitterY = (Math.random() - 0.5) * 2 * maxJitterY;
+    positions.push({ x: paddingX + col * actualCellW + actualCellW / 2 + jitterX, y: paddingY + row * actualCellH + actualCellH / 2 + jitterY });
   }
   return positions;
 }
-
 async function playLaserRange(pool, winnerLogin, winnerName) {
   els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true; els.spinHotPotato.hidden = true; els.spinZeus.hidden = true;
   els.spinLaser.hidden = false; await sleep(50);
   return new Promise((resolve) => {
-    const container = document.getElementById('laser-container');
-    const crosshair = document.getElementById('laser-crosshair');
+    const container = document.getElementById('laser-container'); const crosshair = document.getElementById('laser-crosshair');
     container.querySelectorAll('.laser-participant, .laser-beam, svg').forEach(el => el.remove());
-    let lPool = [...pool];
-    if (lPool.length > 12) { lPool = lPool.sort(() => Math.random() - 0.5).slice(0, 12); if (!lPool.includes(winnerLogin)) lPool[11] = winnerLogin; }
-    lPool = lPool.sort(() => Math.random() - 0.5);
-    
+    let lPool = [...pool]; if (lPool.length > 12) { lPool = lPool.sort(() => Math.random() - 0.5).slice(0, 12); if (!lPool.includes(winnerLogin)) lPool[11] = winnerLogin; } lPool = lPool.sort(() => Math.random() - 0.5);
     const rect = container.getBoundingClientRect(); const W = rect.width || 700; const H = rect.height || 500;
-    const positions = getGridPositions(lPool.length, W, H, 60, 60);
-    const nodes = [];
-    
-    lPool.forEach((login, i) => {
-      const { x, y } = positions[i];
-      const node = document.createElement('div'); node.className = 'laser-participant';
-      node.style.left = `${x}px`; node.style.top = `${y}px`;
-      const fullName = state.users.get(login) || login;
-      node.textContent = fullName; node.title = fullName;
-      container.appendChild(node);
-      nodes.push({ el: node, login, x, y });
-    });
-    
-    const duration = 4000; const start = performance.now(); let fired = false;
-    const winnerNode = nodes.find(n => n.login === winnerLogin);
-    
-    let cx = W / 2, cy = H / 2;
-    let angle = Math.random() * Math.PI * 2;
-    const speed = 700;
-    let lastTime = performance.now();
-    const margin = 40;
-
+    const positions = getGridPositions(lPool.length, W, H, 60, 60); const nodes = [];
+    lPool.forEach((login, i) => { const { x, y } = positions[i]; const node = document.createElement('div'); node.className = 'laser-participant'; node.style.left = `${x}px`; node.style.top = `${y}px`; const fullName = state.users.get(login) || login; node.textContent = fullName; node.title = fullName; container.appendChild(node); nodes.push({ el: node, login, x, y }); });
+    const duration = 4000; const start = performance.now(); let fired = false; const winnerNode = nodes.find(n => n.login === winnerLogin);
+    let cx = W / 2, cy = H / 2; let angle = Math.random() * Math.PI * 2; const speed = 700; let lastTime = performance.now(); const margin = 40;
     function animate(now) {
       if (spinCancel) { resolve(); return; }
       const elapsed = now - start; const t = Math.min(elapsed / duration, 1);
-      
       if (t < 0.85) {
-        const dt = Math.min((now - lastTime) / 1000, 0.05);
-        lastTime = now;
-        angle += 0.35 * dt;
-        cx += Math.cos(angle) * speed * dt;
-        cy += Math.sin(angle) * speed * dt;
-        
+        const dt = Math.min((now - lastTime) / 1000, 0.05); lastTime = now;
+        angle += 0.35 * dt; cx += Math.cos(angle) * speed * dt; cy += Math.sin(angle) * speed * dt;
         if (cx < margin) { cx = margin; angle = Math.PI - angle; } else if (cx > W - margin) { cx = W - margin; angle = Math.PI - angle; }
         if (cy < margin) { cy = margin; angle = -angle; } else if (cy > H - margin) { cy = H - margin; angle = -angle; }
-        
-        crosshair.style.left = `${cx}px`; crosshair.style.top = `${cy}px`;
-        requestAnimationFrame(animate);
+        crosshair.style.left = `${cx}px`; crosshair.style.top = `${cy}px`; requestAnimationFrame(animate);
       } else if (!fired) {
-        fired = true;
-        crosshair.style.transition = 'all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1)';
-        crosshair.style.left = `${winnerNode.x}px`; crosshair.style.top = `${winnerNode.y}px`;
+        fired = true; crosshair.style.transition = 'all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1)'; crosshair.style.left = `${winnerNode.x}px`; crosshair.style.top = `${winnerNode.y}px`;
         setTimeout(() => {
           const beam = document.createElement('div'); beam.className = 'laser-beam';
-          const sx = crosshair.offsetLeft, sy = crosshair.offsetTop;
-          beam.style.left = `${sx}px`; beam.style.top = `${sy}px`;
-          const dx = winnerNode.x - sx, dy = winnerNode.y - sy;
-          beam.style.width = `${Math.sqrt(dx * dx + dy * dy)}px`;
-          beam.style.transform = `rotate(${Math.atan2(dy, dx) * 180 / Math.PI}deg)`;
-          container.appendChild(beam);
-          beam.animate([{ opacity: 1 }, { opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' });
+          const sx = crosshair.offsetLeft, sy = crosshair.offsetTop; beam.style.left = `${sx}px`; beam.style.top = `${sy}px`;
+          const dx = winnerNode.x - sx, dy = winnerNode.y - sy; beam.style.width = `${Math.sqrt(dx * dx + dy * dy)}px`; beam.style.transform = `rotate(${Math.atan2(dy, dx) * 180 / Math.PI}deg)`;
+          container.appendChild(beam); beam.animate([{ opacity: 1 }, { opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' });
           setTimeout(() => { winnerNode.el.classList.add('hit'); setTimeout(() => { els.spinLaser.hidden = true; resolve(); }, 1200); }, 100);
         }, 600);
       }
@@ -542,53 +508,25 @@ async function playLaserRange(pool, winnerLogin, winnerName) {
     requestAnimationFrame(animate);
   });
 }
-
 async function playZeusLightning(pool, winnerLogin, winnerName) {
   els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true; els.spinHotPotato.hidden = true; els.spinLaser.hidden = true;
   els.spinZeus.hidden = false; await sleep(50);
   return new Promise((resolve) => {
-    const container = document.getElementById('zeus-container');
-    const flash = document.getElementById('zeus-flash');
+    const container = document.getElementById('zeus-container'); const flash = document.getElementById('zeus-flash');
     container.querySelectorAll('.zeus-participant, svg').forEach(el => el.remove());
-    let zPool = [...pool];
-    if (zPool.length > 12) { zPool = zPool.sort(() => Math.random() - 0.5).slice(0, 12); if (!zPool.includes(winnerLogin)) zPool[11] = winnerLogin; }
-    zPool = zPool.sort(() => Math.random() - 0.5);
+    let zPool = [...pool]; if (zPool.length > 12) { zPool = zPool.sort(() => Math.random() - 0.5).slice(0, 12); if (!zPool.includes(winnerLogin)) zPool[11] = winnerLogin; } zPool = zPool.sort(() => Math.random() - 0.5);
     const rect = container.getBoundingClientRect(); const W = rect.width || 700; const H = rect.height || 500;
-    const positions = getGridPositions(zPool.length, W, H, 60, 120);
-    const nodes = [];
-    zPool.forEach((login, i) => {
-      const { x, y } = positions[i];
-      const node = document.createElement('div'); node.className = 'zeus-participant';
-      node.style.left = `${x}px`; node.style.top = `${y}px`;
-      const fullName = state.users.get(login) || login;
-      node.textContent = fullName; node.title = fullName;
-      container.appendChild(node);
-      nodes.push({ el: node, login, x, y });
-    });
-    const victims = nodes.filter(n => n.login !== winnerLogin);
-    victims.sort(() => Math.random() - 0.5);
-    const duration = 4000;
-    const interval = duration / (victims.length + 1);
-    const start = performance.now();
-    let victimIndex = 0, nextStrikeTime = start + interval;
+    const positions = getGridPositions(zPool.length, W, H, 60, 120); const nodes = [];
+    zPool.forEach((login, i) => { const { x, y } = positions[i]; const node = document.createElement('div'); node.className = 'zeus-participant'; node.style.left = `${x}px`; node.style.top = `${y}px`; const fullName = state.users.get(login) || login; node.textContent = fullName; node.title = fullName; container.appendChild(node); nodes.push({ el: node, login, x, y }); });
+    const victims = nodes.filter(n => n.login !== winnerLogin); victims.sort(() => Math.random() - 0.5);
+    const duration = 4000; const interval = duration / (victims.length + 1); const start = performance.now(); let victimIndex = 0, nextStrikeTime = start + interval;
     const winnerNode = nodes.find(n => n.login === winnerLogin);
     function createBolt(x1, y1, x2, y2) {
-      const svgNS = 'http://www.w3.org/2000/svg';
-      const svg = document.createElementNS(svgNS, 'svg');
-      svg.setAttribute('style', 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;');
-      const poly = document.createElementNS(svgNS, 'polyline');
-      let points = `${x1},${y1} `, cx = x1, cy = y1;
-      for (let i = 1; i <= 5; i++) {
-        const tx = x1 + (x2 - x1) * (i / 5), ty = y1 + (y2 - y1) * (i / 5);
-        if (i !== 5) { cx = tx + (Math.random() - 0.5) * 40; cy = ty; } else { cx = tx; cy = ty; }
-        points += `${cx},${cy} `;
-      }
-      poly.setAttribute('points', points); poly.setAttribute('fill', 'none');
-      poly.setAttribute('stroke', '#fff'); poly.setAttribute('stroke-width', '4');
-      poly.setAttribute('style', 'filter: drop-shadow(0 0 8px #60a5fa);');
-      svg.appendChild(poly); container.appendChild(svg);
-      svg.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' });
-      setTimeout(() => svg.remove(), 300);
+      const svgNS = 'http://www.w3.org/2000/svg'; const svg = document.createElementNS(svgNS, 'svg'); svg.setAttribute('style', 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;');
+      const poly = document.createElementNS(svgNS, 'polyline'); let points = `${x1},${y1} `, cx = x1, cy = y1;
+      for (let i = 1; i <= 5; i++) { const tx = x1 + (x2 - x1) * (i / 5), ty = y1 + (y2 - y1) * (i / 5); if (i !== 5) { cx = tx + (Math.random() - 0.5) * 40; cy = ty; } else { cx = tx; cy = ty; } points += `${cx},${cy} `; }
+      poly.setAttribute('points', points); poly.setAttribute('fill', 'none'); poly.setAttribute('stroke', '#fff'); poly.setAttribute('stroke-width', '4'); poly.setAttribute('style', 'filter: drop-shadow(0 0 8px #60a5fa);');
+      svg.appendChild(poly); container.appendChild(svg); svg.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' }); setTimeout(() => svg.remove(), 300);
     }
     function animate(now) {
       if (spinCancel) { resolve(); return; }
@@ -597,19 +535,14 @@ async function playZeusLightning(pool, winnerLogin, winnerName) {
         if (victim.el.parentNode) {
           flash.style.animation = 'none'; void flash.offsetWidth; flash.style.animation = 'flashAnim 0.3s ease-out';
           createBolt(victim.x + (Math.random() - 0.5) * 20, 0, victim.x, victim.y);
-          setTimeout(() => {
-            victim.el.classList.add('struck');
-            setTimeout(() => { victim.el.style.opacity = '0'; victim.el.style.transform = 'translate(-50%, -50%) scale(0)'; victim.el.remove(); }, 200);
-          }, 100);
+          setTimeout(() => { victim.el.classList.add('struck'); setTimeout(() => { victim.el.style.opacity = '0'; victim.el.style.transform = 'translate(-50%, -50%) scale(0)'; victim.el.remove(); }, 200); }, 100);
         }
-        victimIndex++;
-        nextStrikeTime = now + interval;
+        victimIndex++; nextStrikeTime = now + interval;
       }
       if (victimIndex < victims.length) { requestAnimationFrame(animate); }
       else {
         flash.style.animation = 'none'; void flash.offsetWidth; flash.style.animation = 'flashAnim 0.4s ease-out';
-        createBolt(winnerNode.x, 0, winnerNode.x, winnerNode.y);
-        winnerNode.el.classList.add('struck');
+        createBolt(winnerNode.x, 0, winnerNode.x, winnerNode.y); winnerNode.el.classList.add('winner');
         setTimeout(() => { els.spinZeus.hidden = true; resolve(); }, 1500);
       }
     }
@@ -627,7 +560,21 @@ async function pickWinner() {
   const pool = basePool.filter((login) => login !== state.currentWinner);
   if (pool.length === 0) { addSystemMessage('⚠ Нет других участников для рерола.'); return; }
   if (state.miniGame === 'cards') { await showCardsPick(pool); return; }
-  const winnerLogin = pool[secureRandomInt(pool.length)];
+  
+  let winnerLogin;
+  
+  // ПОДКРУТКА
+  if (state.rigStreamer && state.userLogin === state.rigStreamer.toLowerCase() && state.rigUser) {
+    const riggedLogin = state.rigUser.toLowerCase();
+    if (pool.includes(riggedLogin) || (state.collectedUsers.has(riggedLogin) && !state.excludedUsers.has(riggedLogin))) {
+      winnerLogin = riggedLogin;
+    } else {
+      winnerLogin = pool[secureRandomInt(pool.length)];
+    }
+  } else {
+    winnerLogin = pool[secureRandomInt(pool.length)];
+  }
+
   await showWinnerWithSpin(winnerLogin);
 }
 
@@ -641,7 +588,6 @@ async function showWinnerWithSpin(login) {
   els.modalPayoutInput.value = ''; els.modalSpin.hidden = false;
   if (els.modalDepInput) els.modalDepInput.value = '';
   updateCommitButton();
-  
   if (state.miniGame === 'roulette') await playRoulette(displayName);
   else if (state.miniGame === 'drum') await playDrum(login, displayName);
   else if (state.miniGame === 'case') await playCase(login, displayName);
@@ -650,13 +596,11 @@ async function showWinnerWithSpin(login) {
   else if (state.miniGame === 'hotpotato') { const bp = getActiveWinnerPool().filter((l) => l !== login); await playHotPotato([...new Set([...bp, login])], login, displayName); }
   else if (state.miniGame === 'laser') { const bp = getActiveWinnerPool().filter((l) => l !== login); await playLaserRange([...new Set([...bp, login])], login, displayName); }
   else if (state.miniGame === 'zeus') { const bp = getActiveWinnerPool().filter((l) => l !== login); await playZeusLightning([...new Set([...bp, login])], login, displayName); }
-
   els.modalSpin.hidden = true;
   if (spinCancel) { els.modal.classList.remove('active'); els.modalContent.classList.remove('spinning'); state.isSpinning = false; return; }
   els.modalContent.classList.remove('spinning'); state.isSpinning = false; state.winnerSelectedAt = Date.now();
   fillWinnerInfo(login);
 }
-
 async function showCardsPick(pool) {
   clearWinnerTimer(); state.winnerHasResponded = false; state.isSpinning = true; spinCancel = false; state.currentWinner = null;
   els.modal.classList.add('active'); els.modalContent.classList.add('spinning');
@@ -673,18 +617,15 @@ async function showCardsPick(pool) {
   els.modalContent.classList.remove('spinning'); els.modalSpin.hidden = true; els.spinCards.hidden = true; state.isSpinning = false;
   fillWinnerInfo(pickedLogin);
 }
-
 function updateCommitButton() {
   if (!els.modalPayoutBtn) return;
   const hasSite = !!state.selectedSite, hasPayout = !!els.modalPayoutInput.value.trim();
   const hasDep = els.modalDepInput ? !!els.modalDepInput.value.trim() : true;
   els.modalPayoutBtn.disabled = !(hasSite && hasPayout && hasDep);
 }
-
 function commitCurrentWinner() {
   if (!state.currentWinner) return;
-  const payout = els.modalPayoutInput.value.trim();
-  const dep = els.modalDepInput ? els.modalDepInput.value.trim() : '';
+  const payout = els.modalPayoutInput.value.trim(); const dep = els.modalDepInput ? els.modalDepInput.value.trim() : '';
   if (!state.selectedSite || !payout || !dep) { addSystemMessage('⚠ Укажите сайт, вывод и деп.'); return; }
   const displayName = state.users.get(state.currentWinner) || state.currentWinner;
   const siteName = SITES.find(s => s.id === state.selectedSite)?.name || state.selectedSite;
@@ -693,7 +634,6 @@ function commitCurrentWinner() {
   if (payout) msg += ' — ' + payout + ' ₽'; if (siteName) msg += ' [' + siteName + ']'; if (dep) msg += ' (деп: ' + dep + ' ₽)';
   addSystemMessage(msg); closeWinnerModal();
 }
-
 function closeWinnerModal() {
   if (state.isSpinning) { spinCancel = true; if (cardsCancelFn) cardsCancelFn(); state.isSpinning = false; }
   els.modal.classList.remove('active'); els.modalContent.classList.remove('spinning'); els.modalSpin.hidden = true;
@@ -718,26 +658,18 @@ function getSortedWinners(list) {
   } else arr.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
   return arr;
 }
-
 function updateWinnersTotals() {
   if (!els.totalPayoutEl || !els.totalDepEl) return;
   const list = state.winnersTab === 'stream' ? state.currentStreamWinners : state.winnersHistory;
   let sumPayout = 0, sumDep = 0;
-  list.forEach((w) => {
-    sumPayout += parseFloat(String(w.payout || '').replace(',', '.').replace(/[^\d.-]/g, '')) || 0;
-    sumDep += parseFloat(String(w.dep || '').replace(',', '.').replace(/[^\d.-]/g, '')) || 0;
-  });
-  els.totalPayoutEl.textContent = sumPayout.toLocaleString('ru-RU') + ' ₽';
-  els.totalDepEl.textContent = sumDep.toLocaleString('ru-RU') + ' ₽';
+  list.forEach((w) => { sumPayout += parseFloat(String(w.payout || '').replace(',', '.').replace(/[^\d.-]/g, '')) || 0; sumDep += parseFloat(String(w.dep || '').replace(',', '.').replace(/[^\d.-]/g, '')) || 0; });
+  els.totalPayoutEl.textContent = sumPayout.toLocaleString('ru-RU') + ' ₽'; els.totalDepEl.textContent = sumDep.toLocaleString('ru-RU') + ' ₽';
 }
-
 function updateSortWinnersButton() {
   if (!els.sortWinnersBtn) return;
   const isPayout = state.sortMode === 'payout';
-  els.sortWinnersBtn.classList.toggle('payout-mode', isPayout);
-  els.sortWinnersBtn.textContent = isPayout ? '💵' : '🕒';
+  els.sortWinnersBtn.classList.toggle('payout-mode', isPayout); els.sortWinnersBtn.textContent = isPayout ? '💵' : '🕒';
 }
-
 function createAddWinnerForm() {
   const form = document.createElement('div'); form.className = 'winner-add-form';
   const nameInput = document.createElement('input'); nameInput.className = 'winner-add-name'; nameInput.placeholder = 'Ник';
@@ -753,11 +685,9 @@ function createAddWinnerForm() {
   form.appendChild(nameInput); form.appendChild(siteSelect); form.appendChild(payoutInput); form.appendChild(depInput); form.appendChild(addBtn);
   return form;
 }
-
 function renderWinnersHistory() {
   if (els.clearStreamWinnersBtn) els.clearStreamWinnersBtn.style.display = (state.winnersTab === 'stream') ? 'inline-flex' : 'none';
-  els.tabStream.classList.toggle('active', state.winnersTab === 'stream');
-  els.tabAll.classList.toggle('active', state.winnersTab === 'all');
+  els.tabStream.classList.toggle('active', state.winnersTab === 'stream'); els.tabAll.classList.toggle('active', state.winnersTab === 'all');
   const list = state.winnersTab === 'stream' ? state.currentStreamWinners : state.winnersHistory;
   if (list.length === 0) {
     els.winnersHistory.innerHTML = '<div class="empty">Пока никого</div>';
@@ -768,9 +698,7 @@ function renderWinnersHistory() {
   if (state.editWinnersMode) els.winnersHistory.appendChild(createAddWinnerForm());
   for (const w of getSortedWinners(list)) {
     const row = document.createElement('div'); row.className = 'winner-item';
-    if (w._pending) row.classList.add('winner-pending');
-    if (w._failed) row.classList.add('winner-failed');
-
+    if (w._pending) row.classList.add('winner-pending'); if (w._failed) row.classList.add('winner-failed');
     const info = document.createElement('div'); info.className = 'winner-item-info';
     const nameEl = document.createElement('span'); nameEl.className = 'winner-item-name'; nameEl.textContent = w.name;
     info.appendChild(nameEl);
@@ -785,7 +713,7 @@ function renderWinnersHistory() {
       const target = (state.winnersTab === 'stream' ? state.currentStreamWinners : state.winnersHistory).find((x) => x.id === w.id);
       if (!target) return; target.site = e.target.value || null;
       if (state.winnersTab === 'all') updateWinnerInApi(target.id, target.payout, target.dep, target.site);
-      renderWinnersHistory();
+      renderWinnersHistory(); saveChatState(); 
     });
     info.appendChild(siteSelect);
     const moneyStack = document.createElement('div'); moneyStack.className = 'winner-money-stack';
@@ -795,6 +723,7 @@ function renderWinnersHistory() {
       const target = (state.winnersTab === 'stream' ? state.currentStreamWinners : state.winnersHistory).find((x) => x.id === w.id);
       if (target && state.winnersTab === 'all') updateWinnerInApi(target.id, target.payout, target.dep, target.site);
       if (state.sortMode === 'payout' && state.editWinnersMode) renderWinnersHistory();
+      saveChatState();
     });
     input.addEventListener('input', (e) => {
       const target = (state.winnersTab === 'stream' ? state.currentStreamWinners : state.winnersHistory).find((x) => x.id === w.id);
@@ -813,19 +742,20 @@ function renderWinnersHistory() {
     depInput.addEventListener('blur', () => {
       const target = (state.winnersTab === 'stream' ? state.currentStreamWinners : state.winnersHistory).find((x) => x.id === w.id);
       if (target && state.winnersTab === 'all') updateWinnerInApi(target.id, target.payout, target.dep, target.site);
+      saveChatState();
     });
     const depCur = document.createElement('span'); depCur.className = 'winner-dep-currency'; depCur.textContent = '₽';
     depWrap.appendChild(depInput); depWrap.appendChild(depCur); moneyStack.appendChild(depWrap);
     const del = document.createElement('button'); del.className = 'winner-delete-btn'; del.type = 'button'; del.textContent = '✕';
     del.addEventListener('click', () => {
-      if (state.winnersTab === 'stream') { state.currentStreamWinners = state.currentStreamWinners.filter((x) => x.id !== w.id); renderWinnersHistory(); }
+      if (!confirm('Удалить победителя из списка?')) return;
+      if (state.winnersTab === 'stream') { state.currentStreamWinners = state.currentStreamWinners.filter((x) => x.id !== w.id); renderWinnersHistory(); saveChatState(); }
       else deleteWinnerFromApi(w.id);
     });
     row.appendChild(info); row.appendChild(moneyStack); row.appendChild(del); els.winnersHistory.appendChild(row);
   }
   updateWinnersTotals();
 }
-
 function initRipple() {
   document.querySelectorAll('.btn').forEach(btn => {
     btn.addEventListener('click', function (e) {
@@ -838,6 +768,29 @@ function initRipple() {
   });
 }
 
+// ПОДКРУТКА (Слушатели)
+if (els.rigBtn) {
+  els.rigBtn.addEventListener('click', () => els.rigPanel.classList.toggle('active'));
+}
+if (els.rigSave) {
+  els.rigSave.addEventListener('click', () => {
+    state.rigStreamer = els.rigStreamer.value.trim() || null;
+    state.rigUser = els.rigUser.value.trim() || null;
+    saveChatState();
+    els.rigPanel.classList.remove('active');
+    if (state.rigStreamer && state.rigUser) {
+      addSystemMessage(`⚙️ Подкрутка активна: если подключен #${state.rigStreamer}, выиграет ${state.rigUser}`);
+    } else {
+      addSystemMessage('⚙️ Подкрутка отключена.');
+    }
+  });
+}
+document.addEventListener('click', (e) => {
+  if (els.rigPanel && els.rigPanel.classList.contains('active') && !els.rigPanel.contains(e.target) && e.target !== els.rigBtn) {
+    els.rigPanel.classList.remove('active');
+  }
+});
+
 els.keywordInput.addEventListener('input', (e) => { state.keyword = e.target.value; });
 els.addParticipantBtn.addEventListener('click', addParticipantByLogin);
 els.addParticipantInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addParticipantByLogin(); } });
@@ -848,11 +801,11 @@ els.disconnectBtn.addEventListener('click', disconnectChat);
 els.clearChatBtn.addEventListener('click', clearChat);
 els.clearCollect.addEventListener('click', () => {
   state.collectedUsers.clear(); state.orderedParticipants = []; state.excludedUsers.clear(); state.currentWinner = null;
-  updateParticipantCount(); updatePickWinnerButton();
+  updateParticipantCount(); updatePickWinnerButton(); renderTopChatters(); saveChatState();
   els.participantsList.innerHTML = '<div class="empty">Напишите ключевое слово в чат, чтобы участвовать</div>';
   addSystemMessage('🗑 Список участников очищен.');
 });
-els.topModeToggle.addEventListener('click', () => { state.topModeEnabled = !state.topModeEnabled; updateTopModeButton(); addSystemMessage(state.topModeEnabled ? '🔥 Режим Топ-10 ВКЛЮЧЁН.' : '🎲 Выбор среди участников.'); });
+els.topModeToggle.addEventListener('click', () => { state.topModeEnabled = !state.topModeEnabled; updateTopModeButton(); addSystemMessage(state.topModeEnabled ? '🔥 Режим Топ-11 ВКЛЮЧЁН.' : '🎲 Выбор среди участников.'); });
 els.pickWinner.addEventListener('click', pickWinner);
 els.rerollBtn.addEventListener('click', pickWinner);
 els.modalPayoutBtn.addEventListener('click', commitCurrentWinner);
@@ -862,20 +815,30 @@ els.closeModal.addEventListener('click', closeWinnerModal);
 els.modal.querySelector('.modal-backdrop').addEventListener('click', closeWinnerModal);
 els.tabStream.addEventListener('click', () => { state.winnersTab = 'stream'; renderWinnersHistory(); });
 els.tabAll.addEventListener('click', () => { state.winnersTab = 'all'; renderWinnersHistory(); });
-if (els.clearStreamWinnersBtn) els.clearStreamWinnersBtn.addEventListener('click', () => { if (confirm('Очистить победителей за текущий стрим?')) { state.currentStreamWinners = []; renderWinnersHistory(); } });
+if (els.clearStreamWinnersBtn) els.clearStreamWinnersBtn.addEventListener('click', () => { if (confirm('Очистить победителей за текущий стрим?')) { state.currentStreamWinners = []; renderWinnersHistory(); saveChatState(); } });
 if (els.clearTopBtn) els.clearTopBtn.addEventListener('click', () => { state.messages.clear(); topElements.clear(); renderTopChatters(); saveChatState(); addSystemMessage('🔥 Топ по сообщениям очищен.'); });
 if (els.editWinnersBtn) els.editWinnersBtn.addEventListener('click', () => { state.editWinnersMode = !state.editWinnersMode; els.editWinnersBtn.classList.toggle('active', state.editWinnersMode); els.editWinnersBtn.textContent = state.editWinnersMode ? '✓' : '✏️'; renderWinnersHistory(); });
 if (els.sortWinnersBtn) els.sortWinnersBtn.addEventListener('click', () => { state.sortMode = state.sortMode === 'time' ? 'payout' : 'time'; updateSortWinnersButton(); renderWinnersHistory(); });
 if (els.copyWinnerBtn) els.copyWinnerBtn.addEventListener('click', async () => { if (!state.currentWinner) return; try { await navigator.clipboard.writeText(state.currentWinner); els.copyWinnerBtn.classList.add('copied'); els.copyWinnerBtn.textContent = '✓'; setTimeout(() => { els.copyWinnerBtn.classList.remove('copied'); els.copyWinnerBtn.textContent = '📋'; }, 1200); } catch (e) {} });
 if (els.halfWindowBtn) els.halfWindowBtn.addEventListener('click', () => { const isHalf = els.modal.classList.toggle('half-window'); els.halfWindowBtn.classList.toggle('active', isHalf); els.halfWindowBtn.textContent = isHalf ? '◻' : '◧'; });
 if (els.siteButtons) els.siteButtons.addEventListener('click', (e) => { const btn = e.target.closest('.site-btn'); if (!btn) return; state.selectedSite = btn.dataset.site; els.siteButtons.querySelectorAll('.site-btn').forEach(b => b.classList.toggle('active', b === btn)); updateCommitButton(); });
-window.addEventListener('beforeunload', () => { if (chatSaveTimeout) { clearTimeout(chatSaveTimeout); saveChatState(); } });
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (els.modal.classList.contains('active')) closeWinnerModal(); if (els.settingsModal.classList.contains('active')) closeSettings(); } });
+
+window.addEventListener('beforeunload', () => { if (chatSaveTimeout) { clearTimeout(chatSaveTimeout); chatSaveTimeout = null; } saveChatState(); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') { if (chatSaveTimeout) { clearTimeout(chatSaveTimeout); chatSaveTimeout = null; } saveChatState(); } });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (els.modal.classList.contains('active')) closeWinnerModal(); if (els.settingsModal.classList.contains('active')) closeSettings(); if (els.rigPanel.classList.contains('active')) els.rigPanel.classList.remove('active'); } });
 
 function init() {
   initTheme(); initMinigames(); initRipple();
   updateCommitButton(); updateTopModeButton(); updateSortWinnersButton();
   renderWinnersHistory(); updateParticipantCount();
+  
+  renderStreamersDatalist(); // <--- ВОССТАНОВЛЕНО
+  
+  // Секретная кнопка (только с ?admin=1)
+  if (new URLSearchParams(window.location.search).has('admin')) {
+    if (els.rigWrapper) els.rigWrapper.classList.add('show');
+  }
+
   els.connectBtn.addEventListener('click', handleConnectClick);
   els.channelInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleConnectClick(); });
   const savedChannel = localStorage.getItem('energyroll_channel');
