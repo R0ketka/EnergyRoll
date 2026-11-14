@@ -636,6 +636,7 @@ async function playElevator(pool, winnerLogin, winnerName) {
     const shaftH = shaftsEl.clientHeight || 460;
     const usableH = shaftH - CABIN_H - 4;
     const FLOOR_H = Math.max(20, usableH / (FLOOR_COUNT - 1));
+    const MAX_DISTANCE = (FLOOR_COUNT - 1) * FLOOR_H;
 
     // Пул: победитель + до 5 других
     let elevPool = [...new Set(pool)];
@@ -647,16 +648,10 @@ async function playElevator(pool, winnerLogin, winnerName) {
     }
     for (let i = elevPool.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [elevPool[i], elevPool[j]] = [elevPool[j], elevPool[i]]; }
 
-    // Этажи для не-победителей (6..11)
-    const availableFloors = [];
-    for (let f = 6; f <= FLOOR_COUNT - 3; f++) availableFloors.push(f);
-    for (let i = availableFloors.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [availableFloors[i], availableFloors[j]] = [availableFloors[j], availableFloors[i]]; }
-
     const elevators = [];
-    elevPool.forEach((login, idx) => {
+    elevPool.forEach((login) => {
       const name = state.users.get(login) || login;
       const isWinner = login === winnerLogin;
-      const finalFloor = isWinner ? FLOOR_COUNT : (availableFloors[idx] || 6);
 
       const shaft = document.createElement('div');
       shaft.className = 'elevator-shaft';
@@ -690,26 +685,47 @@ async function playElevator(pool, winnerLogin, winnerName) {
       shaft.appendChild(cabin);
       shaftsEl.appendChild(shaft);
 
-      elevators.push({
-        el: cabin, floorNum,
-        login, name, isWinner, finalFloor,
-        targetY: -(finalFloor - 1) * FLOOR_H
-      });
+      elevators.push({ el: cabin, floorNum, login, name, isWinner, stopTime: 1.0, finalFloor: FLOOR_COUNT, targetY: -MAX_DISTANCE });
     });
 
-    function easeOutCubic(x) { return 1 - Math.pow(1 - x, 3); }
+    // Этажи для не-победителей: равномерно от 7 до 12, потом перемешать
+    const nonWinners = elevators.filter(e => !e.isWinner);
+    const n = nonWinners.length;
+    const MIN_FLOOR = 7;
+    const MAX_FLOOR = FLOOR_COUNT - 2; // 12
+    const floors = [];
+    for (let i = 0; i < n; i++) {
+      const t = n <= 1 ? 0.5 : i / (n - 1);
+      floors.push(Math.round(MIN_FLOOR + t * (MAX_FLOOR - MIN_FLOOR)));
+    }
+    for (let i = floors.length - 1; i > 0; i--) {
+      const j = secureRandomInt(i + 1);
+      [floors[i], floors[j]] = [floors[j], floors[i]];
+    }
+
+    // Время остановки подбираем так, чтобы скорость подъёма была ОДИНАКОВОЙ у всех
+    nonWinners.forEach((e, i) => {
+      e.finalFloor = floors[i];
+      e.stopTime = (e.finalFloor - 1) / (FLOOR_COUNT - 1);
+      e.targetY = -MAX_DISTANCE * e.stopTime;
+    });
+
+    // Победитель — последний на самом верху
+    const winnerElev = elevators.find(e => e.isWinner);
+    winnerElev.stopTime = 1.0;
+    winnerElev.finalFloor = FLOOR_COUNT;
+    winnerElev.targetY = -MAX_DISTANCE;
+
+    // Чисто линейное движение + фиксация в момент stopTime
     function computeProgress(e, t) {
-      if (e.isWinner) return easeOutCubic(Math.min(t / 0.72, 1));
-      let p = t;
-      const pauseStart = 0.35, pauseEnd = 0.47;
-      if (p > pauseStart && p < pauseEnd) p = pauseStart;
-      else if (p >= pauseEnd) p -= (pauseEnd - pauseStart);
-      return easeOutCubic(Math.min(p / 0.88, 1));
+      if (t >= e.stopTime) return 1;
+      return t / e.stopTime;
     }
 
     const DURATION = 4800;
     const startTime = performance.now();
     let lastFloorUpdate = 0;
+    const arrived = new Set();
 
     function tick(now) {
       if (spinCancel) { resolve(); return; }
@@ -718,6 +734,10 @@ async function playElevator(pool, winnerLogin, winnerName) {
       elevators.forEach(e => {
         const p = computeProgress(e, t);
         e.el.style.transform = `translateY(${p * e.targetY}px)`;
+        if (t >= e.stopTime && !arrived.has(e.login)) {
+          arrived.add(e.login);
+          if (e.isWinner) e.el.classList.add('winner');
+        }
       });
 
       if (now - lastFloorUpdate > 80) {
@@ -734,7 +754,6 @@ async function playElevator(pool, winnerLogin, winnerName) {
         elevators.forEach(e => {
           e.el.style.transform = `translateY(${e.targetY}px)`;
           e.floorNum.textContent = e.finalFloor;
-          if (e.isWinner) e.el.classList.add('winner');
         });
         setTimeout(() => { els.spinElevator.hidden = true; resolve(); }, 1800);
       }
