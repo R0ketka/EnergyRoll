@@ -62,7 +62,8 @@ const els = {
   rigWrapper: document.getElementById('rig-wrapper'), rigBtn: document.getElementById('rig-btn'), 
   rigPanel: document.getElementById('rig-panel'), rigStreamer: document.getElementById('rig-streamer'), 
   rigUser: document.getElementById('rig-user'), rigSave: document.getElementById('rig-save'),
-  streamersList: document.getElementById('streamers-list')
+  streamersList: document.getElementById('streamers-list'),
+  spinElevator: document.getElementById('spin-elevator')
 };
 
 /* =========================================================
@@ -422,7 +423,7 @@ function fillWinnerInfo(login) {
    МИНИ-ИГРЫ
    ========================================================= */
 function initMinigames() {
-  const known = ['instant', 'roulette', 'drum', 'case', 'cards', 'wheel', 'bingo', 'hotpotato', 'laser', 'zeus'];
+  const known = ['instant', 'roulette', 'drum', 'case', 'cards', 'wheel', 'bingo', 'hotpotato', 'laser', 'zeus', 'elevator'];
   let saved = localStorage.getItem('energyroll_minigame'); if (!known.includes(saved)) saved = 'instant'; state.miniGame = saved;
   const buttons = document.querySelectorAll('.minigame-item');
   buttons.forEach((btn) => {
@@ -616,6 +617,133 @@ async function playZeusLightning(pool, winnerLogin, winnerName) {
 }
 
 /* =========================================================
+   ЛИФТЫ
+   ========================================================= */
+async function playElevator(pool, winnerLogin, winnerName) {
+  els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true;
+  els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true;
+  els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true;
+  els.spinElevator.hidden = false;
+  await sleep(50);
+
+  return new Promise((resolve) => {
+    const shaftsEl = document.getElementById('elevator-shafts');
+    if (!shaftsEl) { els.spinElevator.hidden = true; resolve(); return; }
+    shaftsEl.innerHTML = '';
+
+    const FLOOR_COUNT = 14;
+    const CABIN_H = 34;
+    const shaftH = shaftsEl.clientHeight || 460;
+    const usableH = shaftH - CABIN_H - 4;
+    const FLOOR_H = Math.max(20, usableH / (FLOOR_COUNT - 1));
+
+    // Пул: победитель + до 5 других
+    let elevPool = [...new Set(pool)];
+    if (!elevPool.includes(winnerLogin)) elevPool.push(winnerLogin);
+    if (elevPool.length > 6) {
+      const others = elevPool.filter(l => l !== winnerLogin);
+      for (let i = others.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [others[i], others[j]] = [others[j], others[i]]; }
+      elevPool = [winnerLogin, ...others.slice(0, 5)];
+    }
+    for (let i = elevPool.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [elevPool[i], elevPool[j]] = [elevPool[j], elevPool[i]]; }
+
+    // Этажи для не-победителей (6..11)
+    const availableFloors = [];
+    for (let f = 6; f <= FLOOR_COUNT - 3; f++) availableFloors.push(f);
+    for (let i = availableFloors.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [availableFloors[i], availableFloors[j]] = [availableFloors[j], availableFloors[i]]; }
+
+    const elevators = [];
+    elevPool.forEach((login, idx) => {
+      const name = state.users.get(login) || login;
+      const isWinner = login === winnerLogin;
+      const finalFloor = isWinner ? FLOOR_COUNT : (availableFloors[idx] || 6);
+
+      const shaft = document.createElement('div');
+      shaft.className = 'elevator-shaft';
+
+      for (let f = 1; f < FLOOR_COUNT; f++) {
+        const line = document.createElement('div');
+        line.className = 'elevator-floor-line';
+        line.style.bottom = (f * FLOOR_H) + 'px';
+        shaft.appendChild(line);
+      }
+
+      const cabin = document.createElement('div');
+      cabin.className = 'elevator-cabin';
+
+      const floorNum = document.createElement('div');
+      floorNum.className = 'elevator-floor-num';
+      floorNum.textContent = '1';
+
+      const nameEl = document.createElement('div');
+      nameEl.className = 'elevator-name';
+      nameEl.textContent = name;
+      nameEl.title = name;
+
+      const crown = document.createElement('div');
+      crown.className = 'elevator-crown';
+      crown.textContent = '👑';
+
+      cabin.appendChild(floorNum);
+      cabin.appendChild(nameEl);
+      cabin.appendChild(crown);
+      shaft.appendChild(cabin);
+      shaftsEl.appendChild(shaft);
+
+      elevators.push({
+        el: cabin, floorNum,
+        login, name, isWinner, finalFloor,
+        targetY: -(finalFloor - 1) * FLOOR_H
+      });
+    });
+
+    function easeOutCubic(x) { return 1 - Math.pow(1 - x, 3); }
+    function computeProgress(e, t) {
+      if (e.isWinner) return easeOutCubic(Math.min(t / 0.72, 1));
+      let p = t;
+      const pauseStart = 0.35, pauseEnd = 0.47;
+      if (p > pauseStart && p < pauseEnd) p = pauseStart;
+      else if (p >= pauseEnd) p -= (pauseEnd - pauseStart);
+      return easeOutCubic(Math.min(p / 0.88, 1));
+    }
+
+    const DURATION = 4800;
+    const startTime = performance.now();
+    let lastFloorUpdate = 0;
+
+    function tick(now) {
+      if (spinCancel) { resolve(); return; }
+      const t = Math.min((now - startTime) / DURATION, 1);
+
+      elevators.forEach(e => {
+        const p = computeProgress(e, t);
+        e.el.style.transform = `translateY(${p * e.targetY}px)`;
+      });
+
+      if (now - lastFloorUpdate > 80) {
+        lastFloorUpdate = now;
+        elevators.forEach(e => {
+          const p = computeProgress(e, t);
+          const floor = Math.round(-(p * e.targetY) / FLOOR_H) + 1;
+          e.floorNum.textContent = Math.min(floor, e.finalFloor);
+        });
+      }
+
+      if (t < 1) requestAnimationFrame(tick);
+      else {
+        elevators.forEach(e => {
+          e.el.style.transform = `translateY(${e.targetY}px)`;
+          e.floorNum.textContent = e.finalFloor;
+          if (e.isWinner) e.el.classList.add('winner');
+        });
+        setTimeout(() => { els.spinElevator.hidden = true; resolve(); }, 1800);
+      }
+    }
+    requestAnimationFrame(tick);
+  });
+}
+
+/* =========================================================
    ВЫБОР ПОБЕДИТЕЛЯ И СТАРТ
    ========================================================= */
 async function pickWinner() {
@@ -678,6 +806,7 @@ async function showWinnerWithSpin(login) {
   else if (state.miniGame === 'hotpotato') { const bp = getActiveWinnerPool().filter((l) => l !== login); await playHotPotato([...new Set([...bp, login])], login, displayName); }
   else if (state.miniGame === 'laser') { const bp = getActiveWinnerPool().filter((l) => l !== login); await playLaserRange([...new Set([...bp, login])], login, displayName); }
   else if (state.miniGame === 'zeus') { const bp = getActiveWinnerPool().filter((l) => l !== login); await playZeusLightning([...new Set([...bp, login])], login, displayName); }
+  else if (state.miniGame === 'elevator') { const bp = getActiveWinnerPool().filter((l) => l !== login); await playElevator([...new Set([...bp, login])], login, displayName); }
   els.modalSpin.hidden = true;
   if (spinCancel) { els.modal.classList.remove('active'); els.modalContent.classList.remove('spinning'); state.isSpinning = false; return; }
   els.modalContent.classList.remove('spinning'); state.isSpinning = false; state.winnerSelectedAt = Date.now();
@@ -721,7 +850,7 @@ function commitCurrentWinner() {
 function closeWinnerModal() {
   if (state.isSpinning) { spinCancel = true; if (cardsCancelFn) cardsCancelFn(); state.isSpinning = false; }
   els.modal.classList.remove('active'); els.modalContent.classList.remove('spinning'); els.modalSpin.hidden = true;
-  els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true; els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true;
+  els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true; els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true; els.spinElevator.hidden = true;
   els.modalPayoutInput.value = ''; clearWinnerTimer(); state.currentWinner = null;
   if (els.modalDepInput) els.modalDepInput.value = '';
   if (els.copyWinnerBtn) { els.copyWinnerBtn.classList.remove('copied'); els.copyWinnerBtn.textContent = '📋'; }
