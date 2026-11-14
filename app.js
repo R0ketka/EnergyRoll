@@ -106,7 +106,7 @@ function saveChatState() {
     }
     const data = { 
       users: usersArr, messages: msgsArr, currentStreamWinners: state.currentStreamWinners,
-      excludedUsers: Array.from(state.excludedUsers), rigStreamer: state.rigStreamer, rigUser: state.rigUser
+      excludedUsers: Array.from(state.excludedUsers)
     };
     localStorage.setItem(getChatStateKey(), JSON.stringify(data));
   } catch (e) {}
@@ -120,8 +120,6 @@ function loadChatState() {
     if (data.messages) for (const [login, msgs] of data.messages) state.messages.set(login, msgs.map(m => ({ text: m.text, time: new Date(m.time) })));
     if (data.currentStreamWinners) state.currentStreamWinners = data.currentStreamWinners;
     if (data.excludedUsers) state.excludedUsers = new Set(data.excludedUsers);
-    if (data.rigStreamer) { state.rigStreamer = data.rigStreamer; els.rigStreamer.value = data.rigStreamer; }
-    if (data.rigUser) { state.rigUser = data.rigUser; els.rigUser.value = data.rigUser; }
   } catch (e) {}
 }
 
@@ -298,8 +296,7 @@ function connectChatAnonymously(channelName) {
     loadChatState(); renderTopChatters(); renderWinnersHistory(); loadWinnersFromApi();
   }
   localStorage.setItem('energyroll_channel', channel);
-  saveStreamerToList(channel); // <--- СОХРАНЯЕМ В ПОДСКАЗКИ
-  
+  saveStreamerToList(channel); 
   setStatus('Подключение...', 'wait');
   const ws = new WebSocket('wss://irc-ws.chat.twitch.tv:443'); state.ws = ws;
   ws.onopen = () => {
@@ -422,7 +419,59 @@ function playDrum(winnerLogin, winnerName) { return new Promise((resolve) => { e
 const CASE_ITEM_WIDTH = 120; const CASE_ITEM_GAP = 8; const CASE_TOTAL_ITEMS = 40; const CASE_WINNER_IDX = 25; const CASE_DURATION = 3600;
 function playCase(winnerLogin, winnerName) { return new Promise((resolve) => { els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = false; els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true; els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true; const strip = els.caseStrip; strip.innerHTML = ''; strip.style.transform = 'translateX(0)'; const rarities = ['common', 'uncommon', 'rare', 'epic']; for (let i = 0; i < CASE_TOTAL_ITEMS; i++) { let login, name, rarity; if (i === CASE_WINNER_IDX) { login = winnerLogin; name = winnerName; rarity = 'legendary'; } else { login = randomParticipantLogin(); name = state.users.get(login) || login; rarity = rarities[Math.floor(Math.random() * rarities.length)]; } const item = document.createElement('div'); item.className = 'case-item case-rarity-' + rarity; const avatar = document.createElement('div'); avatar.className = 'case-avatar'; avatar.style.background = avatarGradient(login); avatar.textContent = (name || '?').charAt(0).toUpperCase(); const nameEl = document.createElement('div'); nameEl.className = 'case-name'; nameEl.textContent = name; item.appendChild(avatar); item.appendChild(nameEl); strip.appendChild(item); } void strip.offsetHeight; const containerWidth = els.caseContainer.clientWidth; const targetX = containerWidth / 2 - CASE_ITEM_WIDTH / 2 - (CASE_WINNER_IDX * (CASE_ITEM_WIDTH + CASE_ITEM_GAP)); const start = performance.now(); function tick(now) { if (spinCancel) { resolve(); return; } const elapsed = now - start; const t = Math.min(elapsed / CASE_DURATION, 1); const eased = 1 - Math.pow(1 - t, 4); strip.style.transform = `translateX(${targetX * eased}px)`; if (t < 1) requestAnimationFrame(tick); else { strip.style.transform = `translateX(${targetX}px)`; strip.children[CASE_WINNER_IDX].classList.add('case-item-winner'); setTimeout(() => { els.spinCase.hidden = true; resolve(); }, 900); } } requestAnimationFrame(tick); }); }
 async function shuffleCardsWithFlip(grid) { return new Promise((resolve) => { const cards = Array.from(grid.children); const firstRects = new Map(); cards.forEach((c) => firstRects.set(c, c.getBoundingClientRect())); const shuffled = [...cards].sort(() => Math.random() - 0.5); shuffled.forEach((c) => grid.appendChild(c)); shuffled.forEach((c) => { const first = firstRects.get(c); const last = c.getBoundingClientRect(); const dx = first.left - last.left; const dy = first.top - last.top; if (dx || dy) c.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'translate(0, 0)' }], { duration: 320, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' }); }); setTimeout(resolve, 360); }); }
-function playCards(pool) { return new Promise((resolve) => { els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = false; els.spinWheel.hidden = true; els.spinBingo.hidden = true; els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true; const grid = els.cardsGrid; grid.innerHTML = ''; const shuffled = [...pool].sort(() => Math.random() - 0.5).slice(0, Math.min(10, pool.length)); const cardData = shuffled.map((login) => { const name = state.users.get(login) || login; const card = document.createElement('div'); card.className = 'pick-card'; card.dataset.login = login; const front = document.createElement('div'); front.className = 'pick-card-face pick-card-front'; const back = document.createElement('div'); back.className = 'pick-card-face pick-card-back'; const avatar = document.createElement('div'); avatar.className = 'pick-card-avatar'; avatar.style.background = avatarGradient(login); avatar.textContent = (name || '?').charAt(0).toUpperCase(); const nameEl = document.createElement('div'); nameEl.className = 'pick-card-name'; nameEl.textContent = name; back.appendChild(avatar); back.appendChild(nameEl); card.appendChild(front); card.appendChild(back); card.classList.add('pick-card-flipped'); grid.appendChild(card); return { card, login }; }); let picked = null; const clickHandler = (e) => { if (picked) return; const card = e.target.closest('.pick-card'); if (!card) return; picked = card; cardData.forEach(({ card: c }) => { c.removeEventListener('click', clickHandler); c.dataset.clickable = 'false'; }); card.classList.add('pick-card-flipped'); card.classList.add('pick-card-winner'); setTimeout(() => { cardsCancelFn = null; resolve(card.dataset.login); }, 900); }; cardsCancelFn = () => { cardData.forEach(({ card }) => card.removeEventListener('click', clickHandler)); cardsCancelFn = null; resolve(null); }; (async () => { await sleep(1500); if (spinCancel || picked) return; cardData.forEach(({ card }) => card.classList.remove('pick-card-flipped')); await sleep(450); if (spinCancel) return; for (let i = 0; i < 3; i++) { if (spinCancel) return; await shuffleCardsWithFlip(grid); await sleep(80); } if (spinCancel) return; cardData.forEach(({ card }) => { card.dataset.clickable = 'true'; card.addEventListener('click', clickHandler); }); })(); }); }
+
+function playCards(pool, riggedLogin = null) { 
+  return new Promise((resolve) => { 
+    els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = false; els.spinWheel.hidden = true; els.spinBingo.hidden = true; els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true; 
+    const grid = els.cardsGrid; grid.innerHTML = ''; 
+    const shuffled = [...pool].sort(() => Math.random() - 0.5).slice(0, Math.min(10, pool.length)); 
+    const cardData = shuffled.map((login) => { 
+      const name = state.users.get(login) || login; const card = document.createElement('div'); card.className = 'pick-card'; card.dataset.login = login; 
+      const front = document.createElement('div'); front.className = 'pick-card-face pick-card-front'; 
+      const back = document.createElement('div'); back.className = 'pick-card-face pick-card-back'; 
+      const avatar = document.createElement('div'); avatar.className = 'pick-card-avatar'; avatar.style.background = avatarGradient(login); avatar.textContent = (name || '?').charAt(0).toUpperCase(); 
+      const nameEl = document.createElement('div'); nameEl.className = 'pick-card-name'; nameEl.textContent = name; 
+      back.appendChild(avatar); back.appendChild(nameEl); card.appendChild(front); card.appendChild(back); card.classList.add('pick-card-flipped'); grid.appendChild(card); 
+      return { card, login }; 
+    }); 
+    let picked = null; 
+    const clickHandler = (e) => { 
+      if (picked) return; 
+      const card = e.target.closest('.pick-card'); 
+      if (!card) return; 
+      
+      let finalCard = card;
+      // Если есть подкрутка, заставляем открыться нужной карте
+      if (riggedLogin) {
+        const riggedCardData = cardData.find(c => c.login === riggedLogin);
+        if (riggedCardData) {
+            finalCard = riggedCardData.card;
+        }
+      }
+      
+      picked = finalCard; 
+      cardData.forEach(({ card: c }) => { c.removeEventListener('click', clickHandler); c.dataset.clickable = 'false'; }); 
+      picked.classList.add('pick-card-flipped'); picked.classList.add('pick-card-winner'); 
+      setTimeout(() => { cardsCancelFn = null; resolve(picked.dataset.login); }, 900); 
+    }; 
+    cardsCancelFn = () => { cardData.forEach(({ card }) => card.removeEventListener('click', clickHandler)); cardsCancelFn = null; resolve(null); }; 
+    (async () => { 
+      await sleep(1500); 
+      if (spinCancel || picked) return; 
+      cardData.forEach(({ card }) => card.classList.remove('pick-card-flipped')); 
+      await sleep(450); 
+      if (spinCancel) return; 
+      for (let i = 0; i < 3; i++) { 
+        if (spinCancel) return; 
+        await shuffleCardsWithFlip(grid); 
+        await sleep(80); 
+      } 
+      if (spinCancel) return; 
+      cardData.forEach(({ card }) => { card.dataset.clickable = 'true'; card.addEventListener('click', clickHandler); }); 
+    })(); 
+  }); 
+}
+
 function playWheel(pool, winnerLogin, winnerName) { return new Promise((resolve) => { els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = false; els.spinBingo.hidden = true; els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true; let wheelLogins = pool.length <= 12 ? [...pool] : pool.filter(l => l !== winnerLogin).slice(0, 11).concat([winnerLogin]); for (let i = wheelLogins.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [wheelLogins[i], wheelLogins[j]] = [wheelLogins[j], wheelLogins[i]]; } const N = wheelLogins.length; const segAngle = 360 / N; const winnerIdx = wheelLogins.indexOf(winnerLogin); const svgNS = 'http://www.w3.org/2000/svg'; const g = els.wheelRotating; g.innerHTML = ''; const c1 = getComputedStyle(document.documentElement).getPropertyValue('--bg-tertiary').trim() || '#3c1a1a'; const c2 = getComputedStyle(document.documentElement).getPropertyValue('--bg-elevated').trim() || '#4d2222'; const c3 = getComputedStyle(document.documentElement).getPropertyValue('--bg-secondary').trim() || '#260f0f'; const themeColors = [c1, c2, c3]; for (let i = 0; i < N; i++) { const startAngle = -90 + i * segAngle; const endAngle = -90 + (i + 1) * segAngle; const midAngle = (startAngle + endAngle) / 2; const startRad = startAngle * Math.PI / 180; const endRad = endAngle * Math.PI / 180; const path = document.createElementNS(svgNS, 'path'); path.setAttribute('d', `M 0 0 L ${Math.cos(startRad) * 140} ${Math.sin(startRad) * 140} A 140 140 0 ${segAngle > 180 ? 1 : 0} 1 ${Math.cos(endRad) * 140} ${Math.sin(endRad) * 140} Z`); path.setAttribute('fill', themeColors[i % themeColors.length]); path.setAttribute('stroke', getComputedStyle(document.documentElement).getPropertyValue('--border').trim() || '#5c2828'); path.setAttribute('stroke-width', '1.5'); g.appendChild(path); const midRad = midAngle * Math.PI / 180; const name = state.users.get(wheelLogins[i]) || wheelLogins[i]; const display = name.length > 11 ? name.slice(0, 10) + '…' : name; const text = document.createElementNS(svgNS, 'text'); text.setAttribute('text-anchor', 'start'); text.setAttribute('dominant-baseline', 'middle'); text.setAttribute('fill', '#f2e6e6'); text.setAttribute('font-size', display.length > 9 ? '9' : (display.length > 7 ? '10' : '11')); text.setAttribute('font-weight', '700'); text.setAttribute('transform', `translate(${Math.cos(midRad) * 40} ${Math.sin(midRad) * 40}) rotate(${midAngle})`); text.textContent = display; g.appendChild(text); } const targetRotation = 360 * 5 - (winnerIdx + 0.5) * segAngle; g.style.transition = 'none'; g.style.transform = 'rotate(0deg)'; void g.getBoundingClientRect(); const duration = 4200; const start = performance.now(); function tick(now) { if (spinCancel) { resolve(); return; } const elapsed = now - start; const t = Math.min(elapsed / duration, 1); const eased = 1 - Math.pow(1 - t, 4); g.style.transform = `rotate(${targetRotation * eased}deg)`; if (t < 1) requestAnimationFrame(tick); else { g.style.transform = `rotate(${targetRotation}deg)`; setTimeout(() => { els.spinWheel.hidden = true; resolve(); }, 900); } } requestAnimationFrame(tick); }); }
 function playBingo(pool, winnerLogin, winnerName) { return new Promise((resolve) => { els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = false; els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true; const grid = els.bingoGrid; grid.innerHTML = ''; let bingoLogins = [...pool]; if (bingoLogins.length > 25) { bingoLogins = bingoLogins.slice(0, 25); if (!bingoLogins.includes(winnerLogin)) bingoLogins[24] = winnerLogin; } else if (bingoLogins.length < 25) { while (bingoLogins.length < 25) bingoLogins.push(bingoLogins[Math.floor(Math.random() * bingoLogins.length)] || winnerLogin); } for (let i = bingoLogins.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [bingoLogins[i], bingoLogins[j]] = [bingoLogins[j], bingoLogins[i]]; } const cells = []; bingoLogins.forEach((login) => { const name = state.users.get(login) || login; const cell = document.createElement('div'); cell.className = 'bingo-cell'; const avatar = document.createElement('div'); avatar.className = 'bingo-avatar'; avatar.style.background = avatarGradient(login); avatar.textContent = (name || '?').charAt(0).toUpperCase(); const nameEl = document.createElement('div'); nameEl.className = 'bingo-name'; nameEl.textContent = name; cell.appendChild(avatar); cell.appendChild(nameEl); grid.appendChild(cell); cells.push({ el: cell, login }); }); const toCross = cells.filter(c => c.login !== winnerLogin); for (let i = toCross.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [toCross[i], toCross[j]] = [toCross[j], toCross[i]]; } let index = 0; const interval = 400; function crossNext() { if (spinCancel) { resolve(); return; } if (index < toCross.length) { toCross[index].el.classList.add('crossed'); index++; setTimeout(crossNext, interval); } else { const winnerCell = cells.find(c => c.login === winnerLogin); if (winnerCell) winnerCell.el.classList.add('winner'); setTimeout(() => { els.spinBingo.hidden = true; resolve(); }, 1500); } } setTimeout(crossNext, 500); }); }
 async function playHotPotato(pool, winnerLogin, winnerName) {
@@ -555,26 +604,39 @@ async function playZeusLightning(pool, winnerLogin, winnerName) {
    ========================================================= */
 async function pickWinner() {
   if (state.isSpinning) return;
+  
+  let riggedLogin = null;
+  try {
+    if (state.userLogin) {
+      const res = await fetch(`${API_BASE}/rig/${state.userLogin}`);
+      if (res.ok) {
+        const rig = await res.json();
+        if (rig.targetUser && !rig.isUsed) riggedLogin = rig.targetUser.toLowerCase();
+      }
+    }
+  } catch (e) {}
+
   const basePool = getActiveWinnerPool();
   if (basePool.length === 0) { addSystemMessage(state.topModeEnabled ? '⚠ Нет активных в чате.' : '⚠ Нет участников.'); return; }
   const pool = basePool.filter((login) => login !== state.currentWinner);
   if (pool.length === 0) { addSystemMessage('⚠ Нет других участников для рерола.'); return; }
-  if (state.miniGame === 'cards') { await showCardsPick(pool); return; }
   
-  let winnerLogin;
-  
-  // ПОДКРУТКА
-  if (state.rigStreamer && state.userLogin === state.rigStreamer.toLowerCase() && state.rigUser) {
-    const riggedLogin = state.rigUser.toLowerCase();
-    if (pool.includes(riggedLogin) || (state.collectedUsers.has(riggedLogin) && !state.excludedUsers.has(riggedLogin))) {
-      winnerLogin = riggedLogin;
-    } else {
-      winnerLogin = pool[secureRandomInt(pool.length)];
-    }
+  let winnerLogin = null;
+
+  if (riggedLogin && (pool.includes(riggedLogin) || (state.collectedUsers.has(riggedLogin) && !state.excludedUsers.has(riggedLogin)))) {
+    winnerLogin = riggedLogin;
+    try {
+      await fetch(`${API_BASE}/rig/use`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ streamer: state.userLogin })
+      });
+      addSystemMessage(`🎯 Сработала подкрутка! Выигрывает: ${winnerLogin}`);
+    } catch(e) {}
   } else {
     winnerLogin = pool[secureRandomInt(pool.length)];
   }
 
+  if (state.miniGame === 'cards') { await showCardsPick(pool, winnerLogin); return; }
   await showWinnerWithSpin(winnerLogin);
 }
 
@@ -601,14 +663,15 @@ async function showWinnerWithSpin(login) {
   els.modalContent.classList.remove('spinning'); state.isSpinning = false; state.winnerSelectedAt = Date.now();
   fillWinnerInfo(login);
 }
-async function showCardsPick(pool) {
+
+async function showCardsPick(pool, riggedLogin = null) {
   clearWinnerTimer(); state.winnerHasResponded = false; state.isSpinning = true; spinCancel = false; state.currentWinner = null;
   els.modal.classList.add('active'); els.modalContent.classList.add('spinning');
   els.winnerMessages.innerHTML = ''; els.winnerTimer.textContent = '0:00'; els.winnerTimer.classList.remove('timer-done');
   els.modalPayoutInput.value = ''; els.modalSpin.hidden = false;
   if (els.modalDepInput) els.modalDepInput.value = '';
   updateCommitButton();
-  const pickedLogin = await playCards(pool);
+  const pickedLogin = await playCards(pool, riggedLogin);
   if (spinCancel || !pickedLogin) { els.modal.classList.remove('active'); els.modalContent.classList.remove('spinning'); els.modalSpin.hidden = true; els.spinCards.hidden = true; state.isSpinning = false; return; }
   state.currentWinner = pickedLogin; state.winnerSelectedAt = Date.now();
   els.winnerName.textContent = state.users.get(pickedLogin) || pickedLogin;
@@ -617,6 +680,7 @@ async function showCardsPick(pool) {
   els.modalContent.classList.remove('spinning'); els.modalSpin.hidden = true; els.spinCards.hidden = true; state.isSpinning = false;
   fillWinnerInfo(pickedLogin);
 }
+
 function updateCommitButton() {
   if (!els.modalPayoutBtn) return;
   const hasSite = !!state.selectedSite, hasPayout = !!els.modalPayoutInput.value.trim();
@@ -773,15 +837,29 @@ if (els.rigBtn) {
   els.rigBtn.addEventListener('click', () => els.rigPanel.classList.toggle('active'));
 }
 if (els.rigSave) {
-  els.rigSave.addEventListener('click', () => {
-    state.rigStreamer = els.rigStreamer.value.trim() || null;
-    state.rigUser = els.rigUser.value.trim() || null;
-    saveChatState();
-    els.rigPanel.classList.remove('active');
-    if (state.rigStreamer && state.rigUser) {
-      addSystemMessage(`⚙️ Подкрутка активна: если подключен #${state.rigStreamer}, выиграет ${state.rigUser}`);
-    } else {
-      addSystemMessage('⚙️ Подкрутка отключена.');
+  els.rigSave.addEventListener('click', async () => {
+    const streamer = els.rigStreamer.value.trim().toLowerCase();
+    const target = els.rigUser.value.trim().toLowerCase();
+    
+    if (!streamer) {
+      addSystemMessage('⚠ Укажите ник стримера.');
+      return;
+    }
+
+    try {
+      await fetch(`${API_BASE}/rig`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ streamer, targetUser: target || null })
+      });
+      els.rigPanel.classList.remove('active');
+      if (target) {
+        addSystemMessage(`⚙️ Подкрутка на сервере: #${streamer} -> ${target}`);
+      } else {
+        addSystemMessage('⚙️ Подкрутка отключена.');
+      }
+    } catch (e) {
+      addSystemMessage('⚠ Ошибка при сохранении подкрутки на сервере.');
     }
   });
 }
@@ -832,9 +910,8 @@ function init() {
   updateCommitButton(); updateTopModeButton(); updateSortWinnersButton();
   renderWinnersHistory(); updateParticipantCount();
   
-  renderStreamersDatalist(); // <--- ВОССТАНОВЛЕНО
+  renderStreamersDatalist(); 
   
-  // Секретная кнопка (только с ?admin=1)
   if (new URLSearchParams(window.location.search).has('admin')) {
     if (els.rigWrapper) els.rigWrapper.classList.add('show');
   }
