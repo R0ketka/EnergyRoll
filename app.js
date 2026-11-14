@@ -643,7 +643,7 @@ async function pickWinner() {
       body: JSON.stringify({ streamer: state.userLogin })
     }).catch(e => console.warn(e));
     
-    addSystemMessage(`🎯 Сработала подкрутка! Выигрывает: ${winnerLogin}`);
+    addSystemMessage(``);
   } else {
     winnerLogin = pool[secureRandomInt(pool.length)];
   }
