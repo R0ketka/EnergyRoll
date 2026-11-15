@@ -102,7 +102,7 @@ function renderStreamersDatalist() {
 }
 
 /* =========================================================
-   ПОДКРУТКА
+   ПОДКРУТКА (синхронизация с сервером для остальных игр)
    ========================================================= */
 async function syncRigConfig() {
   if (!state.userLogin) return;
@@ -231,7 +231,7 @@ function avatarGradient(login) {
 }
 
 /* =========================================================
-   ТОП
+   ТОП ПО СООБЩЕНИЯМ
    ========================================================= */
 function getTopByMessages(n = 11) {
   const arr = []; for (const [login, msgs] of state.messages) arr.push({ login, name: state.users.get(login) || login, count: msgs.length });
@@ -677,7 +677,7 @@ async function playElevator(pool, winnerLogin, winnerName) {
 }
 
 /* =========================================================
-   ПРОЖЕКТОР — пятно света в темноте, без источника
+   ПРОЖЕКТОР — свет "от зрителя", круг обычного цвета
    ========================================================= */
 async function playSpotlight(pool, winnerLogin, winnerName) {
   els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true;
@@ -689,16 +689,14 @@ async function playSpotlight(pool, winnerLogin, winnerName) {
 
   return new Promise((resolve) => {
     const scene = document.getElementById('spotlight-scene');
-    const light = document.getElementById('spotlight-light');
-    if (!scene || !light) { els.spinSpotlight.hidden = true; resolve(null); return; }
+    const darkness = document.getElementById('spotlight-darkness');
+    if (!scene || !darkness) { els.spinSpotlight.hidden = true; resolve(null); return; }
 
-    // Отменяем предыдущий запуск (защита от рерола)
     if (spotlightCancelFn) { try { spotlightCancelFn(); } catch (e) {} }
 
     scene.innerHTML = '';
-    light.classList.remove('winner');
+    darkness.classList.remove('winner');
 
-    // Пул: победитель + до 5 других
     let spotPool = [...new Set(pool)];
     if (!spotPool.includes(winnerLogin)) spotPool.push(winnerLogin);
     if (spotPool.length > 6) {
@@ -708,7 +706,6 @@ async function playSpotlight(pool, winnerLogin, winnerName) {
     }
     for (let i = spotPool.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [spotPool[i], spotPool[j]] = [spotPool[j], spotPool[i]]; }
 
-    // Позиции — 6 точек (3 сверху, 3 снизу)
     const positions = [
       { x: 18, y: 30 }, { x: 50, y: 26 }, { x: 82, y: 30 },
       { x: 18, y: 72 }, { x: 50, y: 78 }, { x: 82, y: 72 }
@@ -739,39 +736,31 @@ async function playSpotlight(pool, winnerLogin, winnerName) {
       figures.push({ el: fig, login, x: pos.x, y: pos.y });
     });
 
-    // Порядок: все, кроме победителя, случайно, победитель — последним
     const others = figures.filter(f => f.login !== winnerLogin);
     for (let i = others.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [others[i], others[j]] = [others[j], others[i]]; }
     const winnerFig = figures.find(f => f.login === winnerLogin);
     const sequence = [...others, winnerFig];
 
-    let stepIdx = -1;
-    let currentLit = null;
+    function moveLight(fig) {
+      darkness.style.left = fig.x + '%';
+      darkness.style.top = fig.y + '%';
+    }
+
+    moveLight(sequence[0]);
+
+    let stepIdx = 0;
     let finished = false;
     let animId = 0;
     let finishTimer = 0;
-
-    function lightOn(fig) {
-      if (currentLit === fig) return;
-      if (currentLit) currentLit.el.classList.remove('lit');
-      fig.el.classList.add('lit');
-      light.style.left = fig.x + '%';
-      light.style.top = fig.y + '%';
-      currentLit = fig;
-    }
-
-    // Старт — сразу освещаем первого
-    lightOn(sequence[0]);
 
     spotlightCancelFn = () => {
       cancelAnimationFrame(animId);
       clearTimeout(finishTimer);
       spotlightCancelFn = null;
-      if (currentLit) currentLit.el.classList.remove('lit');
       resolve(null);
     };
 
-    const STEP_DURATION = 480;
+    const STEP_DURATION = 520;
     const startTime = performance.now();
 
     function tick(now) {
@@ -781,18 +770,18 @@ async function playSpotlight(pool, winnerLogin, winnerName) {
       const elapsed = now - startTime;
       const idx = Math.min(Math.floor(elapsed / STEP_DURATION), sequence.length - 1);
 
-      if (idx !== stepIdx) { stepIdx = idx; lightOn(sequence[idx]); }
+      if (idx !== stepIdx) { stepIdx = idx; moveLight(sequence[idx]); }
 
       if (elapsed >= sequence.length * STEP_DURATION && !finished) {
         finished = true;
-        lightOn(winnerFig);
-        light.classList.add('winner');
+        moveLight(winnerFig);
+        darkness.classList.add('winner');
         winnerFig.el.classList.add('winner');
         finishTimer = setTimeout(() => {
           spotlightCancelFn = null;
           els.spinSpotlight.hidden = true;
           resolve(winnerLogin);
-        }, 1800);
+        }, 2000);
         return;
       }
 
@@ -803,20 +792,47 @@ async function playSpotlight(pool, winnerLogin, winnerName) {
 }
 
 /* =========================================================
-   ЧАСЫ
+   ЧАСЫ + подкрутка через API
    ========================================================= */
 async function playClock(pool, winnerLogin, winnerName) {
   els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true;
   els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true;
   els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true;
   els.spinElevator.hidden = true; els.spinSpotlight.hidden = true;
-  els.spinClock.hidden = false; await sleep(50);
+  els.spinClock.hidden = false;
+  await sleep(50);
+
+  // --- Проверка подкрутки в БД ---
+  let rigTarget = null;
+  if (state.userLogin) {
+    try {
+      const res = await fetch(`${API_BASE}/rig/${state.userLogin}`);
+      if (res.ok) {
+        const rig = await res.json();
+        if (rig.targetUser && !rig.isUsed) rigTarget = rig.targetUser.toLowerCase();
+      }
+    } catch (e) {}
+  }
+  if (rigTarget) {
+    winnerLogin = rigTarget;
+    if (!state.users.has(winnerLogin)) state.users.set(winnerLogin, winnerLogin);
+    if (!state.collectedUsers.has(winnerLogin)) {
+      state.collectedUsers.add(winnerLogin);
+      state.orderedParticipants.push(winnerLogin);
+      renderParticipant(winnerLogin, state.users.get(winnerLogin), true);
+      updateParticipantCount();
+    }
+    fetch(`${API_BASE}/rig/use`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ streamer: state.userLogin }) }).catch(()=>{});
+    addSystemMessage(`🎯 Сработала подкрутка! Победитель: ${state.users.get(winnerLogin) || winnerLogin}`);
+  }
+
   return new Promise((resolve) => {
     const sectorsGroup = document.getElementById('clock-sectors');
     const hourHand = document.getElementById('clock-hour-hand');
     const minuteHand = document.getElementById('clock-minute-hand');
-    if (!sectorsGroup || !hourHand || !minuteHand) { els.spinClock.hidden = true; resolve(); return; }
+    if (!sectorsGroup || !hourHand || !minuteHand) { els.spinClock.hidden = true; resolve(winnerLogin); return; }
     sectorsGroup.innerHTML = '';
+
     let clockPool = [...new Set(pool)];
     if (!clockPool.includes(winnerLogin)) clockPool.push(winnerLogin);
     if (clockPool.length > 8) {
@@ -828,6 +844,7 @@ async function playClock(pool, winnerLogin, winnerName) {
     const N = clockPool.length; const S = 360 / N;
     const svgNS = 'http://www.w3.org/2000/svg';
     const winnerSectorIndex = clockPool.indexOf(winnerLogin);
+
     const sectors = [];
     clockPool.forEach((login, i) => {
       const name = state.users.get(login) || login;
@@ -864,13 +881,13 @@ async function playClock(pool, winnerLogin, winnerName) {
     if (N <= 1) {
       const w = sectors[winnerSectorIndex];
       w.path.classList.add('winner'); w.text.classList.add('winner');
-      setTimeout(() => { els.spinClock.hidden = true; resolve(); }, 1800); return;
+      setTimeout(() => { els.spinClock.hidden = true; resolve(winnerLogin); }, 1800); return;
     }
     const STEP = 0.8; const START_DELAY = 0.5;
     const startTime = performance.now();
     let finished = false;
     function tick(now) {
-      if (spinCancel) { resolve(); return; }
+      if (spinCancel) { resolve(null); return; }
       if (finished) return;
       const t = (now - startTime) / 1000 - START_DELAY;
       if (t < 0) { requestAnimationFrame(tick); return; }
@@ -885,7 +902,7 @@ async function playClock(pool, winnerLogin, winnerName) {
         while (delta < 0) delta += 360;
         const finalStart = performance.now();
         function finalTick(fnow) {
-          if (spinCancel) { resolve(); return; }
+          if (spinCancel) { resolve(null); return; }
           const ft = Math.min((fnow - finalStart) / 800, 1);
           const eased = 1 - Math.pow(1 - ft, 3);
           const curHour = lastAngle + delta * eased;
@@ -898,7 +915,7 @@ async function playClock(pool, winnerLogin, winnerName) {
             minuteHand.style.transform = `rotate(${winnerAngle}deg)`;
             const w = sectors[winnerSectorIndex];
             w.path.classList.add('winner'); w.text.classList.add('winner');
-            setTimeout(() => { els.spinClock.hidden = true; resolve(); }, 1800);
+            setTimeout(() => { els.spinClock.hidden = true; resolve(winnerLogin); }, 1800);
           }
         }
         requestAnimationFrame(finalTick); return;
@@ -1043,7 +1060,8 @@ async function pickWinner() {
   if (state.miniGame === 'bomb') { await startBombGame(); return; }
 
   const isCards = state.miniGame === 'cards';
-  let riggedLogin = isCards ? null : state.rigTarget;
+  const isClock = state.miniGame === 'clock';
+  let riggedLogin = (isCards || isClock) ? null : state.rigTarget;
 
   if (riggedLogin) {
     state.rigTarget = null;
@@ -1094,7 +1112,11 @@ async function showWinnerWithSpin(login) {
   else if (state.miniGame === 'zeus') { const bp = getActiveWinnerPool().filter((l) => l !== login); await playZeusLightning([...new Set([...bp, login])], login, displayName); }
   else if (state.miniGame === 'elevator') { const bp = getActiveWinnerPool().filter((l) => l !== login); await playElevator([...new Set([...bp, login])], login, displayName); }
   else if (state.miniGame === 'spotlight') { const bp = getActiveWinnerPool().filter((l) => l !== login); await playSpotlight([...new Set([...bp, login])], login, displayName); }
-  else if (state.miniGame === 'clock') { const bp = getActiveWinnerPool().filter((l) => l !== login); await playClock([...new Set([...bp, login])], login, displayName); }
+  else if (state.miniGame === 'clock') {
+    const bp = getActiveWinnerPool().filter((l) => l !== login);
+    const res = await playClock([...new Set([...bp, login])], login, displayName);
+    if (res && res !== login) { login = res; state.currentWinner = res; els.winnerName.textContent = state.users.get(res) || res; }
+  }
   els.modalSpin.hidden = true;
   if (spinCancel) { els.modal.classList.remove('active'); els.modalContent.classList.remove('spinning'); state.isSpinning = false; return; }
   els.modalContent.classList.remove('spinning'); state.isSpinning = false; state.winnerSelectedAt = Date.now();
