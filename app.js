@@ -677,9 +677,15 @@ async function playElevator(pool, winnerLogin, winnerName) {
 }
 
 /* =========================================================
-   ПРОЖЕКТОР — 9 игроков (добивка из state.users), свет из глаз
+   ПРОЖЕКТОР 
    ========================================================= */
+let spotlightGameToken = 0;
+
 async function playSpotlight(pool, winnerLogin, winnerName) {
+  if (spotlightCancelFn) { try { spotlightCancelFn(); } catch (e) {} }
+
+  const myToken = ++spotlightGameToken;
+
   els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true;
   els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true;
   els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true;
@@ -692,19 +698,16 @@ async function playSpotlight(pool, winnerLogin, winnerName) {
     const darkness = document.getElementById('spotlight-darkness');
     if (!scene || !darkness) { els.spinSpotlight.hidden = true; resolve(null); return; }
 
-    // Отменяем старую анимацию, если она ещё висит
-    if (spotlightCancelFn) { try { spotlightCancelFn(); } catch (e) {} }
-
     scene.innerHTML = '';
     darkness.classList.remove('winner');
     darkness.style.left = '50%';
     darkness.style.top = '50%';
 
-    // --- Пул ---
+    
     let spotPool = [...new Set(pool)];
     if (!spotPool.includes(winnerLogin)) spotPool.push(winnerLogin);
 
-    // Добить до 9 из state.users (кто писал в чат, но не в pool)
+    
     if (spotPool.length < 9) {
       const candidates = [];
       for (const [login] of state.users.entries()) {
@@ -714,12 +717,10 @@ async function playSpotlight(pool, winnerLogin, winnerName) {
         const j = secureRandomInt(i + 1);
         [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
       }
-      while (spotPool.length < 9 && candidates.length > 0) {
-        spotPool.push(candidates.pop());
-      }
+      while (spotPool.length < 9 && candidates.length > 0) spotPool.push(candidates.pop());
     }
 
-    // Обрезка до 9 с гарантией победителя
+    
     if (spotPool.length > 9) {
       const others = spotPool.filter(l => l !== winnerLogin);
       for (let i = others.length - 1; i > 0; i--) {
@@ -729,7 +730,6 @@ async function playSpotlight(pool, winnerLogin, winnerName) {
       spotPool = [winnerLogin, ...others.slice(0, 8)];
     }
 
-    // Перемешивание
     for (let i = spotPool.length - 1; i > 0; i--) {
       const j = secureRandomInt(i + 1);
       [spotPool[i], spotPool[j]] = [spotPool[j], spotPool[i]];
@@ -772,14 +772,23 @@ async function playSpotlight(pool, winnerLogin, winnerName) {
       [others[i], others[j]] = [others[j], others[i]];
     }
     const winnerFig = figures.find(f => f.login === winnerLogin);
-    const sequence = [...others, winnerFig];
+    const baseSequence = [...others, winnerFig];
+
+    
+    const MIN_STEPS = 14;
+    const extendedSequence = [];
+    for (let i = 0; i < MIN_STEPS; i++) {
+      extendedSequence.push(baseSequence[i % baseSequence.length]);
+    }
+    
+    extendedSequence[extendedSequence.length - 1] = winnerFig;
 
     function moveLight(fig) {
       darkness.style.left = fig.x + '%';
       darkness.style.top = fig.y + '%';
     }
 
-    moveLight(sequence[0]);
+    moveLight(extendedSequence[0]);
 
     let stepIdx = 0;
     let finished = false;
@@ -787,30 +796,36 @@ async function playSpotlight(pool, winnerLogin, winnerName) {
     let finishTimer = 0;
 
     spotlightCancelFn = () => {
+      if (myToken !== spotlightGameToken) return; 
       cancelAnimationFrame(animId);
       clearTimeout(finishTimer);
       spotlightCancelFn = null;
       resolve(null);
     };
 
-    const STEP_DURATION = 480;
+    const STEP_DURATION = 380;
     const startTime = performance.now();
 
     function tick(now) {
+      if (myToken !== spotlightGameToken) return; 
       if (spinCancel) { if (spotlightCancelFn) spotlightCancelFn(); return; }
       if (finished) return;
 
       const elapsed = now - startTime;
-      const idx = Math.min(Math.floor(elapsed / STEP_DURATION), sequence.length - 1);
+      const idx = Math.min(Math.floor(elapsed / STEP_DURATION), extendedSequence.length - 1);
 
-      if (idx !== stepIdx) { stepIdx = idx; moveLight(sequence[idx]); }
+      if (idx !== stepIdx) {
+        stepIdx = idx;
+        moveLight(extendedSequence[idx]);
+      }
 
-      if (elapsed >= sequence.length * STEP_DURATION && !finished) {
+      if (elapsed >= extendedSequence.length * STEP_DURATION && !finished) {
         finished = true;
         moveLight(winnerFig);
         darkness.classList.add('winner');
         winnerFig.el.classList.add('winner');
         finishTimer = setTimeout(() => {
+          if (myToken !== spotlightGameToken) return;
           spotlightCancelFn = null;
           els.spinSpotlight.hidden = true;
           resolve(winnerLogin);
