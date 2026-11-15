@@ -280,39 +280,10 @@
           </div>
         </div>
 
-        <!-- ПРОЖЕКТОР — SVG-конус вместо вспышки -->
-        <div class="spin-view" id="spin-spotlight" hidden>
+                <div class="spin-view" id="spin-spotlight" hidden>
           <div class="spotlight-container" id="spotlight-container">
             <div class="spotlight-scene" id="spotlight-scene"></div>
-            <svg class="spotlight-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="sl-grad" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stop-color="rgba(255, 245, 210, 0.55)"/>
-                  <stop offset="50%" stop-color="rgba(255, 245, 210, 0.18)"/>
-                  <stop offset="100%" stop-color="rgba(255, 245, 210, 0.06)"/>
-                </linearGradient>
-                <linearGradient id="sl-grad-win" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stop-color="rgba(255, 240, 180, 0.75)"/>
-                  <stop offset="50%" stop-color="rgba(255, 220, 130, 0.28)"/>
-                  <stop offset="100%" stop-color="rgba(255, 200, 100, 0.10)"/>
-                </linearGradient>
-                <radialGradient id="sl-pool-grad" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stop-color="rgba(255, 245, 210, 0.55)"/>
-                  <stop offset="60%" stop-color="rgba(255, 230, 170, 0.20)"/>
-                  <stop offset="100%" stop-color="rgba(255, 220, 150, 0)"/>
-                </radialGradient>
-                <radialGradient id="sl-source-glow" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stop-color="rgba(255, 250, 230, 0.95)"/>
-                  <stop offset="40%" stop-color="rgba(255, 240, 200, 0.5)"/>
-                  <stop offset="100%" stop-color="rgba(255, 230, 180, 0)"/>
-                </radialGradient>
-              </defs>
-              <polygon id="spotlight-cone" points="50,0 40,100 60,100" fill="url(#sl-grad)"/>
-              <ellipse id="spotlight-pool" cx="50" cy="100" rx="12" ry="4" fill="url(#sl-pool-grad)"/>
-              <circle id="spotlight-source-glow" cx="50" cy="0" r="7" fill="url(#sl-source-glow)"/>
-              <circle id="spotlight-source" cx="50" cy="0" r="2" fill="rgba(255,250,225,0.95)"/>
-            </svg>
-            <div class="spotlight-dim" id="spotlight-dim"></div>
+            <div class="spotlight-light" id="spotlight-light"></div>
           </div>
         </div>
 

@@ -10,12 +10,7 @@ const state = {
   winnerSelectedAt: null, winnerHasResponded: false, timerInterval: null, isSpinning: false,
   selectedSite: null, editWinnersMode: false, sortMode: 'time',
   rigTarget: null,
-  bombActive: false,
-  bombCode: null,
-  bombRevealed: null,
-  bombParticipants: null,
-  bombResolve: null,
-  bombWinLogin: null
+  bombActive: false, bombCode: null, bombRevealed: null, bombParticipants: null, bombResolve: null, bombWinLogin: null
 };
 
 const SITES = [
@@ -28,7 +23,7 @@ const SITE_ICONS = {
   downgrader: 'downgrader.jpg', cshappy: 'cshappy.jpg'
 };
 
-let spinCancel = false, cardsCancelFn = null, bombCancelFn = null, topChattersScheduled = false;
+let spinCancel = false, cardsCancelFn = null, bombCancelFn = null, spotlightCancelFn = null, topChattersScheduled = false;
 let reconnectAttempts = 0, chatSaveTimeout = null;
 
 const topElements = new Map(), avatarCache = new Map();
@@ -84,17 +79,12 @@ const els = {
 };
 
 /* =========================================================
-   ПОДСКАЗКИ СТРИМЕРОВ (Datalist)
+   ПОДСКАЗКИ СТРИМЕРОВ
    ========================================================= */
 const STREAMERS_KEY = 'energyroll_saved_streamers';
-
 function loadSavedStreamers() {
-  try {
-    const raw = localStorage.getItem(STREAMERS_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch (e) { return []; }
+  try { const raw = localStorage.getItem(STREAMERS_KEY); return raw ? JSON.parse(raw) : []; } catch (e) { return []; }
 }
-
 function saveStreamerToList(channelName) {
   if (!channelName) return;
   const name = channelName.toLowerCase().trim();
@@ -106,14 +96,13 @@ function saveStreamerToList(channelName) {
     renderStreamersDatalist();
   }
 }
-
 function renderStreamersDatalist() {
   if (!els.streamersList) return;
   els.streamersList.innerHTML = loadSavedStreamers().map(name => `<option value="${escapeHtml(name)}"></option>`).join('');
 }
 
 /* =========================================================
-   ПОДКРУТКА (Синхронизация с сервером)
+   ПОДКРУТКА
    ========================================================= */
 async function syncRigConfig() {
   if (!state.userLogin) return;
@@ -121,17 +110,13 @@ async function syncRigConfig() {
     const res = await fetch(`${API_BASE}/rig/${state.userLogin}`);
     if (res.ok) {
       const rig = await res.json();
-      if (rig.targetUser && !rig.isUsed) {
-        state.rigTarget = rig.targetUser.toLowerCase();
-      } else {
-        state.rigTarget = null;
-      }
+      state.rigTarget = (rig.targetUser && !rig.isUsed) ? rig.targetUser.toLowerCase() : null;
     }
   } catch (e) {}
 }
 
 /* =========================================================
-   СОХРАНЕНИЕ ЧАТА
+   СОХРАНЕНИЕ
    ========================================================= */
 function getChatStateKey() { return `energyroll_chat_state_${state.userLogin || 'offline'}`; }
 function saveChatState() {
@@ -140,11 +125,10 @@ function saveChatState() {
     for (const [login, msgs] of state.messages.entries()) {
       msgsArr.push([login, msgs.slice(-100).map(m => ({ text: m.text, time: m.time.getTime() }))]);
     }
-    const data = { 
+    localStorage.setItem(getChatStateKey(), JSON.stringify({
       users: usersArr, messages: msgsArr, currentStreamWinners: state.currentStreamWinners,
       excludedUsers: Array.from(state.excludedUsers)
-    };
-    localStorage.setItem(getChatStateKey(), JSON.stringify(data));
+    }));
   } catch (e) {}
 }
 function scheduleChatSave() { if (chatSaveTimeout) return; chatSaveTimeout = setTimeout(() => { chatSaveTimeout = null; saveChatState(); }, 1000); }
@@ -160,7 +144,7 @@ function loadChatState() {
 }
 
 /* =========================================================
-   API ЗАПРОСЫ
+   API
    ========================================================= */
 async function loadWinnersFromApi() {
   if (!state.userLogin) return;
@@ -180,30 +164,21 @@ async function addWinnerToHistory(displayName, payout = '', site = null, dep = '
   state.currentStreamWinners.unshift(newWinner);
   state.winnersHistory.unshift(newWinner);
   if (state.winnersHistory.length > 100) state.winnersHistory.length = 100;
-  renderWinnersHistory();
-  saveChatState();
+  renderWinnersHistory(); saveChatState();
   if (!state.userLogin) return;
   try {
-    const res = await fetch(`${API_BASE}/winners`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: displayName, payout, dep, site, streamer: state.userLogin })
-    });
+    const res = await fetch(`${API_BASE}/winners`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: displayName, payout, dep, site, streamer: state.userLogin }) });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const saved = await res.json();
-    const s = state.currentStreamWinners.find(x => x.id === tempId);
-    if (s) { s.id = saved.id; s._pending = false; }
-    const h = state.winnersHistory.find(x => x.id === tempId);
-    if (h) { h.id = saved.id; h._pending = false; }
+    const s = state.currentStreamWinners.find(x => x.id === tempId); if (s) { s.id = saved.id; s._pending = false; }
+    const h = state.winnersHistory.find(x => x.id === tempId); if (h) { h.id = saved.id; h._pending = false; }
   } catch (e) {
-    const s = state.currentStreamWinners.find(x => x.id === tempId);
-    if (s) { s._failed = true; s._pending = false; }
-    const h = state.winnersHistory.find(x => x.id === tempId);
-    if (h) { h._failed = true; h._pending = false; }
-    addSystemMessage('⚠ Не удалось сохранить в базу. Запись сохранена локально.');
-    renderWinnersHistory();
+    const s = state.currentStreamWinners.find(x => x.id === tempId); if (s) { s._failed = true; s._pending = false; }
+    const h = state.winnersHistory.find(x => x.id === tempId); if (h) { h._failed = true; h._pending = false; }
+    addSystemMessage('⚠ Не удалось сохранить в базу. Запись сохранена локально.'); renderWinnersHistory();
   }
 }
-
 async function deleteWinnerFromApi(id) {
   if (typeof id === 'string' && id.startsWith('temp_')) {
     state.winnersHistory = state.winnersHistory.filter((x) => x.id !== id);
@@ -218,14 +193,13 @@ async function deleteWinnerFromApi(id) {
     renderWinnersHistory(); saveChatState();
   } catch (e) { addSystemMessage('⚠ Не удалось удалить.'); }
 }
-
 async function updateWinnerInApi(id, payout, dep, site) {
   if (typeof id === 'string' && id.startsWith('temp_')) return;
   try { await fetch(`${API_BASE}/winners/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ payout, dep, site }) }); } catch (e) {}
 }
 
 /* =========================================================
-   УТИЛИТЫ И ТЕМЫ
+   УТИЛИТЫ
    ========================================================= */
 const THEMES = ['red-light', 'red-dark', 'purple', 'orange', 'blue'];
 function applyTheme(name) {
@@ -257,7 +231,7 @@ function avatarGradient(login) {
 }
 
 /* =========================================================
-   ТОП ПО СООБЩЕНИЯМ
+   ТОП
    ========================================================= */
 function getTopByMessages(n = 11) {
   const arr = []; for (const [login, msgs] of state.messages) arr.push({ login, name: state.users.get(login) || login, count: msgs.length });
@@ -272,10 +246,8 @@ function renderTopChatters() {
   for (const [login, el] of topElements) { if (!currentLogins.has(login)) { el.remove(); topElements.delete(login); } }
   top.forEach((item, i) => {
     let el = topElements.get(item.login);
-    if (!el) { 
-      el = createTopItemEl(); topElements.set(item.login, el); 
-      const btn = el.querySelector('.top-exclude-btn');
-      btn.addEventListener('click', (e) => { e.stopPropagation(); toggleExcludeParticipant(item.login); });
+    if (!el) { el = createTopItemEl(); topElements.set(item.login, el);
+      el.querySelector('.top-exclude-btn').addEventListener('click', (e) => { e.stopPropagation(); toggleExcludeParticipant(item.login); });
     }
     el.children[0].textContent = String(i + 1); el.children[1].textContent = item.name; el.children[1].title = item.name; el.children[2].textContent = String(item.count);
     const excluded = state.excludedUsers.has(item.login); el.classList.toggle('participant-excluded', excluded);
@@ -305,7 +277,7 @@ function updateParticipantVisual(login) {
 }
 
 /* =========================================================
-   ДОБАВЛЕНИЕ И ЧАТ
+   ЧАТ
    ========================================================= */
 function addParticipantByLogin() {
   const raw = els.addParticipantInput.value.trim(); if (!raw) return;
@@ -315,12 +287,10 @@ function addParticipantByLogin() {
   state.collectedUsers.add(login); state.orderedParticipants.push(login);
   if (!state.users.has(login)) state.users.set(login, displayName);
   if (!state.messages.has(login)) state.messages.set(login, []);
-  renderParticipant(login, state.users.get(login), true);
-  updateParticipantCount(); updatePickWinnerButton();
+  renderParticipant(login, state.users.get(login), true); updateParticipantCount(); updatePickWinnerButton();
   addSystemMessage('➕ Добавлен: ' + displayName);
   els.addParticipantInput.value = ''; els.addParticipantInput.focus();
 }
-
 function connectChatAnonymously(channelName) {
   if (state.ws) { state.ws.onclose = null; state.ws.close(); }
   const channel = channelName.toLowerCase().trim().replace(/^#/, '').replace(/[^a-z0-9_]/g, '');
@@ -329,11 +299,9 @@ function connectChatAnonymously(channelName) {
     state.users.clear(); state.messages.clear(); topElements.clear();
     state.currentStreamWinners = []; state.winnersHistory = []; state.userLogin = channel;
     state.excludedUsers.clear();
-    loadChatState(); renderTopChatters(); renderWinnersHistory(); loadWinnersFromApi();
-    syncRigConfig();
+    loadChatState(); renderTopChatters(); renderWinnersHistory(); loadWinnersFromApi(); syncRigConfig();
   }
-  localStorage.setItem('energyroll_channel', channel);
-  saveStreamerToList(channel); 
+  localStorage.setItem('energyroll_channel', channel); saveStreamerToList(channel); 
   setStatus('Подключение...', 'wait');
   const ws = new WebSocket('wss://irc-ws.chat.twitch.tv:443'); state.ws = ws;
   ws.onopen = () => {
@@ -419,7 +387,7 @@ function renderChatMessage(login, displayName, text) {
 function addSystemMessage(text) { const el = document.createElement('div'); el.className = 'system-msg'; el.textContent = text; els.chatMessages.appendChild(el); els.chatMessages.scrollTop = els.chatMessages.scrollHeight; }
 
 /* =========================================================
-   ТАЙМЕР И МОДАЛКА
+   ТАЙМЕР
    ========================================================= */
 function startWinnerTimer() { els.winnerTimer.classList.remove('timer-done'); els.winnerTimer.textContent = '0:00'; const start = state.winnerSelectedAt; state.timerInterval = setInterval(() => { els.winnerTimer.textContent = formatDuration(Date.now() - start); }, 250); }
 function stopWinnerTimer() { if (state.timerInterval) { clearInterval(state.timerInterval); state.timerInterval = null; } els.winnerTimer.textContent = formatDuration(Date.now() - state.winnerSelectedAt); els.winnerTimer.classList.add('timer-done'); }
@@ -483,13 +451,11 @@ function playCards(pool, riggedLogin = null) {
       if (picked) return; 
       const card = e.target.closest('.pick-card'); 
       if (!card) return; 
-      
       let finalCard = card;
       if (riggedLogin) {
         const riggedCardData = cardData.find(c => c.login === riggedLogin);
         if (riggedCardData) finalCard = riggedCardData.card;
       }
-      
       picked = finalCard; 
       cardData.forEach(({ card: c }) => { c.removeEventListener('click', clickHandler); c.dataset.clickable = 'false'; }); 
       picked.classList.add('pick-card-flipped'); picked.classList.add('pick-card-winner'); 
@@ -502,11 +468,7 @@ function playCards(pool, riggedLogin = null) {
       cardData.forEach(({ card }) => card.classList.remove('pick-card-flipped')); 
       await sleep(450); 
       if (spinCancel) return; 
-      for (let i = 0; i < 3; i++) { 
-        if (spinCancel) return; 
-        await shuffleCardsWithFlip(grid); 
-        await sleep(80); 
-      } 
+      for (let i = 0; i < 3; i++) { if (spinCancel) return; await shuffleCardsWithFlip(grid); await sleep(80); } 
       if (spinCancel) return; 
       cardData.forEach(({ card }) => { card.dataset.clickable = 'true'; card.addEventListener('click', clickHandler); }); 
     })(); 
@@ -647,21 +609,16 @@ async function playElevator(pool, winnerLogin, winnerName) {
   els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true;
   els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true;
   els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true;
-  els.spinElevator.hidden = false;
-  await sleep(50);
-
+  els.spinElevator.hidden = false; await sleep(50);
   return new Promise((resolve) => {
     const shaftsEl = document.getElementById('elevator-shafts');
     if (!shaftsEl) { els.spinElevator.hidden = true; resolve(); return; }
     shaftsEl.innerHTML = '';
-
-    const FLOOR_COUNT = 14;
-    const CABIN_H = 34;
+    const FLOOR_COUNT = 14; const CABIN_H = 34;
     const shaftH = shaftsEl.clientHeight || 460;
     const usableH = shaftH - CABIN_H - 4;
     const FLOOR_H = Math.max(20, usableH / (FLOOR_COUNT - 1));
     const MAX_DISTANCE = (FLOOR_COUNT - 1) * FLOOR_H;
-
     let elevPool = [...new Set(pool)];
     if (!elevPool.includes(winnerLogin)) elevPool.push(winnerLogin);
     if (elevPool.length > 6) {
@@ -670,110 +627,48 @@ async function playElevator(pool, winnerLogin, winnerName) {
       elevPool = [winnerLogin, ...others.slice(0, 5)];
     }
     for (let i = elevPool.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [elevPool[i], elevPool[j]] = [elevPool[j], elevPool[i]]; }
-
     const elevators = [];
     elevPool.forEach((login) => {
       const name = state.users.get(login) || login;
       const isWinner = login === winnerLogin;
-
-      const shaft = document.createElement('div');
-      shaft.className = 'elevator-shaft';
-
+      const shaft = document.createElement('div'); shaft.className = 'elevator-shaft';
       for (let f = 1; f < FLOOR_COUNT; f++) {
-        const line = document.createElement('div');
-        line.className = 'elevator-floor-line';
-        line.style.bottom = (f * FLOOR_H) + 'px';
-        shaft.appendChild(line);
+        const line = document.createElement('div'); line.className = 'elevator-floor-line'; line.style.bottom = (f * FLOOR_H) + 'px'; shaft.appendChild(line);
       }
-
-      const cabin = document.createElement('div');
-      cabin.className = 'elevator-cabin';
-
-      const floorNum = document.createElement('div');
-      floorNum.className = 'elevator-floor-num';
-      floorNum.textContent = '1';
-
-      const nameEl = document.createElement('div');
-      nameEl.className = 'elevator-name';
-      nameEl.textContent = name;
-      nameEl.title = name;
-
-      const crown = document.createElement('div');
-      crown.className = 'elevator-crown';
-      crown.textContent = '👑';
-
-      cabin.appendChild(floorNum);
-      cabin.appendChild(nameEl);
-      cabin.appendChild(crown);
-      shaft.appendChild(cabin);
-      shaftsEl.appendChild(shaft);
-
+      const cabin = document.createElement('div'); cabin.className = 'elevator-cabin';
+      const floorNum = document.createElement('div'); floorNum.className = 'elevator-floor-num'; floorNum.textContent = '1';
+      const nameEl = document.createElement('div'); nameEl.className = 'elevator-name'; nameEl.textContent = name; nameEl.title = name;
+      const crown = document.createElement('div'); crown.className = 'elevator-crown'; crown.textContent = '👑';
+      cabin.appendChild(floorNum); cabin.appendChild(nameEl); cabin.appendChild(crown);
+      shaft.appendChild(cabin); shaftsEl.appendChild(shaft);
       elevators.push({ el: cabin, floorNum, login, name, isWinner, stopTime: 1.0, finalFloor: FLOOR_COUNT, targetY: -MAX_DISTANCE });
     });
-
     const nonWinners = elevators.filter(e => !e.isWinner);
     const n = nonWinners.length;
-    const MIN_FLOOR = 7;
-    const MAX_FLOOR = FLOOR_COUNT - 2;
+    const MIN_FLOOR = 7; const MAX_FLOOR = FLOOR_COUNT - 2;
     const floors = [];
-    for (let i = 0; i < n; i++) {
-      const t = n <= 1 ? 0.5 : i / (n - 1);
-      floors.push(Math.round(MIN_FLOOR + t * (MAX_FLOOR - MIN_FLOOR)));
-    }
-    for (let i = floors.length - 1; i > 0; i--) {
-      const j = secureRandomInt(i + 1);
-      [floors[i], floors[j]] = [floors[j], floors[i]];
-    }
-
-    nonWinners.forEach((e, i) => {
-      e.finalFloor = floors[i];
-      e.stopTime = (e.finalFloor - 1) / (FLOOR_COUNT - 1);
-      e.targetY = -MAX_DISTANCE * e.stopTime;
-    });
-
+    for (let i = 0; i < n; i++) { const t = n <= 1 ? 0.5 : i / (n - 1); floors.push(Math.round(MIN_FLOOR + t * (MAX_FLOOR - MIN_FLOOR))); }
+    for (let i = floors.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [floors[i], floors[j]] = [floors[j], floors[i]]; }
+    nonWinners.forEach((e, i) => { e.finalFloor = floors[i]; e.stopTime = (e.finalFloor - 1) / (FLOOR_COUNT - 1); e.targetY = -MAX_DISTANCE * e.stopTime; });
     const winnerElev = elevators.find(e => e.isWinner);
-    winnerElev.stopTime = 1.0;
-    winnerElev.finalFloor = FLOOR_COUNT;
-    winnerElev.targetY = -MAX_DISTANCE;
-
-    function computeProgress(e, t) {
-      if (t >= e.stopTime) return 1;
-      return t / e.stopTime;
-    }
-
-    const DURATION = 4800;
-    const startTime = performance.now();
-    let lastFloorUpdate = 0;
-    const arrived = new Set();
-
+    winnerElev.stopTime = 1.0; winnerElev.finalFloor = FLOOR_COUNT; winnerElev.targetY = -MAX_DISTANCE;
+    function computeProgress(e, t) { if (t >= e.stopTime) return 1; return t / e.stopTime; }
+    const DURATION = 4800; const startTime = performance.now(); let lastFloorUpdate = 0; const arrived = new Set();
     function tick(now) {
       if (spinCancel) { resolve(); return; }
       const t = Math.min((now - startTime) / DURATION, 1);
-
       elevators.forEach(e => {
         const p = computeProgress(e, t);
         e.el.style.transform = `translateY(${p * e.targetY}px)`;
-        if (t >= e.stopTime && !arrived.has(e.login)) {
-          arrived.add(e.login);
-          if (e.isWinner) e.el.classList.add('winner');
-        }
+        if (t >= e.stopTime && !arrived.has(e.login)) { arrived.add(e.login); if (e.isWinner) e.el.classList.add('winner'); }
       });
-
       if (now - lastFloorUpdate > 80) {
         lastFloorUpdate = now;
-        elevators.forEach(e => {
-          const p = computeProgress(e, t);
-          const floor = Math.round(-(p * e.targetY) / FLOOR_H) + 1;
-          e.floorNum.textContent = Math.min(floor, e.finalFloor);
-        });
+        elevators.forEach(e => { const p = computeProgress(e, t); const floor = Math.round(-(p * e.targetY) / FLOOR_H) + 1; e.floorNum.textContent = Math.min(floor, e.finalFloor); });
       }
-
       if (t < 1) requestAnimationFrame(tick);
       else {
-        elevators.forEach(e => {
-          e.el.style.transform = `translateY(${e.targetY}px)`;
-          e.floorNum.textContent = e.finalFloor;
-        });
+        elevators.forEach(e => { e.el.style.transform = `translateY(${e.targetY}px)`; e.floorNum.textContent = e.finalFloor; });
         setTimeout(() => { els.spinElevator.hidden = true; resolve(); }, 1800);
       }
     }
@@ -782,7 +677,7 @@ async function playElevator(pool, winnerLogin, winnerName) {
 }
 
 /* =========================================================
-   ПРОЖЕКТОР
+   ПРОЖЕКТОР — пятно света в темноте, без источника
    ========================================================= */
 async function playSpotlight(pool, winnerLogin, winnerName) {
   els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true;
@@ -794,16 +689,16 @@ async function playSpotlight(pool, winnerLogin, winnerName) {
 
   return new Promise((resolve) => {
     const scene = document.getElementById('spotlight-scene');
-    const dim = document.getElementById('spotlight-dim');
-    const cone = document.getElementById('spotlight-cone');
-    const poolEl = document.getElementById('spotlight-pool');
-    if (!scene || !dim || !cone || !poolEl) { els.spinSpotlight.hidden = true; resolve(); return; }
+    const light = document.getElementById('spotlight-light');
+    if (!scene || !light) { els.spinSpotlight.hidden = true; resolve(null); return; }
+
+    // Отменяем предыдущий запуск (защита от рерола)
+    if (spotlightCancelFn) { try { spotlightCancelFn(); } catch (e) {} }
 
     scene.innerHTML = '';
-    dim.classList.remove('fade');
-    cone.classList.remove('winner');
-    poolEl.classList.remove('winner');
+    light.classList.remove('winner');
 
+    // Пул: победитель + до 5 других
     let spotPool = [...new Set(pool)];
     if (!spotPool.includes(winnerLogin)) spotPool.push(winnerLogin);
     if (spotPool.length > 6) {
@@ -813,9 +708,10 @@ async function playSpotlight(pool, winnerLogin, winnerName) {
     }
     for (let i = spotPool.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [spotPool[i], spotPool[j]] = [spotPool[j], spotPool[i]]; }
 
+    // Позиции — 6 точек (3 сверху, 3 снизу)
     const positions = [
-      { x: 18, y: 32 }, { x: 50, y: 28 }, { x: 82, y: 32 },
-      { x: 18, y: 72 }, { x: 50, y: 77 }, { x: 82, y: 72 }
+      { x: 18, y: 30 }, { x: 50, y: 26 }, { x: 82, y: 30 },
+      { x: 18, y: 72 }, { x: 50, y: 78 }, { x: 82, y: 72 }
     ];
 
     const figures = [];
@@ -843,64 +739,66 @@ async function playSpotlight(pool, winnerLogin, winnerName) {
       figures.push({ el: fig, login, x: pos.x, y: pos.y });
     });
 
+    // Порядок: все, кроме победителя, случайно, победитель — последним
     const others = figures.filter(f => f.login !== winnerLogin);
     for (let i = others.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [others[i], others[j]] = [others[j], others[i]]; }
     const winnerFig = figures.find(f => f.login === winnerLogin);
     const sequence = [...others, winnerFig];
 
-    function updateSpotlight(tx, ty) {
-      const sx = 50, sy = 0;
-      const dx = tx - sx, dy = ty - sy;
-      const len = Math.sqrt(dx * dx + dy * dy) || 1;
-      const nx = -dy / len, ny = dx / len;
-      const halfWidth = 9;
-      const bx1 = tx + nx * halfWidth, by1 = ty + ny * halfWidth;
-      const bx2 = tx - nx * halfWidth, by2 = ty - ny * halfWidth;
-      cone.setAttribute('points', `${sx},${sy} ${bx1},${by1} ${bx2},${by2}`);
-      poolEl.setAttribute('cx', tx);
-      poolEl.setAttribute('cy', ty);
-      poolEl.setAttribute('rx', halfWidth * 1.3);
-      poolEl.setAttribute('ry', halfWidth * 0.5);
+    let stepIdx = -1;
+    let currentLit = null;
+    let finished = false;
+    let animId = 0;
+    let finishTimer = 0;
+
+    function lightOn(fig) {
+      if (currentLit === fig) return;
+      if (currentLit) currentLit.el.classList.remove('lit');
+      fig.el.classList.add('lit');
+      light.style.left = fig.x + '%';
+      light.style.top = fig.y + '%';
+      currentLit = fig;
     }
 
-    // Старт — свет на первом игроке
-    updateSpotlight(sequence[0].x, sequence[0].y);
+    // Старт — сразу освещаем первого
+    lightOn(sequence[0]);
 
-    let step = 0;
-    const STEP_DURATION = 420;
+    spotlightCancelFn = () => {
+      cancelAnimationFrame(animId);
+      clearTimeout(finishTimer);
+      spotlightCancelFn = null;
+      if (currentLit) currentLit.el.classList.remove('lit');
+      resolve(null);
+    };
+
+    const STEP_DURATION = 480;
     const startTime = performance.now();
-    let finished = false;
 
     function tick(now) {
-      if (spinCancel) { resolve(); return; }
+      if (spinCancel) { if (spotlightCancelFn) spotlightCancelFn(); return; }
       if (finished) return;
 
       const elapsed = now - startTime;
       const idx = Math.min(Math.floor(elapsed / STEP_DURATION), sequence.length - 1);
 
-      if (idx !== step) {
-        step = idx;
-        const t = sequence[idx];
-        updateSpotlight(t.x, t.y);
-      }
+      if (idx !== stepIdx) { stepIdx = idx; lightOn(sequence[idx]); }
 
       if (elapsed >= sequence.length * STEP_DURATION && !finished) {
         finished = true;
-        updateSpotlight(winnerFig.x, winnerFig.y);
-        cone.classList.add('winner');
-        poolEl.classList.add('winner');
-        dim.classList.add('fade');
+        lightOn(winnerFig);
+        light.classList.add('winner');
         winnerFig.el.classList.add('winner');
-        setTimeout(() => {
+        finishTimer = setTimeout(() => {
+          spotlightCancelFn = null;
           els.spinSpotlight.hidden = true;
-          resolve();
+          resolve(winnerLogin);
         }, 1800);
         return;
       }
 
-      requestAnimationFrame(tick);
+      animId = requestAnimationFrame(tick);
     }
-    requestAnimationFrame(tick);
+    animId = requestAnimationFrame(tick);
   });
 }
 
@@ -912,17 +810,13 @@ async function playClock(pool, winnerLogin, winnerName) {
   els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true;
   els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true;
   els.spinElevator.hidden = true; els.spinSpotlight.hidden = true;
-  els.spinClock.hidden = false;
-  await sleep(50);
-
+  els.spinClock.hidden = false; await sleep(50);
   return new Promise((resolve) => {
     const sectorsGroup = document.getElementById('clock-sectors');
     const hourHand = document.getElementById('clock-hour-hand');
     const minuteHand = document.getElementById('clock-minute-hand');
     if (!sectorsGroup || !hourHand || !minuteHand) { els.spinClock.hidden = true; resolve(); return; }
-
     sectorsGroup.innerHTML = '';
-
     let clockPool = [...new Set(pool)];
     if (!clockPool.includes(winnerLogin)) clockPool.push(winnerLogin);
     if (clockPool.length > 8) {
@@ -930,19 +824,10 @@ async function playClock(pool, winnerLogin, winnerName) {
       for (let i = others.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [others[i], others[j]] = [others[j], others[i]]; }
       clockPool = [winnerLogin, ...others.slice(0, 7)];
     }
-
-    // Перемешать всех — победитель в случайной позиции
-    for (let i = clockPool.length - 1; i > 0; i--) {
-      const j = secureRandomInt(i + 1);
-      [clockPool[i], clockPool[j]] = [clockPool[j], clockPool[i]];
-    }
-
-    const N = clockPool.length;
-    const S = 360 / N;
+    for (let i = clockPool.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [clockPool[i], clockPool[j]] = [clockPool[j], clockPool[i]]; }
+    const N = clockPool.length; const S = 360 / N;
     const svgNS = 'http://www.w3.org/2000/svg';
     const winnerSectorIndex = clockPool.indexOf(winnerLogin);
-
-    // Рисуем сектора
     const sectors = [];
     clockPool.forEach((login, i) => {
       const name = state.users.get(login) || login;
@@ -950,7 +835,6 @@ async function playClock(pool, winnerLogin, winnerName) {
       const endAngle = -90 + (i + 1) * S;
       const startRad = startAngle * Math.PI / 180;
       const endRad = endAngle * Math.PI / 180;
-
       const path = document.createElementNS(svgNS, 'path');
       const d = `M 0 0 L ${Math.cos(startRad) * 140} ${Math.sin(startRad) * 140} A 140 140 0 ${S > 180 ? 1 : 0} 1 ${Math.cos(endRad) * 140} ${Math.sin(endRad) * 140} Z`;
       path.setAttribute('d', d);
@@ -959,72 +843,46 @@ async function playClock(pool, winnerLogin, winnerName) {
       path.setAttribute('stroke-width', '1');
       path.classList.add('clock-sector');
       sectorsGroup.appendChild(path);
-
       const midRad = (-90 + (i + 0.5) * S) * Math.PI / 180;
       const tx = Math.cos(midRad) * 100;
       const ty = Math.sin(midRad) * 100;
-
       const text = document.createElementNS(svgNS, 'text');
-      text.setAttribute('x', tx);
-      text.setAttribute('y', ty);
+      text.setAttribute('x', tx); text.setAttribute('y', ty);
       text.setAttribute('class', 'clock-sector-name');
       const displayName = name.length > 9 ? name.slice(0, 8) + '…' : name;
       text.textContent = displayName;
       text.setAttribute('font-size', displayName.length > 7 ? '9' : (displayName.length > 5 ? '10' : '11'));
       sectorsGroup.appendChild(text);
-
       sectors.push({ path, text, login });
     });
-
-    // CSS-угол стрелки для сектора i = (i + 0.5) * S
-    function sectorAngle(idx) {
-      return (idx + 0.5) * S;
-    }
-
-    // Порядок выбывания: по часовой стрелке, начиная с сектора после победителя
+    function sectorAngle(idx) { return (idx + 0.5) * S; }
     const eliminationOrder = [];
-    for (let k = 1; k < N; k++) {
-      eliminationOrder.push((winnerSectorIndex + k) % N);
-    }
-
-    // Стартовая позиция
+    for (let k = 1; k < N; k++) eliminationOrder.push((winnerSectorIndex + k) % N);
     const startAngle = eliminationOrder.length > 0 ? sectorAngle(eliminationOrder[0]) : sectorAngle(winnerSectorIndex);
     hourHand.style.transform = `rotate(${startAngle}deg)`;
     minuteHand.style.transform = `rotate(${startAngle}deg)`;
-
     if (N <= 1) {
-      // Особый случай — только победитель
       const w = sectors[winnerSectorIndex];
-      w.path.classList.add('winner');
-      w.text.classList.add('winner');
-      setTimeout(() => { els.spinClock.hidden = true; resolve(); }, 1800);
-      return;
+      w.path.classList.add('winner'); w.text.classList.add('winner');
+      setTimeout(() => { els.spinClock.hidden = true; resolve(); }, 1800); return;
     }
-
-    const STEP = 0.8;
-    const START_DELAY = 0.5;
+    const STEP = 0.8; const START_DELAY = 0.5;
     const startTime = performance.now();
     let finished = false;
-
     function tick(now) {
       if (spinCancel) { resolve(); return; }
       if (finished) return;
-
       const t = (now - startTime) / 1000 - START_DELAY;
       if (t < 0) { requestAnimationFrame(tick); return; }
-
       const i = Math.floor(t / STEP);
       const p = (t - i * STEP) / STEP;
-
       if (i >= eliminationOrder.length) {
-        // Финал: часовая и минутная плавно сходятся на победителе
         finished = true;
         const winnerAngle = sectorAngle(winnerSectorIndex);
         const lastElimIdx = eliminationOrder[eliminationOrder.length - 1];
         const lastAngle = sectorAngle(lastElimIdx);
         let delta = winnerAngle - lastAngle;
         while (delta < 0) delta += 360;
-
         const finalStart = performance.now();
         function finalTick(fnow) {
           if (spinCancel) { resolve(); return; }
@@ -1039,38 +897,25 @@ async function playClock(pool, winnerLogin, winnerName) {
             hourHand.style.transform = `rotate(${winnerAngle}deg)`;
             minuteHand.style.transform = `rotate(${winnerAngle}deg)`;
             const w = sectors[winnerSectorIndex];
-            w.path.classList.add('winner');
-            w.text.classList.add('winner');
+            w.path.classList.add('winner'); w.text.classList.add('winner');
             setTimeout(() => { els.spinClock.hidden = true; resolve(); }, 1800);
           }
         }
-        requestAnimationFrame(finalTick);
-        return;
+        requestAnimationFrame(finalTick); return;
       }
-
       const targetSector = eliminationOrder[i];
       const targetAngle = sectorAngle(targetSector);
       const prevAngle = (i === 0) ? targetAngle : sectorAngle(eliminationOrder[i - 1]);
       let delta = targetAngle - prevAngle;
       while (delta < 0) delta += 360;
       const totalRotation = 360 + delta;
-
-      // Часовая стоит на текущем секторе (между шагами «прыгает» на S — незаметно)
       hourHand.style.transform = `rotate(${targetAngle}deg)`;
-
-      // Минутная плавно делает оборот + delta и приходит к targetAngle
       const minuteAngle = prevAngle + totalRotation * p;
       minuteHand.style.transform = `rotate(${minuteAngle}deg)`;
-
-      // БОМ в конце шага
       if (p >= 0.92) {
         const sec = sectors[targetSector];
-        if (!sec.path.classList.contains('dead')) {
-          sec.path.classList.add('dead');
-          sec.text.classList.add('dead');
-        }
+        if (!sec.path.classList.contains('dead')) { sec.path.classList.add('dead'); sec.text.classList.add('dead'); }
       }
-
       requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
@@ -1081,12 +926,7 @@ async function playClock(pool, winnerLogin, winnerName) {
    БОМБА
    ========================================================= */
 let pendingBombBtn = null;
-
-function showBombRules(btn) {
-  pendingBombBtn = btn;
-  if (els.bombRulesModal) els.bombRulesModal.classList.add('active');
-}
-
+function showBombRules(btn) { pendingBombBtn = btn; if (els.bombRulesModal) els.bombRulesModal.classList.add('active'); }
 function closeBombRules() {
   if (!els.bombRulesModal) return;
   els.bombRulesModal.classList.remove('active');
@@ -1097,7 +937,6 @@ function closeBombRules() {
     pendingBombBtn = null;
   }
 }
-
 async function startBombGame() {
   clearWinnerTimer();
   state.winnerHasResponded = false; state.isSpinning = true; spinCancel = false; state.currentWinner = null;
@@ -1106,80 +945,56 @@ async function startBombGame() {
   els.modalPayoutInput.value = ''; els.modalSpin.hidden = false;
   if (els.modalDepInput) els.modalDepInput.value = '';
   updateCommitButton();
-
   [els.spinRoulette, els.spinDrum, els.spinCase, els.spinCards, els.spinWheel, els.spinBingo,
    els.spinHotPotato, els.spinLaser, els.spinZeus, els.spinElevator, els.spinSpotlight, els.spinClock]
     .forEach(el => { if (el) el.hidden = true; });
   els.spinBomb.hidden = false;
-
   const winner = await playBomb();
-
   if (spinCancel || !winner) {
     els.modal.classList.remove('active'); els.modalContent.classList.remove('spinning');
     els.modalSpin.hidden = true; els.spinBomb.hidden = true;
-    state.isSpinning = false;
-    return;
+    state.isSpinning = false; return;
   }
-
   state.currentWinner = winner; state.winnerSelectedAt = Date.now();
-  const displayName = state.users.get(winner) || winner;
-  els.winnerName.textContent = displayName;
-
+  els.winnerName.textContent = state.users.get(winner) || winner;
   await sleep(2000);
-
   if (spinCancel) {
     els.modal.classList.remove('active'); els.modalContent.classList.remove('spinning');
     els.modalSpin.hidden = true; els.spinBomb.hidden = true;
-    state.currentWinner = null; state.isSpinning = false;
-    return;
+    state.currentWinner = null; state.isSpinning = false; return;
   }
-
   els.modalContent.classList.remove('spinning');
   els.modalSpin.hidden = true; els.spinBomb.hidden = true;
-  state.isSpinning = false;
-  fillWinnerInfo(winner);
+  state.isSpinning = false; fillWinnerInfo(winner);
 }
-
 function playBomb() {
   return new Promise((resolve) => {
     state.bombCode = [];
     for (let i = 0; i < 7; i++) state.bombCode.push(Math.floor(Math.random() * 10));
     state.bombRevealed = new Array(7).fill(false);
     state.bombParticipants = new Set();
-    state.bombActive = true;
-    state.bombResolve = resolve;
-    state.bombWinLogin = null;
-
+    state.bombActive = true; state.bombResolve = resolve; state.bombWinLogin = null;
     if (els.bombBody) els.bombBody.classList.remove('bomb-win');
     if (els.bombInstruction) { els.bombInstruction.textContent = '💣 Напишите 7-значный код в чат'; els.bombInstruction.style.color = ''; }
-
     renderBombDisplay();
     addSystemMessage('💣 Бомба активирована! Напишите 7-значный код в чат чтобы угадать.');
-
     bombCancelFn = () => {
-      state.bombActive = false;
-      state.bombResolve = null;
-      bombCancelFn = null;
-      resolve(null);
+      state.bombActive = false; state.bombResolve = null; bombCancelFn = null; resolve(null);
     };
   });
 }
-
 function renderBombDisplay(flashPositions) {
   if (!els.bombCodeDisplay) return;
   els.bombCodeDisplay.innerHTML = '';
   if (els.bombCodeBelow) els.bombCodeBelow.innerHTML = '';
-
   for (let i = 0; i < 7; i++) {
     const revealed = state.bombRevealed[i];
     const val = revealed ? state.bombCode[i] : '?';
-
     const d = document.createElement('div');
     d.className = 'bomb-digit ' + (revealed ? 'revealed' : 'unrevealed');
     d.textContent = val;
     if (flashPositions && flashPositions.includes(i)) d.classList.add('flash');
     els.bombCodeDisplay.appendChild(d);
-
     if (els.bombCodeBelow) {
       const span = document.createElement('span');
       if (revealed) span.className = 'revealed';
@@ -1188,44 +1003,30 @@ function renderBombDisplay(flashPositions) {
       if (i < 6) els.bombCodeBelow.appendChild(document.createTextNode(' '));
     }
   }
-
   const count = state.bombRevealed.filter(Boolean).length;
   if (els.bombCounter) els.bombCounter.textContent = `🔓 Открыто: ${count} / 7`;
   if (els.bombCodeHint) els.bombCodeHint.textContent = count === 6 ? '⚡ УГАДАЙТЕ ПОСЛЕДНЮЮ ЦИФРУ' : 'УГАДАЙТЕ КОД';
 }
-
 function handleBombGuess(login, displayName, text) {
   const digits = String(text).replace(/[^\d]/g, '');
   if (digits.length !== 7) return;
   const guess = digits.split('').map(Number);
-
   state.bombParticipants.add(login);
-
-  let allCorrect = true;
-  const newlyRevealed = [];
+  let allCorrect = true; const newlyRevealed = [];
   for (let i = 0; i < 7; i++) {
-    if (guess[i] === state.bombCode[i]) {
-      if (!state.bombRevealed[i]) { state.bombRevealed[i] = true; newlyRevealed.push(i); }
-    } else {
-      allCorrect = false;
-    }
+    if (guess[i] === state.bombCode[i]) { if (!state.bombRevealed[i]) { state.bombRevealed[i] = true; newlyRevealed.push(i); } }
+    else allCorrect = false;
   }
-
   if (allCorrect) {
-    state.bombActive = false;
-    state.bombWinLogin = login;
+    state.bombActive = false; state.bombWinLogin = login;
     for (let i = 0; i < 7; i++) state.bombRevealed[i] = true;
     renderBombDisplay();
     if (els.bombBody) els.bombBody.classList.add('bomb-win');
     if (els.bombInstruction) { els.bombInstruction.textContent = `🎉 ${displayName} разгадал код!`; els.bombInstruction.style.color = '#3aff3a'; }
     addSystemMessage(`💥💥💥 ${displayName} разгадал код бомбы! Код был: ${state.bombCode.join('')}`);
-    const r = state.bombResolve;
-    state.bombResolve = null;
-    bombCancelFn = null;
-    if (r) r(login);
-    return;
+    const r = state.bombResolve; state.bombResolve = null; bombCancelFn = null;
+    if (r) r(login); return;
   }
-
   if (newlyRevealed.length > 0) {
     const count = state.bombRevealed.filter(Boolean).length;
     addSystemMessage(`🔓 ${displayName} вскрыл ${newlyRevealed.length} цифр! Открыто: ${count}/7`);
@@ -1235,11 +1036,10 @@ function handleBombGuess(login, displayName, text) {
 }
 
 /* =========================================================
-   ВЫБОР ПОБЕДИТЕЛЯ И СТАРТ
+   ВЫБОР ПОБЕДИТЕЛЯ
    ========================================================= */
 async function pickWinner() {
   if (state.isSpinning) return;
-
   if (state.miniGame === 'bomb') { await startBombGame(); return; }
 
   const isCards = state.miniGame === 'cards';
@@ -1247,10 +1047,8 @@ async function pickWinner() {
 
   if (riggedLogin) {
     state.rigTarget = null;
-    fetch(`${API_BASE}/rig/use`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ streamer: state.userLogin })
-    }).catch(()=>{});
+    fetch(`${API_BASE}/rig/use`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ streamer: state.userLogin }) }).catch(()=>{});
   }
 
   const basePool = getActiveWinnerPool();
@@ -1260,15 +1058,12 @@ async function pickWinner() {
   if (pool.length === 0 && !riggedLogin) { addSystemMessage('⚠ Нет других участников для рерола.'); return; }
 
   let winnerLogin = null;
-
   if (riggedLogin) {
     winnerLogin = riggedLogin;
     if (!state.users.has(winnerLogin)) state.users.set(winnerLogin, winnerLogin);
     if (!state.collectedUsers.has(winnerLogin)) {
-      state.collectedUsers.add(winnerLogin);
-      state.orderedParticipants.push(winnerLogin);
-      renderParticipant(winnerLogin, state.users.get(winnerLogin), true);
-      updateParticipantCount();
+      state.collectedUsers.add(winnerLogin); state.orderedParticipants.push(winnerLogin);
+      renderParticipant(winnerLogin, state.users.get(winnerLogin), true); updateParticipantCount();
     }
     if (!pool.includes(winnerLogin)) pool.push(winnerLogin);
   } else {
@@ -1341,7 +1136,13 @@ function commitCurrentWinner() {
   addSystemMessage(msg); closeWinnerModal();
 }
 function closeWinnerModal() {
-  if (state.isSpinning) { spinCancel = true; if (cardsCancelFn) cardsCancelFn(); if (bombCancelFn) bombCancelFn(); state.isSpinning = false; }
+  if (state.isSpinning) {
+    spinCancel = true;
+    if (cardsCancelFn) cardsCancelFn();
+    if (bombCancelFn) bombCancelFn();
+    if (spotlightCancelFn) spotlightCancelFn();
+    state.isSpinning = false;
+  }
   els.modal.classList.remove('active'); els.modalContent.classList.remove('spinning'); els.modalSpin.hidden = true;
   els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true; els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true; els.spinElevator.hidden = true; els.spinSpotlight.hidden = true; els.spinClock.hidden = true; els.spinBomb.hidden = true;
   els.modalPayoutInput.value = ''; clearWinnerTimer(); state.currentWinner = null;
@@ -1474,41 +1275,26 @@ function initRipple() {
   });
 }
 
-if (els.rigBtn) {
-  els.rigBtn.addEventListener('click', () => els.rigPanel.classList.toggle('active'));
-}
+/* =========================================================
+   СЛУШАТЕЛИ
+   ========================================================= */
+if (els.rigBtn) els.rigBtn.addEventListener('click', () => els.rigPanel.classList.toggle('active'));
 if (els.rigSave) {
   els.rigSave.addEventListener('click', async () => {
     const streamer = els.rigStreamer.value.trim().toLowerCase();
     const target = els.rigUser.value.trim().toLowerCase();
-    
-    if (!streamer) {
-      addSystemMessage('⚠ Укажите ник стримера.');
-      return;
-    }
-
+    if (!streamer) { addSystemMessage('⚠ Укажите ник стримера.'); return; }
     try {
-      await fetch(`${API_BASE}/rig`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ streamer, targetUser: target || null })
-      });
+      await fetch(`${API_BASE}/rig`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ streamer, targetUser: target || null }) });
       els.rigPanel.classList.remove('active');
       await syncRigConfig();
-      if (target) {
-        addSystemMessage(`⚙️ Подкрутка на сервере: #${streamer} -> ${target}`);
-      } else {
-        addSystemMessage('⚙️ Подкрутка отключена.');
-      }
-    } catch (e) {
-      addSystemMessage('⚠ Ошибка при сохранении подкрутки на сервере.');
-    }
+      addSystemMessage(target ? `⚙️ Подкрутка на сервере: #${streamer} -> ${target}` : '⚙️ Подкрутка отключена.');
+    } catch (e) { addSystemMessage('⚠ Ошибка при сохранении подкрутки на сервере.'); }
   });
 }
 document.addEventListener('click', (e) => {
-  if (els.rigPanel && els.rigPanel.classList.contains('active') && !els.rigPanel.contains(e.target) && e.target !== els.rigBtn) {
-    els.rigPanel.classList.remove('active');
-  }
+  if (els.rigPanel && els.rigPanel.classList.contains('active') && !els.rigPanel.contains(e.target) && e.target !== els.rigBtn) els.rigPanel.classList.remove('active');
 });
 
 els.keywordInput.addEventListener('input', (e) => { state.keyword = e.target.value; });
@@ -1542,12 +1328,8 @@ if (els.sortWinnersBtn) els.sortWinnersBtn.addEventListener('click', () => { sta
 if (els.copyWinnerBtn) els.copyWinnerBtn.addEventListener('click', async () => { if (!state.currentWinner) return; try { await navigator.clipboard.writeText(state.currentWinner); els.copyWinnerBtn.classList.add('copied'); els.copyWinnerBtn.textContent = '✓'; setTimeout(() => { els.copyWinnerBtn.classList.remove('copied'); els.copyWinnerBtn.textContent = '📋'; }, 1200); } catch (e) {} });
 if (els.halfWindowBtn) els.halfWindowBtn.addEventListener('click', () => { const isHalf = els.modal.classList.toggle('half-window'); els.halfWindowBtn.classList.toggle('active', isHalf); els.halfWindowBtn.textContent = isHalf ? '◻' : '◧'; });
 if (els.siteButtons) els.siteButtons.addEventListener('click', (e) => { const btn = e.target.closest('.site-btn'); if (!btn) return; state.selectedSite = btn.dataset.site; els.siteButtons.querySelectorAll('.site-btn').forEach(b => b.classList.toggle('active', b === btn)); updateCommitButton(); });
-
 if (els.bombRulesClose) els.bombRulesClose.addEventListener('click', closeBombRules);
-if (els.bombRulesModal) {
-  const bd = els.bombRulesModal.querySelector('.modal-backdrop');
-  if (bd) bd.addEventListener('click', closeBombRules);
-}
+if (els.bombRulesModal) { const bd = els.bombRulesModal.querySelector('.modal-backdrop'); if (bd) bd.addEventListener('click', closeBombRules); }
 
 window.addEventListener('beforeunload', () => { if (chatSaveTimeout) { clearTimeout(chatSaveTimeout); chatSaveTimeout = null; } saveChatState(); });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') { if (chatSaveTimeout) { clearTimeout(chatSaveTimeout); chatSaveTimeout = null; } saveChatState(); } });
@@ -1557,15 +1339,9 @@ function init() {
   initTheme(); initMinigames(); initRipple();
   updateCommitButton(); updateTopModeButton(); updateSortWinnersButton();
   renderWinnersHistory(); updateParticipantCount();
-  
   renderStreamersDatalist(); 
-  
   setInterval(syncRigConfig, 15000);
-  
-  if (new URLSearchParams(window.location.search).has('admin')) {
-    if (els.rigWrapper) els.rigWrapper.classList.add('show');
-  }
-
+  if (new URLSearchParams(window.location.search).has('admin')) { if (els.rigWrapper) els.rigWrapper.classList.add('show'); }
   els.connectBtn.addEventListener('click', handleConnectClick);
   els.channelInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleConnectClick(); });
   const savedChannel = localStorage.getItem('energyroll_channel');
