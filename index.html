@@ -29,9 +29,7 @@
 
     <div id="auth-section">
       <div class="channel-box">
-        <!-- Добавлен list="streamers-list" -->
         <input type="text" id="channel-input" class="keyword-input" placeholder="Имя канала" autocomplete="off" spellcheck="false" list="streamers-list" />
-        <!-- Сам список -->
         <datalist id="streamers-list"></datalist>
         <button id="connect-btn" class="btn btn-primary">Подключить</button>
         <button id="disconnect-btn" class="btn btn-secondary" disabled>Отключить</button>
@@ -43,7 +41,6 @@
 
   <div id="app">
     <main>
-      <!-- ========== 1. МИНИ-ИГРЫ ========== -->
       <section id="minigames-panel" class="panel minigames-panel">
         <div class="panel-header">
           <h2>🎮 Мини-игра</h2>
@@ -107,6 +104,21 @@
             <div class="minigame-info"><div class="minigame-title">Лифты</div></div>
             <span class="minigame-check">✓</span>
           </button>
+          <button class="minigame-item" data-mode="spotlight">
+            <span class="minigame-icon">🎬</span>
+            <div class="minigame-info"><div class="minigame-title">Прожектор</div></div>
+            <span class="minigame-check">✓</span>
+          </button>
+          <button class="minigame-item" data-mode="clock">
+            <span class="minigame-icon">🕰️</span>
+            <div class="minigame-info"><div class="minigame-title">Часы</div></div>
+            <span class="minigame-check">✓</span>
+          </button>
+          <button class="minigame-item" data-mode="bomb">
+            <span class="minigame-icon">💣</span>
+            <div class="minigame-info"><div class="minigame-title">Бомба</div></div>
+            <span class="minigame-check">✓</span>
+          </button>
 
           <div class="top-mode-divider"></div>
           <button id="top-mode-toggle" class="top-mode-btn">
@@ -117,7 +129,6 @@
         </div>
       </section>
 
-      <!-- ========== 2. ТОП ПО СООБЩЕНИЯМ ========== -->
       <section id="top-chatters-panel" class="panel top-chatters-panel">
         <div class="panel-header">
           <h2>🔥 Топ по сообщениям</h2>
@@ -128,7 +139,6 @@
         </div>
       </section>
 
-      <!-- ========== 3. ЧАТ ========== -->
       <section id="chat-panel" class="panel">
         <div class="panel-header">
           <h2>💬 Чат</h2>
@@ -142,7 +152,6 @@
         </div>
       </section>
 
-      <!-- ========== 4. УПРАВЛЕНИЕ ========== -->
       <aside id="control-panel" class="panel">
         <div class="panel-header">
           <h2>⚙️ Управление</h2>
@@ -179,7 +188,6 @@
         </div>
       </aside>
 
-      <!-- ========== 5. УЧАСТНИКИ ========== -->
       <section id="participants-panel" class="panel participants-panel">
         <div class="panel-header">
           <h2>👥 Участники <span id="participant-count" class="participants-badge">0</span></h2>
@@ -256,6 +264,61 @@
             <div class="elevator-finish">🏁 ФИНИШ</div>
             <div class="elevator-shafts" id="elevator-shafts"></div>
             <div class="elevator-start-label">▲ СТАРТ ▲</div>
+          </div>
+        </div>
+        <div class="spin-view" id="spin-spotlight" hidden>
+          <div class="spotlight-container" id="spotlight-container">
+            <div class="spotlight-scene" id="spotlight-scene"></div>
+            <div class="spotlight-dim" id="spotlight-dim"></div>
+            <div class="spotlight-beam" id="spotlight-beam"></div>
+          </div>
+        </div>
+        <div class="spin-view" id="spin-clock" hidden>
+          <div class="clock-container" id="clock-container">
+            <svg class="clock-face" viewBox="-150 -150 300 300">
+              <g id="clock-sectors"></g>
+              <line id="clock-hour-hand" x1="0" y1="0" x2="0" y2="-60" stroke="#e63858" stroke-width="5" stroke-linecap="round" />
+              <line id="clock-minute-hand" x1="0" y1="0" x2="0" y2="-110" stroke="#fff" stroke-width="3" stroke-linecap="round" />
+              <circle cx="0" cy="0" r="9" fill="#e63858" />
+              <circle cx="0" cy="0" r="4" fill="#fff" />
+            </svg>
+          </div>
+        </div>
+        <div class="spin-view" id="spin-bomb" hidden>
+          <div class="bomb-container">
+            <div class="bomb-antenna"><div class="bomb-antenna-dot"></div></div>
+            <div class="bomb-body" id="bomb-body">
+              <div class="bomb-top-section">
+                <div class="bomb-label">C4</div>
+                <div class="bomb-status">
+                  <span class="bomb-led red"></span>
+                  <span>ARMED</span>
+                </div>
+              </div>
+              <div class="bomb-screen">
+                <div class="bomb-code" id="bomb-code-display"></div>
+                <div class="bomb-code-hint" id="bomb-code-hint">УГАДАЙТЕ КОД</div>
+              </div>
+              <div class="bomb-bottom">
+                <div class="bomb-keypad">
+                  <div class="bomb-key">1</div><div class="bomb-key">2</div><div class="bomb-key">3</div>
+                  <div class="bomb-key">4</div><div class="bomb-key">5</div><div class="bomb-key">6</div>
+                  <div class="bomb-key">7</div><div class="bomb-key">8</div><div class="bomb-key">9</div>
+                  <div class="bomb-key" style="visibility:hidden"></div>
+                  <div class="bomb-key">0</div>
+                  <div class="bomb-key bomb-key-ok">✓</div>
+                </div>
+                <div class="bomb-wires">
+                  <div class="bomb-wire red"></div>
+                  <div class="bomb-wire blue"></div>
+                  <div class="bomb-wire yellow"></div>
+                  <div class="bomb-wire green"></div>
+                </div>
+              </div>
+            </div>
+            <div class="bomb-status-line" id="bomb-code-below"></div>
+            <div class="bomb-instruction" id="bomb-instruction">💣 Напишите 7-значный код в чат</div>
+            <div class="bomb-counter" id="bomb-counter">🔓 Открыто: 0 / 7</div>
           </div>
         </div>
       </div>
@@ -347,6 +410,36 @@
       <div class="modal-actions">
         <button id="close-settings" class="btn btn-secondary">Закрыть</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Модалка правил Бомбы -->
+  <div id="bomb-rules-modal" class="modal">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content bomb-rules-content">
+      <div class="modal-header">
+        <div class="settings-icon">💣</div>
+        <h2>Игра «Бомба»</h2>
+      </div>
+      <div class="bomb-rules-body">
+        <p>В центре экрана — бомба C4 с секретным 7-значным кодом. Чат должен его разгадать.</p>
+
+        <h3>📌 Как угадывать</h3>
+        <ul>
+          <li>Пишите <b>7-значный код</b> в чат (только цифры)</li>
+          <li>Если какая-то цифра в вашем коде стоит на <b>том же месте</b>, что и в секретном — она откроется на экране бомбы</li>
+          <li>Пример: код <span class="example-code">1234567</span>. Кто-то написал <span class="example-code">7463247</span> — последняя <span class="example-code">7</span> совпала по позиции → она открывается</li>
+        </ul>
+
+        <h3>🎯 Как выиграть</h3>
+        <ul>
+          <li>Когда открыто <b>6 из 7</b> цифр — остаётся угадать только последнюю</li>
+          <li><b>Первый</b>, кто напишет весь код правильно целиком, побеждает</li>
+        </ul>
+
+        <p style="color: var(--text-muted); font-size: 12px;">⚡ Чем активнее чат — тем быстрее откроются цифры. Удачи!</p>
+      </div>
+      <button id="bomb-rules-close" class="btn btn-primary btn-large">Понятно, закрыть</button>
     </div>
   </div>
 

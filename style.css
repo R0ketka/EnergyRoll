@@ -219,7 +219,6 @@ main {
 .top-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; min-width: 0; }
 .top-count { font-weight: 800; color: var(--accent); font-size: 11px; flex-shrink: 0; }
 
-/* Кнопка исключения в топе */
 .top-exclude-btn {
   background: transparent;
   border: 1px solid var(--border);
@@ -242,7 +241,6 @@ main {
   color: var(--accent);
 }
 
-/* Немного сжимаем имя, чтобы кнопка помещалась */
 .top-name {
   flex: 1;
   overflow: hidden;
@@ -418,7 +416,6 @@ main {
 .winners-list::-webkit-scrollbar { width: 6px; }
 .winners-list::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
 
-/* Карточка победителя: ник сверху, бейдж сайта под ним */
 .winner-item { 
   display: grid; grid-template-columns: 1fr auto auto; grid-template-areas: "info money del"; 
   gap: 6px; align-items: start; padding: 8px; background: var(--bg-tertiary); 
@@ -888,12 +885,12 @@ main {
 }
 
 .rig-wrapper { 
-  display: none; /* По умолчанию скрыто */
+  display: none;
   position: relative; 
   align-items: center; 
 }
 .rig-wrapper.show { 
-  display: flex; /* Показывается через ?admin=1 */
+  display: flex;
 }
 .rig-btn {
   background: transparent; border: none; color: var(--text-dim); 
@@ -1069,4 +1066,375 @@ main {
   letter-spacing: 3px;
   padding-top: 8px;
   flex-shrink: 0;
+}
+
+/* =========================================================
+   ПРОЖЕКТОР
+   ========================================================= */
+.spotlight-container {
+  position: relative;
+  width: min(700px, 95%, 65vh);
+  aspect-ratio: 4 / 3;
+  margin: 0 auto;
+  background: radial-gradient(circle at 50% 30%, #1a1a2e 0%, #050510 100%);
+  border: 2px solid #2a2a4a;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: inset 0 0 40px rgba(0,0,0,0.9);
+}
+.spotlight-scene {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+.spotlight-figure {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  transform: translate(-50%, -50%);
+}
+.spotlight-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 900;
+  color: #fff;
+  background: #2a2a4a;
+  border: 2px solid #3a3a5a;
+}
+.spotlight-name {
+  font-size: 11px;
+  font-weight: 800;
+  color: #aaa;
+  background: rgba(0,0,0,0.7);
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.spotlight-figure.winner .spotlight-avatar {
+  background: linear-gradient(135deg, #fff3a0, #ffd700);
+  color: #1a1a2e;
+  border-color: #ffd700;
+  box-shadow: 0 0 0 4px rgba(255,215,0,0.4), 0 0 30px #ffd700;
+  transition: all 0.4s;
+}
+.spotlight-figure.winner .spotlight-name {
+  color: #ffd700;
+  background: rgba(40,30,0,0.85);
+  text-shadow: 0 0 6px #ffd700;
+}
+.spotlight-dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 2;
+  pointer-events: none;
+  transition: background 0.5s;
+}
+.spotlight-dim.fade { background: rgba(0,0,0,0.3); }
+.spotlight-beam {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,240,0.85) 0%, rgba(255,255,240,0.25) 40%, transparent 70%);
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  pointer-events: none;
+  transition: left 0.3s ease-in-out, top 0.3s ease-in-out;
+  filter: drop-shadow(0 0 20px rgba(255,255,200,0.6));
+}
+.spotlight-beam.winner {
+  width: 260px;
+  height: 260px;
+  filter: drop-shadow(0 0 30px rgba(255,215,0,0.9));
+}
+
+/* =========================================================
+   ЧАСЫ
+   ========================================================= */
+.clock-container {
+  width: min(480px, 95%, 65vh);
+  aspect-ratio: 1;
+  margin: 0 auto;
+  position: relative;
+}
+.clock-face {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 25px rgba(230,56,88,0.25));
+}
+#clock-hour-hand, #clock-minute-hand {
+  transform-origin: 0 0;
+  will-change: transform;
+}
+.clock-sector {
+  transition: opacity 0.4s;
+}
+.clock-sector.dead {
+  opacity: 0.1;
+}
+.clock-sector-name {
+  font-weight: 800;
+  fill: #f2e6e6;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  pointer-events: none;
+  transition: opacity 0.4s, fill 0.4s;
+}
+.clock-sector-name.dead { opacity: 0.1; }
+.clock-sector-name.winner {
+  fill: #ffd700;
+  filter: drop-shadow(0 0 8px #ffd700);
+}
+
+/* =========================================================
+   БОМБА (CS2 C4)
+   ========================================================= */
+.bomb-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  width: min(520px, 95%, 60vh);
+  margin: 0 auto;
+}
+.bomb-antenna {
+  width: 2px;
+  height: 26px;
+  background: linear-gradient(180deg, #888, #444);
+  position: relative;
+}
+.bomb-antenna-dot {
+  position: absolute;
+  top: -5px; left: 50%;
+  transform: translateX(-50%);
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: #ff2a2a;
+  box-shadow: 0 0 8px #ff2a2a, 0 0 16px #ff2a2a;
+  animation: bombLedPulse 1s infinite;
+}
+@keyframes bombLedPulse {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0.25; }
+}
+.bomb-body {
+  width: 100%;
+  background: linear-gradient(180deg, #3a4a2a 0%, #2a3a1a 50%, #1a2a0a 100%);
+  border: 3px solid #0f1808;
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow:
+    inset 0 2px 4px rgba(255,255,255,0.1),
+    inset 0 -2px 4px rgba(0,0,0,0.5),
+    0 8px 24px rgba(0,0,0,0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+}
+.bomb-body::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 9px;
+  pointer-events: none;
+}
+.bomb-top-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 4px;
+}
+.bomb-label {
+  font-size: 20px;
+  font-weight: 900;
+  color: #c8d8a0;
+  letter-spacing: 3px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+.bomb-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  color: #c8d8a0;
+  letter-spacing: 1.5px;
+}
+.bomb-led {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+}
+.bomb-led.red {
+  background: #ff2a2a;
+  box-shadow: 0 0 6px #ff2a2a;
+  animation: bombLedPulse 0.8s infinite;
+}
+.bomb-screen {
+  background: #0a0a0a;
+  border: 2px solid #000;
+  border-radius: 6px;
+  padding: 10px 8px;
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.8), 0 0 14px rgba(255,58,58,0.15);
+  text-align: center;
+}
+.bomb-code {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  margin-bottom: 4px;
+}
+.bomb-digit {
+  font-family: 'Courier New', monospace;
+  font-size: 22px;
+  font-weight: 900;
+  color: #ff3a3a;
+  text-shadow: 0 0 8px #ff3a3a, 0 0 14px rgba(255,58,58,0.5);
+  padding: 2px 4px;
+  min-width: 22px;
+  text-align: center;
+  background: rgba(255,58,58,0.05);
+  border-radius: 3px;
+  transition: color 0.4s, text-shadow 0.4s;
+}
+.bomb-digit.revealed {
+  color: #3aff3a;
+  text-shadow: 0 0 8px #3aff3a, 0 0 14px rgba(58,255,58,0.5);
+  background: rgba(58,255,58,0.08);
+}
+.bomb-digit.flash { animation: bombDigitFlash 0.5s ease; }
+@keyframes bombDigitFlash {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+.bomb-code-hint {
+  font-size: 9px;
+  color: #8a9a6a;
+  letter-spacing: 2px;
+  font-weight: 700;
+}
+.bomb-bottom {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+.bomb-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  flex: 1;
+}
+.bomb-key {
+  background: linear-gradient(180deg, #4a5a3a, #2a3a1a);
+  border: 1px solid #1a250a;
+  border-radius: 4px;
+  color: #c8d8a0;
+  font-size: 11px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.1), inset 0 -1px 2px rgba(0,0,0,0.5);
+}
+.bomb-key-ok {
+  background: linear-gradient(180deg, #5a6a3a, #3a4a1a);
+  color: #8aff8a;
+}
+.bomb-wires {
+  width: 52px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  justify-content: center;
+  align-items: center;
+}
+.bomb-wire { width: 44px; height: 3px; border-radius: 2px; }
+.bomb-wire.red    { background: #ff2a2a; box-shadow: 0 0 4px #ff2a2a; }
+.bomb-wire.blue   { background: #2a8aff; box-shadow: 0 0 4px #2a8aff; }
+.bomb-wire.yellow { background: #ffcc00; box-shadow: 0 0 4px #ffcc00; }
+.bomb-wire.green  { background: #2aff6a; box-shadow: 0 0 4px #2aff6a; }
+.bomb-status-line {
+  font-family: 'Courier New', monospace;
+  font-size: 26px;
+  font-weight: 900;
+  color: #ff3a3a;
+  text-shadow: 0 0 10px rgba(255,58,58,0.5);
+  letter-spacing: 4px;
+  padding: 6px 0 2px;
+}
+.bomb-status-line .revealed {
+  color: #3aff3a;
+  text-shadow: 0 0 10px rgba(58,255,58,0.6);
+}
+.bomb-instruction {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--accent);
+  text-align: center;
+  text-shadow: 0 0 10px rgba(230,56,88,0.5);
+}
+.bomb-counter {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 700;
+  text-align: center;
+}
+.bomb-body.bomb-win {
+  animation: bombWinPulse 0.7s ease infinite alternate;
+}
+@keyframes bombWinPulse {
+  from { box-shadow: inset 0 2px 4px rgba(255,255,255,0.1), 0 8px 24px rgba(0,0,0,0.6), 0 0 30px rgba(58,255,58,0.3); }
+  to   { box-shadow: inset 0 2px 4px rgba(255,255,255,0.1), 0 8px 24px rgba(0,0,0,0.6), 0 0 60px rgba(58,255,58,0.8); }
+}
+
+/* Модалка правил Бомбы */
+.bomb-rules-content { max-width: 560px; padding: 0; }
+.bomb-rules-content .modal-header { padding: 22px 24px 0; margin-bottom: 8px; }
+.bomb-rules-body {
+  padding: 0 24px 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.bomb-rules-body p { margin-bottom: 10px; }
+.bomb-rules-body h3 {
+  font-size: 13px;
+  color: var(--accent);
+  margin: 14px 0 8px;
+  font-weight: 800;
+}
+.bomb-rules-body ul { padding-left: 20px; margin-bottom: 10px; }
+.bomb-rules-body li { margin-bottom: 5px; }
+.bomb-rules-body .example-code {
+  font-family: 'Courier New', monospace;
+  background: rgba(0,0,0,0.4);
+  padding: 1px 6px;
+  border-radius: 3px;
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 12px;
+}
+#bomb-rules-close {
+  width: calc(100% - 48px);
+  margin: 0 24px 24px;
+  padding: 14px;
+  font-size: 15px;
+  font-weight: 800;
 }
