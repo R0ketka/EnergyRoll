@@ -41,11 +41,14 @@
 
   <div id="app">
     <main>
+      <!-- ========== 1. МИНИ-ИГРЫ ========== -->
       <section id="minigames-panel" class="panel minigames-panel">
         <div class="panel-header">
           <h2>🎮 Мини-игра</h2>
         </div>
         <div class="minigames-list">
+
+          <!-- Базовая группа -->
           <button class="minigame-item active" data-mode="instant">
             <span class="minigame-icon">⚡</span>
             <div class="minigame-info"><div class="minigame-title">Мгновенный</div></div>
@@ -89,6 +92,7 @@
 
           <div class="top-mode-divider"></div>
 
+          <!-- Группа «стрелялки/физика» -->
           <button class="minigame-item" data-mode="laser">
             <span class="minigame-icon">🎯</span>
             <div class="minigame-info"><div class="minigame-title">Лазерный тир</div></div>
@@ -99,6 +103,10 @@
             <div class="minigame-info"><div class="minigame-title">Молния Зевса</div></div>
             <span class="minigame-check">✓</span>
           </button>
+
+          <div class="top-mode-divider"></div>
+
+          <!-- Новые игры -->
           <button class="minigame-item" data-mode="elevator">
             <span class="minigame-icon">🛗</span>
             <div class="minigame-info"><div class="minigame-title">Лифты</div></div>
@@ -129,6 +137,7 @@
         </div>
       </section>
 
+      <!-- ========== 2. ТОП ПО СООБЩЕНИЯМ ========== -->
       <section id="top-chatters-panel" class="panel top-chatters-panel">
         <div class="panel-header">
           <h2>🔥 Топ по сообщениям</h2>
@@ -139,6 +148,7 @@
         </div>
       </section>
 
+      <!-- ========== 3. ЧАТ ========== -->
       <section id="chat-panel" class="panel">
         <div class="panel-header">
           <h2>💬 Чат</h2>
@@ -152,6 +162,7 @@
         </div>
       </section>
 
+      <!-- ========== 4. УПРАВЛЕНИЕ ========== -->
       <aside id="control-panel" class="panel">
         <div class="panel-header">
           <h2>⚙️ Управление</h2>
@@ -188,6 +199,7 @@
         </div>
       </aside>
 
+      <!-- ========== 5. УЧАСТНИКИ ========== -->
       <section id="participants-panel" class="panel participants-panel">
         <div class="panel-header">
           <h2>👥 Участники <span id="participant-count" class="participants-badge">0</span></h2>
@@ -204,30 +216,42 @@
     </main>
   </div>
 
-  <!-- Модалка победителя -->
+  <!-- =========================================================
+       МОДАЛКА ПОБЕДИТЕЛЯ + 13 SPIN-VIEW (всех игр)
+       ========================================================= -->
   <div id="winner-modal" class="modal">
     <div class="modal-backdrop"></div>
     <div class="modal-content" id="modal-content">
       <div class="modal-spin" id="modal-spin" hidden>
+
+        <!-- 1. Рулетка (мгновенный) -->
         <div class="spin-view" id="spin-roulette" hidden>
           <div class="spin-roulette-name" id="spin-roulette-name">—</div>
         </div>
+
+        <!-- 2. Барабан -->
         <div class="spin-view" id="spin-drum" hidden>
           <div class="drum-container">
             <div class="drum-center-line"></div>
             <div class="drum-strip" id="drum-strip"></div>
           </div>
         </div>
+
+        <!-- 3. Кейс -->
         <div class="spin-view" id="spin-case" hidden>
           <div class="case-container" id="case-container">
             <div class="case-marker"></div>
             <div class="case-strip" id="case-strip"></div>
           </div>
         </div>
+
+        <!-- 4. Карты -->
         <div class="spin-view" id="spin-cards" hidden>
           <div class="cards-header" id="cards-header">Выберите карту</div>
           <div class="cards-grid" id="cards-grid"></div>
         </div>
+
+        <!-- 5. Колесо -->
         <div class="spin-view" id="spin-wheel" hidden>
           <div class="wheel-container">
             <svg viewBox="-150 -150 300 300" class="wheel-svg">
@@ -238,9 +262,13 @@
             <div class="wheel-center-dot"></div>
           </div>
         </div>
+
+        <!-- 6. Бинго -->
         <div class="spin-view" id="spin-bingo" hidden>
           <div class="bingo-grid" id="bingo-grid"></div>
         </div>
+
+        <!-- 7. Горячая картошка -->
         <div class="spin-view" id="spin-hotpotato" hidden>
           <div class="hotpotato-container" id="hotpotato-container">
             <div class="hotpotato-bomb" id="hotpotato-bomb">💣</div>
@@ -248,17 +276,23 @@
             <div class="hotpotato-spark" id="hotpotato-spark"></div>
           </div>
         </div>
+
+        <!-- 8. Лазерный тир -->
         <div class="spin-view" id="spin-laser" hidden>
           <div class="laser-container" id="laser-container">
             <div class="laser-crosshair" id="laser-crosshair"></div>
           </div>
         </div>
+
+        <!-- 9. Молния Зевса -->
         <div class="spin-view" id="spin-zeus" hidden>
           <div class="zeus-container" id="zeus-container">
             <div class="zeus-clouds"></div>
             <div class="zeus-flash" id="zeus-flash"></div>
           </div>
         </div>
+
+        <!-- 10. Лифты -->
         <div class="spin-view" id="spin-elevator" hidden>
           <div class="elevator-container" id="elevator-container">
             <div class="elevator-finish">🏁 ФИНИШ</div>
@@ -266,6 +300,8 @@
             <div class="elevator-start-label">▲ СТАРТ ▲</div>
           </div>
         </div>
+
+        <!-- 11. Прожектор -->
         <div class="spin-view" id="spin-spotlight" hidden>
           <div class="spotlight-container" id="spotlight-container">
             <div class="spotlight-scene" id="spotlight-scene"></div>
@@ -273,6 +309,8 @@
             <div class="spotlight-beam" id="spotlight-beam"></div>
           </div>
         </div>
+
+        <!-- 12. Часы -->
         <div class="spin-view" id="spin-clock" hidden>
           <div class="clock-container" id="clock-container">
             <svg class="clock-face" viewBox="-150 -150 300 300">
@@ -284,6 +322,8 @@
             </svg>
           </div>
         </div>
+
+        <!-- 13. Бомба -->
         <div class="spin-view" id="spin-bomb" hidden>
           <div class="bomb-container">
             <div class="bomb-antenna"><div class="bomb-antenna-dot"></div></div>
@@ -321,6 +361,7 @@
             <div class="bomb-counter" id="bomb-counter">🔓 Открыто: 0 / 7</div>
           </div>
         </div>
+
       </div>
 
       <div class="modal-top-left">
@@ -374,7 +415,7 @@
     </div>
   </div>
 
-  <!-- Модалка настроек -->
+  <!-- МОДАЛКА НАСТРОЕК -->
   <div id="settings-modal" class="modal">
     <div class="modal-backdrop"></div>
     <div class="modal-content settings-modal-content">
@@ -413,7 +454,7 @@
     </div>
   </div>
 
-  <!-- Модалка правил Бомбы -->
+  <!-- МОДАЛКА ПРАВИЛ БОМБЫ -->
   <div id="bomb-rules-modal" class="modal">
     <div class="modal-backdrop"></div>
     <div class="modal-content bomb-rules-content">
