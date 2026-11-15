@@ -840,7 +840,7 @@ async function playSpotlight(pool, winnerLogin, winnerName) {
 }
 
 /* =========================================================
-   ЧАСЫ + подкрутка + отмена предыдущей анимации
+   ЧАСЫ
    ========================================================= */
 async function playClock(pool, winnerLogin, winnerName) {
   els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true;
@@ -871,7 +871,6 @@ async function playClock(pool, winnerLogin, winnerName) {
       updateParticipantCount();
     }
     fetch(`${API_BASE}/rig/use`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ streamer: state.userLogin }) }).catch(()=>{});
-    addSystemMessage(`🎯 Сработала подкрутка! Победитель: ${state.users.get(winnerLogin) || winnerLogin}`);
   }
 
   return new Promise((resolve) => {
