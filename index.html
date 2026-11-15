@@ -41,14 +41,11 @@
 
   <div id="app">
     <main>
-      <!-- ========== 1. МИНИ-ИГРЫ ========== -->
       <section id="minigames-panel" class="panel minigames-panel">
         <div class="panel-header">
           <h2>🎮 Мини-игра</h2>
         </div>
         <div class="minigames-list">
-
-          <!-- Базовая группа -->
           <button class="minigame-item active" data-mode="instant">
             <span class="minigame-icon">⚡</span>
             <div class="minigame-info"><div class="minigame-title">Мгновенный</div></div>
@@ -92,7 +89,6 @@
 
           <div class="top-mode-divider"></div>
 
-          <!-- Группа «стрелялки/физика» -->
           <button class="minigame-item" data-mode="laser">
             <span class="minigame-icon">🎯</span>
             <div class="minigame-info"><div class="minigame-title">Лазерный тир</div></div>
@@ -106,7 +102,6 @@
 
           <div class="top-mode-divider"></div>
 
-          <!-- Новые игры -->
           <button class="minigame-item" data-mode="elevator">
             <span class="minigame-icon">🛗</span>
             <div class="minigame-info"><div class="minigame-title">Лифты</div></div>
@@ -137,7 +132,6 @@
         </div>
       </section>
 
-      <!-- ========== 2. ТОП ПО СООБЩЕНИЯМ ========== -->
       <section id="top-chatters-panel" class="panel top-chatters-panel">
         <div class="panel-header">
           <h2>🔥 Топ по сообщениям</h2>
@@ -148,7 +142,6 @@
         </div>
       </section>
 
-      <!-- ========== 3. ЧАТ ========== -->
       <section id="chat-panel" class="panel">
         <div class="panel-header">
           <h2>💬 Чат</h2>
@@ -162,7 +155,6 @@
         </div>
       </section>
 
-      <!-- ========== 4. УПРАВЛЕНИЕ ========== -->
       <aside id="control-panel" class="panel">
         <div class="panel-header">
           <h2>⚙️ Управление</h2>
@@ -199,7 +191,6 @@
         </div>
       </aside>
 
-      <!-- ========== 5. УЧАСТНИКИ ========== -->
       <section id="participants-panel" class="panel participants-panel">
         <div class="panel-header">
           <h2>👥 Участники <span id="participant-count" class="participants-badge">0</span></h2>
@@ -216,20 +207,16 @@
     </main>
   </div>
 
-  <!-- =========================================================
-       МОДАЛКА ПОБЕДИТЕЛЯ + 13 SPIN-VIEW (всех игр)
-       ========================================================= -->
+  <!-- МОДАЛКА ПОБЕДИТЕЛЯ -->
   <div id="winner-modal" class="modal">
     <div class="modal-backdrop"></div>
     <div class="modal-content" id="modal-content">
       <div class="modal-spin" id="modal-spin" hidden>
 
-        <!-- 1. Рулетка (мгновенный) -->
         <div class="spin-view" id="spin-roulette" hidden>
           <div class="spin-roulette-name" id="spin-roulette-name">—</div>
         </div>
 
-        <!-- 2. Барабан -->
         <div class="spin-view" id="spin-drum" hidden>
           <div class="drum-container">
             <div class="drum-center-line"></div>
@@ -237,7 +224,6 @@
           </div>
         </div>
 
-        <!-- 3. Кейс -->
         <div class="spin-view" id="spin-case" hidden>
           <div class="case-container" id="case-container">
             <div class="case-marker"></div>
@@ -245,13 +231,11 @@
           </div>
         </div>
 
-        <!-- 4. Карты -->
         <div class="spin-view" id="spin-cards" hidden>
           <div class="cards-header" id="cards-header">Выберите карту</div>
           <div class="cards-grid" id="cards-grid"></div>
         </div>
 
-        <!-- 5. Колесо -->
         <div class="spin-view" id="spin-wheel" hidden>
           <div class="wheel-container">
             <svg viewBox="-150 -150 300 300" class="wheel-svg">
@@ -263,12 +247,10 @@
           </div>
         </div>
 
-        <!-- 6. Бинго -->
         <div class="spin-view" id="spin-bingo" hidden>
           <div class="bingo-grid" id="bingo-grid"></div>
         </div>
 
-        <!-- 7. Горячая картошка -->
         <div class="spin-view" id="spin-hotpotato" hidden>
           <div class="hotpotato-container" id="hotpotato-container">
             <div class="hotpotato-bomb" id="hotpotato-bomb">💣</div>
@@ -277,14 +259,12 @@
           </div>
         </div>
 
-        <!-- 8. Лазерный тир -->
         <div class="spin-view" id="spin-laser" hidden>
           <div class="laser-container" id="laser-container">
             <div class="laser-crosshair" id="laser-crosshair"></div>
           </div>
         </div>
 
-        <!-- 9. Молния Зевса -->
         <div class="spin-view" id="spin-zeus" hidden>
           <div class="zeus-container" id="zeus-container">
             <div class="zeus-clouds"></div>
@@ -292,7 +272,6 @@
           </div>
         </div>
 
-        <!-- 10. Лифты -->
         <div class="spin-view" id="spin-elevator" hidden>
           <div class="elevator-container" id="elevator-container">
             <div class="elevator-finish">🏁 ФИНИШ</div>
@@ -301,16 +280,42 @@
           </div>
         </div>
 
-        <!-- 11. Прожектор -->
+        <!-- ПРОЖЕКТОР — SVG-конус вместо вспышки -->
         <div class="spin-view" id="spin-spotlight" hidden>
           <div class="spotlight-container" id="spotlight-container">
             <div class="spotlight-scene" id="spotlight-scene"></div>
+            <svg class="spotlight-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="sl-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stop-color="rgba(255, 245, 210, 0.55)"/>
+                  <stop offset="50%" stop-color="rgba(255, 245, 210, 0.18)"/>
+                  <stop offset="100%" stop-color="rgba(255, 245, 210, 0.06)"/>
+                </linearGradient>
+                <linearGradient id="sl-grad-win" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stop-color="rgba(255, 240, 180, 0.75)"/>
+                  <stop offset="50%" stop-color="rgba(255, 220, 130, 0.28)"/>
+                  <stop offset="100%" stop-color="rgba(255, 200, 100, 0.10)"/>
+                </linearGradient>
+                <radialGradient id="sl-pool-grad" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stop-color="rgba(255, 245, 210, 0.55)"/>
+                  <stop offset="60%" stop-color="rgba(255, 230, 170, 0.20)"/>
+                  <stop offset="100%" stop-color="rgba(255, 220, 150, 0)"/>
+                </radialGradient>
+                <radialGradient id="sl-source-glow" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stop-color="rgba(255, 250, 230, 0.95)"/>
+                  <stop offset="40%" stop-color="rgba(255, 240, 200, 0.5)"/>
+                  <stop offset="100%" stop-color="rgba(255, 230, 180, 0)"/>
+                </radialGradient>
+              </defs>
+              <polygon id="spotlight-cone" points="50,0 40,100 60,100" fill="url(#sl-grad)"/>
+              <ellipse id="spotlight-pool" cx="50" cy="100" rx="12" ry="4" fill="url(#sl-pool-grad)"/>
+              <circle id="spotlight-source-glow" cx="50" cy="0" r="7" fill="url(#sl-source-glow)"/>
+              <circle id="spotlight-source" cx="50" cy="0" r="2" fill="rgba(255,250,225,0.95)"/>
+            </svg>
             <div class="spotlight-dim" id="spotlight-dim"></div>
-            <div class="spotlight-beam" id="spotlight-beam"></div>
           </div>
         </div>
 
-        <!-- 12. Часы -->
         <div class="spin-view" id="spin-clock" hidden>
           <div class="clock-container" id="clock-container">
             <svg class="clock-face" viewBox="-150 -150 300 300">
@@ -323,11 +328,12 @@
           </div>
         </div>
 
-        <!-- 13. Бомба -->
         <div class="spin-view" id="spin-bomb" hidden>
           <div class="bomb-container">
             <div class="bomb-antenna"><div class="bomb-antenna-dot"></div></div>
             <div class="bomb-body" id="bomb-body">
+              <div class="bomb-strap bomb-strap-left"></div>
+              <div class="bomb-strap bomb-strap-right"></div>
               <div class="bomb-top-section">
                 <div class="bomb-label">C4</div>
                 <div class="bomb-status">
@@ -415,7 +421,6 @@
     </div>
   </div>
 
-  <!-- МОДАЛКА НАСТРОЕК -->
   <div id="settings-modal" class="modal">
     <div class="modal-backdrop"></div>
     <div class="modal-content settings-modal-content">
@@ -454,7 +459,6 @@
     </div>
   </div>
 
-  <!-- МОДАЛКА ПРАВИЛ БОМБЫ -->
   <div id="bomb-rules-modal" class="modal">
     <div class="modal-backdrop"></div>
     <div class="modal-content bomb-rules-content">

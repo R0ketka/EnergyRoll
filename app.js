@@ -795,14 +795,14 @@ async function playSpotlight(pool, winnerLogin, winnerName) {
   return new Promise((resolve) => {
     const scene = document.getElementById('spotlight-scene');
     const dim = document.getElementById('spotlight-dim');
-    const beam = document.getElementById('spotlight-beam');
-    if (!scene || !dim || !beam) { els.spinSpotlight.hidden = true; resolve(); return; }
+    const cone = document.getElementById('spotlight-cone');
+    const poolEl = document.getElementById('spotlight-pool');
+    if (!scene || !dim || !cone || !poolEl) { els.spinSpotlight.hidden = true; resolve(); return; }
 
     scene.innerHTML = '';
     dim.classList.remove('fade');
-    beam.classList.remove('winner');
-    beam.style.left = '50%';
-    beam.style.top = '50%';
+    cone.classList.remove('winner');
+    poolEl.classList.remove('winner');
 
     let spotPool = [...new Set(pool)];
     if (!spotPool.includes(winnerLogin)) spotPool.push(winnerLogin);
@@ -814,7 +814,7 @@ async function playSpotlight(pool, winnerLogin, winnerName) {
     for (let i = spotPool.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [spotPool[i], spotPool[j]] = [spotPool[j], spotPool[i]]; }
 
     const positions = [
-      { x: 18, y: 30 }, { x: 50, y: 25 }, { x: 82, y: 30 },
+      { x: 18, y: 32 }, { x: 50, y: 28 }, { x: 82, y: 32 },
       { x: 18, y: 72 }, { x: 50, y: 77 }, { x: 82, y: 72 }
     ];
 
@@ -848,7 +848,25 @@ async function playSpotlight(pool, winnerLogin, winnerName) {
     const winnerFig = figures.find(f => f.login === winnerLogin);
     const sequence = [...others, winnerFig];
 
-    let step = -1;
+    function updateSpotlight(tx, ty) {
+      const sx = 50, sy = 0;
+      const dx = tx - sx, dy = ty - sy;
+      const len = Math.sqrt(dx * dx + dy * dy) || 1;
+      const nx = -dy / len, ny = dx / len;
+      const halfWidth = 9;
+      const bx1 = tx + nx * halfWidth, by1 = ty + ny * halfWidth;
+      const bx2 = tx - nx * halfWidth, by2 = ty - ny * halfWidth;
+      cone.setAttribute('points', `${sx},${sy} ${bx1},${by1} ${bx2},${by2}`);
+      poolEl.setAttribute('cx', tx);
+      poolEl.setAttribute('cy', ty);
+      poolEl.setAttribute('rx', halfWidth * 1.3);
+      poolEl.setAttribute('ry', halfWidth * 0.5);
+    }
+
+    // Старт — свет на первом игроке
+    updateSpotlight(sequence[0].x, sequence[0].y);
+
+    let step = 0;
     const STEP_DURATION = 420;
     const startTime = performance.now();
     let finished = false;
@@ -863,13 +881,14 @@ async function playSpotlight(pool, winnerLogin, winnerName) {
       if (idx !== step) {
         step = idx;
         const t = sequence[idx];
-        beam.style.left = t.x + '%';
-        beam.style.top = t.y + '%';
+        updateSpotlight(t.x, t.y);
       }
 
       if (elapsed >= sequence.length * STEP_DURATION && !finished) {
         finished = true;
-        beam.classList.add('winner');
+        updateSpotlight(winnerFig.x, winnerFig.y);
+        cone.classList.add('winner');
+        poolEl.classList.add('winner');
         dim.classList.add('fade');
         winnerFig.el.classList.add('winner');
         setTimeout(() => {
@@ -912,16 +931,20 @@ async function playClock(pool, winnerLogin, winnerName) {
       clockPool = [winnerLogin, ...others.slice(0, 7)];
     }
 
+    // Перемешать всех — победитель в случайной позиции
+    for (let i = clockPool.length - 1; i > 0; i--) {
+      const j = secureRandomInt(i + 1);
+      [clockPool[i], clockPool[j]] = [clockPool[j], clockPool[i]];
+    }
+
     const N = clockPool.length;
     const S = 360 / N;
     const svgNS = 'http://www.w3.org/2000/svg';
+    const winnerSectorIndex = clockPool.indexOf(winnerLogin);
 
-    const others = clockPool.filter(l => l !== winnerLogin);
-    for (let i = others.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [others[i], others[j]] = [others[j], others[i]]; }
-    const sectorLogins = [...others, winnerLogin];
-
+    // Рисуем сектора
     const sectors = [];
-    sectorLogins.forEach((login, i) => {
+    clockPool.forEach((login, i) => {
       const name = state.users.get(login) || login;
       const startAngle = -90 + i * S;
       const endAngle = -90 + (i + 1) * S;
@@ -937,11 +960,9 @@ async function playClock(pool, winnerLogin, winnerName) {
       path.classList.add('clock-sector');
       sectorsGroup.appendChild(path);
 
-      const midAngle = -90 + (i + 0.5) * S;
-      const midRad = midAngle * Math.PI / 180;
-      const radius = 100;
-      const tx = Math.cos(midRad) * radius;
-      const ty = Math.sin(midRad) * radius;
+      const midRad = (-90 + (i + 0.5) * S) * Math.PI / 180;
+      const tx = Math.cos(midRad) * 100;
+      const ty = Math.sin(midRad) * 100;
 
       const text = document.createElementNS(svgNS, 'text');
       text.setAttribute('x', tx);
@@ -952,16 +973,37 @@ async function playClock(pool, winnerLogin, winnerName) {
       text.setAttribute('font-size', displayName.length > 7 ? '9' : (displayName.length > 5 ? '10' : '11'));
       sectorsGroup.appendChild(text);
 
-      sectors.push({ path, text, login, midAngle });
+      sectors.push({ path, text, login });
     });
 
-    hourHand.style.transform = 'rotate(0deg)';
-    minuteHand.style.transform = 'rotate(0deg)';
+    // CSS-угол стрелки для сектора i = (i + 0.5) * S
+    function sectorAngle(idx) {
+      return (idx + 0.5) * S;
+    }
 
-    const STEP = 0.7;
-    const START_DELAY = 0.3;
+    // Порядок выбывания: по часовой стрелке, начиная с сектора после победителя
+    const eliminationOrder = [];
+    for (let k = 1; k < N; k++) {
+      eliminationOrder.push((winnerSectorIndex + k) % N);
+    }
+
+    // Стартовая позиция
+    const startAngle = eliminationOrder.length > 0 ? sectorAngle(eliminationOrder[0]) : sectorAngle(winnerSectorIndex);
+    hourHand.style.transform = `rotate(${startAngle}deg)`;
+    minuteHand.style.transform = `rotate(${startAngle}deg)`;
+
+    if (N <= 1) {
+      // Особый случай — только победитель
+      const w = sectors[winnerSectorIndex];
+      w.path.classList.add('winner');
+      w.text.classList.add('winner');
+      setTimeout(() => { els.spinClock.hidden = true; resolve(); }, 1800);
+      return;
+    }
+
+    const STEP = 0.8;
+    const START_DELAY = 0.5;
     const startTime = performance.now();
-    let marked = new Set();
     let finished = false;
 
     function tick(now) {
@@ -974,28 +1016,59 @@ async function playClock(pool, winnerLogin, winnerName) {
       const i = Math.floor(t / STEP);
       const p = (t - i * STEP) / STEP;
 
-      if (i >= N) {
+      if (i >= eliminationOrder.length) {
+        // Финал: часовая и минутная плавно сходятся на победителе
         finished = true;
-        const winnerAngle = (N - 1) * S + S / 2;
-        hourHand.style.transform = `rotate(${winnerAngle}deg)`;
-        minuteHand.style.transform = `rotate(${winnerAngle}deg)`;
-        const w = sectors[N - 1];
-        w.path.classList.add('winner');
-        w.text.classList.add('winner');
-        setTimeout(() => { els.spinClock.hidden = true; resolve(); }, 1800);
+        const winnerAngle = sectorAngle(winnerSectorIndex);
+        const lastElimIdx = eliminationOrder[eliminationOrder.length - 1];
+        const lastAngle = sectorAngle(lastElimIdx);
+        let delta = winnerAngle - lastAngle;
+        while (delta < 0) delta += 360;
+
+        const finalStart = performance.now();
+        function finalTick(fnow) {
+          if (spinCancel) { resolve(); return; }
+          const ft = Math.min((fnow - finalStart) / 800, 1);
+          const eased = 1 - Math.pow(1 - ft, 3);
+          const curHour = lastAngle + delta * eased;
+          const curMinute = lastAngle + (delta + 360) * eased;
+          hourHand.style.transform = `rotate(${curHour}deg)`;
+          minuteHand.style.transform = `rotate(${curMinute}deg)`;
+          if (ft < 1) requestAnimationFrame(finalTick);
+          else {
+            hourHand.style.transform = `rotate(${winnerAngle}deg)`;
+            minuteHand.style.transform = `rotate(${winnerAngle}deg)`;
+            const w = sectors[winnerSectorIndex];
+            w.path.classList.add('winner');
+            w.text.classList.add('winner');
+            setTimeout(() => { els.spinClock.hidden = true; resolve(); }, 1800);
+          }
+        }
+        requestAnimationFrame(finalTick);
         return;
       }
 
-      const hourAngle = i * S + S / 2;
-      const minuteAngle = hourAngle + p * 360;
+      const targetSector = eliminationOrder[i];
+      const targetAngle = sectorAngle(targetSector);
+      const prevAngle = (i === 0) ? targetAngle : sectorAngle(eliminationOrder[i - 1]);
+      let delta = targetAngle - prevAngle;
+      while (delta < 0) delta += 360;
+      const totalRotation = 360 + delta;
 
-      hourHand.style.transform = `rotate(${hourAngle}deg)`;
+      // Часовая стоит на текущем секторе (между шагами «прыгает» на S — незаметно)
+      hourHand.style.transform = `rotate(${targetAngle}deg)`;
+
+      // Минутная плавно делает оборот + delta и приходит к targetAngle
+      const minuteAngle = prevAngle + totalRotation * p;
       minuteHand.style.transform = `rotate(${minuteAngle}deg)`;
 
-      if (p >= 0.92 && i < N - 1 && !marked.has(i)) {
-        marked.add(i);
-        sectors[i].path.classList.add('dead');
-        sectors[i].text.classList.add('dead');
+      // БОМ в конце шага
+      if (p >= 0.92) {
+        const sec = sectors[targetSector];
+        if (!sec.path.classList.contains('dead')) {
+          sec.path.classList.add('dead');
+          sec.text.classList.add('dead');
+        }
       }
 
       requestAnimationFrame(tick);
@@ -1169,7 +1242,6 @@ async function pickWinner() {
 
   if (state.miniGame === 'bomb') { await startBombGame(); return; }
 
-  // Для карт подкрутка отключена — стример сам выбирает карту
   const isCards = state.miniGame === 'cards';
   let riggedLogin = isCards ? null : state.rigTarget;
 
@@ -1402,7 +1474,6 @@ function initRipple() {
   });
 }
 
-// ПОДКРУТКА (Слушатели)
 if (els.rigBtn) {
   els.rigBtn.addEventListener('click', () => els.rigPanel.classList.toggle('active'));
 }
