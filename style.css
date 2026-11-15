@@ -1005,11 +1005,11 @@ main {
    ========================================================= */
 .spotlight-container {
   position: relative;
-  width: min(700px, 95%, 65vh);
+  width: min(440px, 80%, 42vh);
   aspect-ratio: 4 / 3;
   margin: 0 auto;
-  background: #050510;
-  border: 2px solid #14142a;
+  background: linear-gradient(180deg, #1a1a30 0%, #1e1e38 50%, #14142a 100%);
+  border: 2px solid #20203a;
   border-radius: var(--r-lg);
   overflow: hidden;
 }
@@ -1067,37 +1067,36 @@ main {
   box-shadow: 0 0 15px rgba(255,215,0,0.5);
 }
 
-/* Круг света: в центре — прозрачно (видно игрока в обычном цвете),
-   к краям плавно затемняется, а всё за кругом — сплошная тьма.
-   "Источник света" — как будто из глаз зрителя/стримера. */
 .spotlight-darkness {
   position: absolute;
-  width: 340px;
-  height: 340px;
+  width: 140px;
+  height: 140px;
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    rgba(0, 0, 0, 0) 0%,
-    rgba(0, 0, 0, 0.08) 18%,
-    rgba(0, 0, 0, 0.45) 42%,
-    rgba(0, 0, 0, 0.85) 66%,
-    #050510 100%
+    rgba(0,0,0,0) 0%,
+    rgba(0,0,0,0) 30%,
+    rgba(0,0,0,0.25) 45%,
+    rgba(0,0,0,0.6) 60%,
+    rgba(0,0,0,0.85) 78%,
+    rgba(0,0,0,0.95) 92%,
+    rgba(0,0,0,0.97) 100%
   );
-  box-shadow: 0 0 0 10000px #050510;
+  box-shadow: 0 0 0 10000px rgba(0,0,0,0.97);
   transform: translate(-50%, -50%);
   pointer-events: none;
   z-index: 2;
   left: 50%;
   top: 50%;
   transition:
-    left 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-    top 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    left 0.42s cubic-bezier(0.4, 0, 0.2, 1),
+    top 0.42s cubic-bezier(0.4, 0, 0.2, 1),
     width 0.5s ease,
     height 0.5s ease;
 }
 .spotlight-darkness.winner {
-  width: 420px;
-  height: 420px;
+  width: 180px;
+  height: 180px;
 }
 
 /* =========================================================

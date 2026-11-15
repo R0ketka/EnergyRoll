@@ -677,7 +677,7 @@ async function playElevator(pool, winnerLogin, winnerName) {
 }
 
 /* =========================================================
-   ПРОЖЕКТОР — 9 игроков, свет из глаз зрителя
+   ПРОЖЕКТОР — 9 игроков (добивка из state.users), свет из глаз
    ========================================================= */
 async function playSpotlight(pool, winnerLogin, winnerName) {
   els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true;
@@ -692,6 +692,7 @@ async function playSpotlight(pool, winnerLogin, winnerName) {
     const darkness = document.getElementById('spotlight-darkness');
     if (!scene || !darkness) { els.spinSpotlight.hidden = true; resolve(null); return; }
 
+    // Отменяем старую анимацию, если она ещё висит
     if (spotlightCancelFn) { try { spotlightCancelFn(); } catch (e) {} }
 
     scene.innerHTML = '';
@@ -699,14 +700,40 @@ async function playSpotlight(pool, winnerLogin, winnerName) {
     darkness.style.left = '50%';
     darkness.style.top = '50%';
 
+    // --- Пул ---
     let spotPool = [...new Set(pool)];
     if (!spotPool.includes(winnerLogin)) spotPool.push(winnerLogin);
+
+    // Добить до 9 из state.users (кто писал в чат, но не в pool)
+    if (spotPool.length < 9) {
+      const candidates = [];
+      for (const [login] of state.users.entries()) {
+        if (!spotPool.includes(login) && login !== winnerLogin) candidates.push(login);
+      }
+      for (let i = candidates.length - 1; i > 0; i--) {
+        const j = secureRandomInt(i + 1);
+        [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+      }
+      while (spotPool.length < 9 && candidates.length > 0) {
+        spotPool.push(candidates.pop());
+      }
+    }
+
+    // Обрезка до 9 с гарантией победителя
     if (spotPool.length > 9) {
       const others = spotPool.filter(l => l !== winnerLogin);
-      for (let i = others.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [others[i], others[j]] = [others[j], others[i]]; }
+      for (let i = others.length - 1; i > 0; i--) {
+        const j = secureRandomInt(i + 1);
+        [others[i], others[j]] = [others[j], others[i]];
+      }
       spotPool = [winnerLogin, ...others.slice(0, 8)];
     }
-    for (let i = spotPool.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [spotPool[i], spotPool[j]] = [spotPool[j], spotPool[i]]; }
+
+    // Перемешивание
+    for (let i = spotPool.length - 1; i > 0; i--) {
+      const j = secureRandomInt(i + 1);
+      [spotPool[i], spotPool[j]] = [spotPool[j], spotPool[i]];
+    }
 
     const positions = [
       { x: 16, y: 22 }, { x: 50, y: 20 }, { x: 84, y: 22 },
@@ -740,7 +767,10 @@ async function playSpotlight(pool, winnerLogin, winnerName) {
     });
 
     const others = figures.filter(f => f.login !== winnerLogin);
-    for (let i = others.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [others[i], others[j]] = [others[j], others[i]]; }
+    for (let i = others.length - 1; i > 0; i--) {
+      const j = secureRandomInt(i + 1);
+      [others[i], others[j]] = [others[j], others[i]];
+    }
     const winnerFig = figures.find(f => f.login === winnerLogin);
     const sequence = [...others, winnerFig];
 
