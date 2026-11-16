@@ -1607,6 +1607,9 @@ function init() {
   updateCommitButton(); updateTopModeButton(); updateSortWinnersButton();
   renderWinnersHistory(); updateParticipantCount();
 
+  els.keywordInput.value = 'nrg';
+  state.keyword = 'nrg';
+
   if (els.participantsSearch) {
     els.participantsSearch.addEventListener('input', applyParticipantFilter);
   }
