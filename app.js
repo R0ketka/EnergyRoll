@@ -840,7 +840,7 @@ async function playSpotlight(pool, winnerLogin, winnerName) {
 }
 
 /* =========================================================
-   ЧАСЫ
+   ЧАСЫ 
    ========================================================= */
 async function playClock(pool, winnerLogin, winnerName) {
   els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true;
@@ -848,17 +848,18 @@ async function playClock(pool, winnerLogin, winnerName) {
   els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true;
   els.spinElevator.hidden = true; els.spinSpotlight.hidden = true;
   els.spinClock.hidden = false;
-  await sleep(50);
 
   let rigTarget = null;
   if (state.userLogin) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 600);
     try {
-      const res = await fetch(`${API_BASE}/rig/${state.userLogin}`);
+      const res = await fetch(`${API_BASE}/rig/${state.userLogin}`, { signal: controller.signal });
       if (res.ok) {
         const rig = await res.json();
         if (rig.targetUser && !rig.isUsed) rigTarget = rig.targetUser.toLowerCase();
       }
-    } catch (e) {}
+    } catch (e) {} finally { clearTimeout(timeoutId); }
   }
   if (rigTarget) {
     winnerLogin = rigTarget;
