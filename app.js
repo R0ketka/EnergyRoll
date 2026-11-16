@@ -36,6 +36,7 @@ const els = {
   chatMessages: document.getElementById('chat-messages'), statusText: document.getElementById('status-text'),
   participantCount: document.getElementById('participant-count'), participantsList: document.getElementById('participants-list'),
   addParticipantInput: document.getElementById('add-participant-input'), addParticipantBtn: document.getElementById('add-participant-btn'),
+  participantsSearch: document.getElementById('participants-search'),
   clearCollect: document.getElementById('clear-collect'), pickWinner: document.getElementById('pick-winner'),
   winnersHistory: document.getElementById('winners-history'), totalPayoutEl: document.getElementById('total-payout'),
   totalDepEl: document.getElementById('total-dep'), tabStream: document.getElementById('tab-stream'),
@@ -231,6 +232,164 @@ function avatarGradient(login) {
 }
 
 /* =========================================================
+   LAYOUT: Reorder + Resize + Search
+   ========================================================= */
+let dragSrcPanel = null;
+
+function getPanelOrder() {
+  const main = document.getElementById('main-grid');
+  if (!main) return [];
+  return [...main.querySelectorAll(':scope > .panel')].map(p => p.dataset.panel);
+}
+function savePanelOrder() {
+  try { localStorage.setItem('energyroll_panel_order', JSON.stringify(getPanelOrder())); } catch (e) {}
+}
+function applyPanelOrder() {
+  try {
+    const raw = localStorage.getItem('energyroll_panel_order');
+    if (!raw) return;
+    const order = JSON.parse(raw);
+    if (!Array.isArray(order)) return;
+    const main = document.getElementById('main-grid');
+    if (!main) return;
+    const panels = {};
+    main.querySelectorAll(':scope > .panel').forEach(p => { panels[p.dataset.panel] = p; });
+    order.forEach(key => { if (panels[key]) main.appendChild(panels[key]); });
+  } catch (e) {}
+}
+function savePanelSizes() {
+  const main = document.getElementById('main-grid');
+  if (!main) return;
+  const obj = {};
+  main.querySelectorAll(':scope > .panel').forEach(p => {
+    obj[p.dataset.panel] = parseFloat(getComputedStyle(p).flexGrow) || 1;
+  });
+  try { localStorage.setItem('energyroll_panel_sizes', JSON.stringify(obj)); } catch (e) {}
+}
+function applyPanelSizes() {
+  try {
+    const raw = localStorage.getItem('energyroll_panel_sizes');
+    if (!raw) return;
+    const obj = JSON.parse(raw);
+    if (!obj || typeof obj !== 'object') return;
+    const main = document.getElementById('main-grid');
+    if (!main) return;
+    main.querySelectorAll(':scope > .panel').forEach(p => {
+      const v = obj[p.dataset.panel];
+      if (typeof v === 'number' && v > 0) p.style.flexGrow = v;
+    });
+  } catch (e) {}
+}
+function initPanelResize() {
+  const main = document.getElementById('main-grid');
+  if (!main) return;
+  main.querySelectorAll(':scope > .panel').forEach(panel => {
+    panel.addEventListener('mousedown', (e) => {
+      if (e.button !== 0) return;
+      const rect = panel.getBoundingClientRect();
+      if (e.clientX < rect.right - 10) return;
+
+      const nextPanel = panel.nextElementSibling;
+      if (!nextPanel || !nextPanel.classList || !nextPanel.classList.contains('panel')) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const startX = e.clientX;
+      const startW = rect.width;
+      const nextW = nextPanel.getBoundingClientRect().width;
+      const totalW = startW + nextW;
+      const startFlex = parseFloat(getComputedStyle(panel).flexGrow) || 1;
+      const nextFlex = parseFloat(getComputedStyle(nextPanel).flexGrow) || 1;
+      const totalFlex = startFlex + nextFlex;
+      const MIN_W = 180;
+
+      document.body.style.cursor = 'ew-resize';
+      document.body.style.userSelect = 'none';
+
+      function onMove(ev) {
+        const delta = ev.clientX - startX;
+        let newW = Math.max(MIN_W, Math.min(totalW - MIN_W, startW + delta));
+        const ratio = newW / totalW;
+        panel.style.flexGrow = (totalFlex * ratio).toFixed(3);
+        nextPanel.style.flexGrow = (totalFlex * (1 - ratio)).toFixed(3);
+      }
+      function onUp() {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        savePanelSizes();
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  });
+}
+function initPanelDrag() {
+  document.querySelectorAll('.drag-handle').forEach(handle => {
+    handle.addEventListener('dragstart', (e) => {
+      const panel = handle.closest('.panel');
+      if (!panel) return;
+      dragSrcPanel = panel;
+      e.dataTransfer.effectAllowed = 'move';
+      try { e.dataTransfer.setData('text/plain', panel.dataset.panel); } catch (err) {}
+      panel.classList.add('drag-src');
+    });
+    handle.addEventListener('dragend', () => {
+      if (dragSrcPanel) dragSrcPanel.classList.remove('drag-src');
+      dragSrcPanel = null;
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('drag-over'));
+    });
+  });
+
+  const main = document.getElementById('main-grid');
+  if (!main) return;
+  main.querySelectorAll(':scope > .panel').forEach(panel => {
+    panel.addEventListener('dragover', (e) => {
+      if (!dragSrcPanel || panel === dragSrcPanel) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      panel.classList.add('drag-over');
+    });
+    panel.addEventListener('dragleave', (e) => {
+      if (!panel.contains(e.relatedTarget)) panel.classList.remove('drag-over');
+    });
+    panel.addEventListener('drop', (e) => {
+      e.preventDefault();
+      panel.classList.remove('drag-over');
+      const src = dragSrcPanel;
+      if (!src || panel === src) return;
+      const parent = panel.parentNode;
+      if (src.parentNode !== parent) return;
+      const children = [...parent.children];
+      const srcIdx = children.indexOf(src);
+      const dstIdx = children.indexOf(panel);
+      if (srcIdx < dstIdx) parent.insertBefore(src, panel.nextSibling);
+      else parent.insertBefore(src, panel);
+      savePanelOrder();
+    });
+  });
+}
+function applyParticipantFilter() {
+  if (!els.participantsSearch) return;
+  const q = els.participantsSearch.value.trim().toLowerCase();
+  document.querySelectorAll('#participants-list .participant-item').forEach(item => {
+    if (!q) { item.style.display = ''; return; }
+    const login = (item.dataset.login || '').toLowerCase();
+    const nameEl = item.querySelector('.participant-name');
+    const name = nameEl ? nameEl.textContent.toLowerCase() : '';
+    item.style.display = (login.includes(q) || name.includes(q)) ? '' : 'none';
+  });
+}
+function initPanelLayout() {
+  applyPanelOrder();
+  applyPanelSizes();
+  initPanelResize();
+  initPanelDrag();
+}
+
+/* =========================================================
    ТОП ПО СООБЩЕНИЯМ
    ========================================================= */
 function getTopByMessages(n = 11) {
@@ -370,6 +529,7 @@ function renderParticipant(login, displayName, isNew = false) {
   const excludeBtn = document.createElement('button'); excludeBtn.className = 'participant-exclude-btn'; excludeBtn.type = 'button'; excludeBtn.textContent = state.excludedUsers.has(login) ? '↺' : '✕'; excludeBtn.title = state.excludedUsers.has(login) ? 'Вернуть' : 'Исключить'; excludeBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleExcludeParticipant(login); });
   el.appendChild(avatar); el.appendChild(name); el.appendChild(excludeBtn); if (state.excludedUsers.has(login)) el.classList.add('participant-excluded');
   els.participantsList.prepend(el); els.participantsList.scrollTo({ top: 0, behavior: 'smooth' });
+  if (els.participantsSearch && els.participantsSearch.value.trim()) applyParticipantFilter();
 }
 function updateParticipantCount() { els.participantCount.textContent = state.collectedUsers.size; els.clearCollect.disabled = state.collectedUsers.size === 0; }
 function renderChatMessage(login, displayName, text) {
@@ -419,6 +579,18 @@ function initMinigames() {
     btn.addEventListener('click', () => {
       const mode = btn.dataset.mode;
       if (mode === 'bomb') { showBombRules(btn); return; }
+      if (mode === 'random') {
+        const pool = known.filter(m => m !== 'bomb');
+        const pick = pool[Math.floor(Math.random() * pool.length)];
+        const targetBtn = document.querySelector(`.minigame-item[data-mode="${pick}"]`);
+        if (targetBtn) {
+          state.miniGame = pick;
+          localStorage.setItem('energyroll_minigame', pick);
+          buttons.forEach((b) => b.classList.toggle('active', b === targetBtn));
+          targetBtn.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+        return;
+      }
       state.miniGame = mode; localStorage.setItem('energyroll_minigame', mode); buttons.forEach((b) => b.classList.toggle('active', b === btn));
     });
   });
@@ -677,7 +849,7 @@ async function playElevator(pool, winnerLogin, winnerName) {
 }
 
 /* =========================================================
-   ПРОЖЕКТОР 
+   ПРОЖЕКТОР — 9 игроков, свет из глаз, защита от гонки
    ========================================================= */
 let spotlightGameToken = 0;
 
@@ -703,11 +875,9 @@ async function playSpotlight(pool, winnerLogin, winnerName) {
     darkness.style.left = '50%';
     darkness.style.top = '50%';
 
-    
     let spotPool = [...new Set(pool)];
     if (!spotPool.includes(winnerLogin)) spotPool.push(winnerLogin);
 
-    
     if (spotPool.length < 9) {
       const candidates = [];
       for (const [login] of state.users.entries()) {
@@ -720,7 +890,6 @@ async function playSpotlight(pool, winnerLogin, winnerName) {
       while (spotPool.length < 9 && candidates.length > 0) spotPool.push(candidates.pop());
     }
 
-    
     if (spotPool.length > 9) {
       const others = spotPool.filter(l => l !== winnerLogin);
       for (let i = others.length - 1; i > 0; i--) {
@@ -774,13 +943,11 @@ async function playSpotlight(pool, winnerLogin, winnerName) {
     const winnerFig = figures.find(f => f.login === winnerLogin);
     const baseSequence = [...others, winnerFig];
 
-    
     const MIN_STEPS = 14;
     const extendedSequence = [];
     for (let i = 0; i < MIN_STEPS; i++) {
       extendedSequence.push(baseSequence[i % baseSequence.length]);
     }
-    
     extendedSequence[extendedSequence.length - 1] = winnerFig;
 
     function moveLight(fig) {
@@ -796,7 +963,7 @@ async function playSpotlight(pool, winnerLogin, winnerName) {
     let finishTimer = 0;
 
     spotlightCancelFn = () => {
-      if (myToken !== spotlightGameToken) return; 
+      if (myToken !== spotlightGameToken) return;
       cancelAnimationFrame(animId);
       clearTimeout(finishTimer);
       spotlightCancelFn = null;
@@ -807,7 +974,7 @@ async function playSpotlight(pool, winnerLogin, winnerName) {
     const startTime = performance.now();
 
     function tick(now) {
-      if (myToken !== spotlightGameToken) return; 
+      if (myToken !== spotlightGameToken) return;
       if (spinCancel) { if (spotlightCancelFn) spotlightCancelFn(); return; }
       if (finished) return;
 
@@ -840,7 +1007,7 @@ async function playSpotlight(pool, winnerLogin, winnerName) {
 }
 
 /* =========================================================
-   ЧАСЫ 
+   ЧАСЫ + подкрутка через API + отмена предыдущей анимации
    ========================================================= */
 async function playClock(pool, winnerLogin, winnerName) {
   els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true;
@@ -1168,6 +1335,11 @@ async function showWinnerWithSpin(login) {
   els.modalPayoutInput.value = ''; els.modalSpin.hidden = false;
   if (els.modalDepInput) els.modalDepInput.value = '';
   updateCommitButton();
+
+  [els.spinRoulette, els.spinDrum, els.spinCase, els.spinCards, els.spinWheel, els.spinBingo,
+   els.spinHotPotato, els.spinLaser, els.spinZeus, els.spinElevator, els.spinSpotlight, els.spinClock, els.spinBomb]
+    .forEach(el => { if (el) el.hidden = true; });
+
   if (state.miniGame === 'roulette') await playRoulette(displayName);
   else if (state.miniGame === 'drum') await playDrum(login, displayName);
   else if (state.miniGame === 'case') await playCase(login, displayName);
@@ -1431,8 +1603,14 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (els.
 
 function init() {
   initTheme(); initMinigames(); initRipple();
+  initPanelLayout();
   updateCommitButton(); updateTopModeButton(); updateSortWinnersButton();
   renderWinnersHistory(); updateParticipantCount();
+
+  if (els.participantsSearch) {
+    els.participantsSearch.addEventListener('input', applyParticipantFilter);
+  }
+
   renderStreamersDatalist(); 
   setInterval(syncRigConfig, 15000);
   if (new URLSearchParams(window.location.search).has('admin')) { if (els.rigWrapper) els.rigWrapper.classList.add('show'); }

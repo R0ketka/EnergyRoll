@@ -40,12 +40,21 @@
 
 
   <div id="app">
-    <main>
-      <section id="minigames-panel" class="panel minigames-panel">
+    <main id="main-grid">
+      <!-- ========== 1. МИНИ-ИГРЫ ========== -->
+      <section id="minigames-panel" class="panel minigames-panel" data-panel="minigames">
         <div class="panel-header">
-          <h2>🎮 Мини-игра</h2>
+          <h2><span class="drag-handle" draggable="true" title="Перетащить колонку">⋮⋮</span> 🎮 Мини-игра</h2>
         </div>
         <div class="minigames-list">
+          <button class="minigame-item" data-mode="random">
+            <span class="minigame-icon">🎲</span>
+            <div class="minigame-info"><div class="minigame-title">Случайная игра</div></div>
+            <span class="minigame-check">✓</span>
+          </button>
+
+          <div class="top-mode-divider"></div>
+
           <button class="minigame-item active" data-mode="instant">
             <span class="minigame-icon">⚡</span>
             <div class="minigame-info"><div class="minigame-title">Мгновенный</div></div>
@@ -132,9 +141,10 @@
         </div>
       </section>
 
-      <section id="top-chatters-panel" class="panel top-chatters-panel">
+      <!-- ========== 2. ТОП ПО СООБЩЕНИЯМ ========== -->
+      <section id="top-chatters-panel" class="panel top-chatters-panel" data-panel="top">
         <div class="panel-header">
-          <h2>🔥 Топ по сообщениям</h2>
+          <h2><span class="drag-handle" draggable="true" title="Перетащить колонку">⋮⋮</span> 🔥 Топ по сообщениям</h2>
           <button id="clear-top-btn" class="btn-clear btn-clear-trash" title="Очистить топ" type="button">🗑</button>
         </div>
         <div id="top-chatters-list" class="top-list">
@@ -142,9 +152,10 @@
         </div>
       </section>
 
-      <section id="chat-panel" class="panel">
+      <!-- ========== 3. ЧАТ ========== -->
+      <section id="chat-panel" class="panel" data-panel="chat">
         <div class="panel-header">
-          <h2>💬 Чат</h2>
+          <h2><span class="drag-handle" draggable="true" title="Перетащить колонку">⋮⋮</span> 💬 Чат</h2>
           <div class="chat-header-right">
             <span id="status-text" class="status status-off">Введите имя канала</span>
             <button id="clear-chat-btn" class="btn-clear" title="Очистить чат">🧹</button>
@@ -155,9 +166,10 @@
         </div>
       </section>
 
-      <aside id="control-panel" class="panel">
+      <!-- ========== 4. УПРАВЛЕНИЕ ========== -->
+      <aside id="control-panel" class="panel" data-panel="control">
         <div class="panel-header">
-          <h2>⚙️ Управление</h2>
+          <h2><span class="drag-handle" draggable="true" title="Перетащить колонку">⋮⋮</span> ⚙️ Управление</h2>
         </div>
         <div class="control-body">
           <button id="pick-winner" class="btn btn-primary btn-large" disabled>
@@ -191,10 +203,14 @@
         </div>
       </aside>
 
-      <section id="participants-panel" class="panel participants-panel">
+      <!-- ========== 5. УЧАСТНИКИ ========== -->
+      <section id="participants-panel" class="panel participants-panel" data-panel="participants">
         <div class="panel-header">
-          <h2>👥 Участники <span id="participant-count" class="participants-badge">0</span></h2>
+          <h2><span class="drag-handle" draggable="true" title="Перетащить колонку">⋮⋮</span> 👥 Участники <span id="participant-count" class="participants-badge">0</span></h2>
           <button id="clear-collect" class="btn-clear btn-clear-trash" title="Очистить список участников" disabled>🗑</button>
+        </div>
+        <div class="search-row">
+          <input type="text" id="participants-search" placeholder="🔍 Поиск по нику..." autocomplete="off" spellcheck="false" />
         </div>
         <div class="add-participant-row">
           <input type="text" id="add-participant-input" class="add-participant-input" placeholder="Добавить по нику…" maxlength="50" autocomplete="off" spellcheck="false" />
