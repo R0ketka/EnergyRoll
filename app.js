@@ -1265,11 +1265,19 @@ function handleBombGuess(login, displayName, text) {
   if (digits.length !== 7) return;
   const guess = digits.split('').map(Number);
   state.bombParticipants.add(login);
-  let allCorrect = true; const newlyRevealed = [];
+
+  // 1) Сначала вычисляем, какие цифры В ПРИНЦИПЕ могли бы открыться (не мутируем state)
+  let allCorrect = true;
+  const candidates = [];
   for (let i = 0; i < 7; i++) {
-    if (guess[i] === state.bombCode[i]) { if (!state.bombRevealed[i]) { state.bombRevealed[i] = true; newlyRevealed.push(i); } }
-    else allCorrect = false;
+    if (guess[i] === state.bombCode[i]) {
+      if (!state.bombRevealed[i]) candidates.push(i);
+    } else {
+      allCorrect = false;
+    }
   }
+
+  // 2) Полная победа — единственный случай, когда открываются все 7
   if (allCorrect) {
     state.bombActive = false; state.bombWinLogin = login;
     for (let i = 0; i < 7; i++) state.bombRevealed[i] = true;
@@ -1278,13 +1286,23 @@ function handleBombGuess(login, displayName, text) {
     if (els.bombInstruction) { els.bombInstruction.textContent = `🎉 ${displayName} разгадал код!`; els.bombInstruction.style.color = '#3aff3a'; }
     addSystemMessage(`💥💥💥 ${displayName} разгадал код бомбы! Код был: ${state.bombCode.join('')}`);
     const r = state.bombResolve; state.bombResolve = null; bombCancelFn = null;
-    if (r) r(login); return;
+    if (r) r(login);
+    return;
   }
-  if (newlyRevealed.length > 0) {
-    const count = state.bombRevealed.filter(Boolean).length;
-    addSystemMessage(`🔓 ${displayName} вскрыл ${newlyRevealed.length} цифр! Открыто: ${count}/7`);
-    renderBombDisplay(newlyRevealed);
-    if (count === 6) addSystemMessage('⚡ Открыто 6 из 7! Осталась одна цифра — введите полный код чтобы победить!');
+
+  // 3) Не победа — открываем максимум до 6 из 7
+  if (candidates.length > 0) {
+    const currentCount = state.bombRevealed.filter(Boolean).length;
+    const maxCanOpen = Math.max(0, 6 - currentCount);
+    const toOpen = candidates.slice(0, maxCanOpen);
+
+    if (toOpen.length > 0) {
+      toOpen.forEach(i => state.bombRevealed[i] = true);
+      const count = state.bombRevealed.filter(Boolean).length;
+      addSystemMessage(`🔓 ${displayName} вскрыл ${toOpen.length} цифр! Открыто: ${count}/7`);
+      renderBombDisplay(toOpen);
+      if (count === 6) addSystemMessage('⚡ Открыто 6 из 7! Осталась одна цифра — введите полный код чтобы победить!');
+    }
   }
 }
 
