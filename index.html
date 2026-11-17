@@ -248,7 +248,6 @@
                 <div class="case-strap strap-right"></div>
                 <div class="case-buckle buckle-left"></div>
                 <div class="case-buckle buckle-right"></div>
-                <div class="case-icon">⚡</div>
               </div>
               <div class="case-lid" id="case-lid">
                 <div class="case-lid-inner"></div>
@@ -268,11 +267,14 @@
 
         <div class="spin-view" id="spin-wheel" hidden>
           <div class="wheel-container">
+            <div class="wheel-pointer-wrap">
+              <div class="wheel-pointer-arrow"></div>
+              <div class="wheel-pointer-stem"></div>
+            </div>
             <svg viewBox="-150 -150 300 300" class="wheel-svg">
               <circle cx="0" cy="0" r="143" fill="none" stroke="#7a3838" stroke-width="4"/>
               <g class="wheel-rotating" id="wheel-rotating"></g>
             </svg>
-            <div class="wheel-pointer"></div>
             <div class="wheel-center-dot"></div>
           </div>
         </div>

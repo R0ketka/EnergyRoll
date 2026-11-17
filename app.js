@@ -604,6 +604,7 @@ const DRUM_ITEM_HEIGHT = 64; const DRUM_VISIBLE_ITEMS = 5; const DRUM_TOTAL_ITEM
 function createDrumItem(login, name) { const item = document.createElement('div'); item.className = 'drum-item'; const avatar = document.createElement('div'); avatar.className = 'drum-avatar'; avatar.style.background = avatarGradient(login); avatar.textContent = (name || '?').charAt(0).toUpperCase(); const nameEl = document.createElement('div'); nameEl.className = 'drum-name'; nameEl.textContent = name; item.appendChild(avatar); item.appendChild(nameEl); return item; }
 function playDrum(winnerLogin, winnerName) { return new Promise((resolve) => { els.spinRoulette.hidden = true; els.spinDrum.hidden = false; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true; els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true; const strip = els.drumStrip; strip.innerHTML = ''; strip.style.transform = 'translateY(0)'; for (let i = 0; i < DRUM_TOTAL_ITEMS; i++) { let login, name; if (i === DRUM_WINNER_INDEX) { login = winnerLogin; name = winnerName; } else { login = randomParticipantLogin(); name = state.users.get(login) || login; } strip.appendChild(createDrumItem(login, name)); } void strip.offsetHeight; const centerIndex = Math.floor(DRUM_VISIBLE_ITEMS / 2); const targetTranslate = -(DRUM_WINNER_INDEX - centerIndex) * DRUM_ITEM_HEIGHT; const start = performance.now(); const tick = (now) => { if (spinCancel) { resolve(); return; } const elapsed = now - start; const t = Math.min(elapsed / DRUM_DURATION, 1); const eased = 1 - Math.pow(1 - t, 3); strip.style.transform = `translateY(${targetTranslate * eased}px)`; if (t < 1) requestAnimationFrame(tick); else { strip.style.transform = `translateY(${targetTranslate}px)`; setTimeout(() => { els.spinDrum.hidden = true; resolve(); }, 700); } }; requestAnimationFrame(tick); }); }
 
+/* === CASE CS2 === */
 const CASE_ITEM_WIDTH = 100; const CASE_ITEM_GAP = 8; const CASE_TOTAL_ITEMS = 40; const CASE_WINNER_IDX = 25;
 
 async function playCase(winnerLogin, winnerName) {
@@ -611,141 +612,92 @@ async function playCase(winnerLogin, winnerName) {
   els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true;
   els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true;
 
-  await sleep(50);
-
   const case3d = els.case3d;
   const stripArea = els.caseStripArea;
   const strip = els.caseStrip;
   if (!case3d || !stripArea || !strip) { els.spinCase.hidden = true; return; }
 
-  case3d.classList.remove('dropped', 'opened', 'dimmed', 'impact');
+  case3d.classList.remove('opened', 'dimmed');
+  case3d.style.animation = 'none';
   stripArea.classList.remove('visible');
   stripArea.hidden = true;
   strip.innerHTML = '';
   strip.style.transform = 'translateX(0)';
 
-  await sleep(30);
-  if (spinCancel) { els.spinCase.hidden = true; return; }
+  void case3d.offsetWidth;
+  case3d.style.animation = '';
 
-  return new Promise(async (resolve) => {
-    if (spinCancel) { resolve(); return; }
+  return new Promise((resolve) => {
+    const timers = [];
+    const wait = (ms) => new Promise((r) => { const t = setTimeout(r, ms); timers.push(t); });
 
-    case3d.classList.add('dropped');
-    await sleep(900);
-    if (spinCancel) { resolve(); return; }
+    (async () => {
+      await wait(1000);
+      if (spinCancel) { timers.forEach(clearTimeout); resolve(); return; }
 
-    case3d.classList.add('impact');
-    await sleep(420);
-    case3d.classList.remove('impact');
-    if (spinCancel) { resolve(); return; }
+      case3d.classList.add('opened');
+      await wait(950);
+      if (spinCancel) { timers.forEach(clearTimeout); resolve(); return; }
 
-    case3d.classList.add('opened');
-    await sleep(1000);
-    if (spinCancel) { resolve(); return; }
+      case3d.classList.add('dimmed');
+      await wait(700);
+      if (spinCancel) { timers.forEach(clearTimeout); resolve(); return; }
 
-    case3d.classList.add('dimmed');
-    await sleep(520);
-    if (spinCancel) { resolve(); return; }
-
-    const rarities = ['common', 'uncommon', 'rare', 'epic'];
-    for (let i = 0; i < CASE_TOTAL_ITEMS; i++) {
-      let login, name, rarity;
-      if (i === CASE_WINNER_IDX) { login = winnerLogin; name = winnerName; rarity = 'legendary'; }
-      else {
-        login = randomParticipantLogin();
-        name = state.users.get(login) || login;
-        rarity = rarities[Math.floor(Math.random() * rarities.length)];
+      const rarities = ['common', 'uncommon', 'rare', 'epic'];
+      for (let i = 0; i < CASE_TOTAL_ITEMS; i++) {
+        let login, name, rarity;
+        if (i === CASE_WINNER_IDX) { login = winnerLogin; name = winnerName; rarity = 'legendary'; }
+        else {
+          login = randomParticipantLogin();
+          name = state.users.get(login) || login;
+          rarity = rarities[Math.floor(Math.random() * rarities.length)];
+        }
+        const item = document.createElement('div');
+        item.className = 'case-item case-rarity-' + rarity;
+        const avatar = document.createElement('div');
+        avatar.className = 'case-avatar';
+        avatar.style.background = avatarGradient(login);
+        avatar.textContent = (name || '?').charAt(0).toUpperCase();
+        const nameEl = document.createElement('div');
+        nameEl.className = 'case-name';
+        nameEl.textContent = name;
+        item.appendChild(avatar);
+        item.appendChild(nameEl);
+        strip.appendChild(item);
       }
-      const item = document.createElement('div');
-      item.className = 'case-item case-rarity-' + rarity;
-      const avatar = document.createElement('div');
-      avatar.className = 'case-avatar';
-      avatar.style.background = avatarGradient(login);
-      avatar.textContent = (name || '?').charAt(0).toUpperCase();
-      const nameEl = document.createElement('div');
-      nameEl.className = 'case-name';
-      nameEl.textContent = name;
-      item.appendChild(avatar);
-      item.appendChild(nameEl);
-      strip.appendChild(item);
-    }
 
-    void strip.offsetHeight;
+      void strip.offsetHeight;
 
-    stripArea.hidden = false;
-    await sleep(30);
-    stripArea.classList.add('visible');
-    await sleep(420);
-    if (spinCancel) { resolve(); return; }
+      stripArea.hidden = false;
+      await wait(30);
+      stripArea.classList.add('visible');
+      await wait(450);
+      if (spinCancel) { timers.forEach(clearTimeout); resolve(); return; }
 
-    const containerWidth = stripArea.clientWidth;
-    const targetX = containerWidth / 2 - CASE_ITEM_WIDTH / 2 - (CASE_WINNER_IDX * (CASE_ITEM_WIDTH + CASE_ITEM_GAP));
-    const duration = 3600;
-    const start = performance.now();
+      const containerWidth = stripArea.clientWidth;
+      const targetX = containerWidth / 2 - CASE_ITEM_WIDTH / 2 - (CASE_WINNER_IDX * (CASE_ITEM_WIDTH + CASE_ITEM_GAP));
+      const duration = 3600;
+      const start = performance.now();
 
-    function tick(now) {
-      if (spinCancel) { resolve(); return; }
-      const elapsed = now - start;
-      const t = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - t, 4);
-      strip.style.transform = `translateX(${targetX * eased}px)`;
-      if (t < 1) requestAnimationFrame(tick);
-      else {
-        strip.style.transform = `translateX(${targetX}px)`;
-        strip.children[CASE_WINNER_IDX].classList.add('case-item-winner');
-        setTimeout(() => { els.spinCase.hidden = true; resolve(); }, 1400);
+      function tick(now) {
+        if (spinCancel) { timers.forEach(clearTimeout); resolve(); return; }
+        const elapsed = now - start;
+        const t = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - t, 4);
+        strip.style.transform = `translateX(${targetX * eased}px)`;
+        if (t < 1) requestAnimationFrame(tick);
+        else {
+          strip.style.transform = `translateX(${targetX}px)`;
+          strip.children[CASE_WINNER_IDX].classList.add('case-item-winner');
+          wait(1400).then(() => { els.spinCase.hidden = true; resolve(); });
+        }
       }
-    }
-    requestAnimationFrame(tick);
+      requestAnimationFrame(tick);
+    })();
   });
 }
 
-async function shuffleCardsWithFlip(grid) { return new Promise((resolve) => { const cards = Array.from(grid.children); const firstRects = new Map(); cards.forEach((c) => firstRects.set(c, c.getBoundingClientRect())); const shuffled = [...cards].sort(() => Math.random() - 0.5); shuffled.forEach((c) => grid.appendChild(c)); shuffled.forEach((c) => { const first = firstRects.get(c); const last = c.getBoundingClientRect(); const dx = first.left - last.left; const dy = first.top - last.top; if (dx || dy) c.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'translate(0, 0)' }], { duration: 320, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' }); }); setTimeout(resolve, 360); }); }
-
-function playCards(pool, riggedLogin = null) { 
-  return new Promise((resolve) => { 
-    els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = false; els.spinWheel.hidden = true; els.spinBingo.hidden = true; els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true; 
-    const grid = els.cardsGrid; grid.innerHTML = ''; 
-    const shuffled = [...pool].sort(() => Math.random() - 0.5).slice(0, Math.min(10, pool.length)); 
-    const cardData = shuffled.map((login) => { 
-      const name = state.users.get(login) || login; const card = document.createElement('div'); card.className = 'pick-card'; card.dataset.login = login; 
-      const front = document.createElement('div'); front.className = 'pick-card-face pick-card-front'; 
-      const back = document.createElement('div'); back.className = 'pick-card-face pick-card-back'; 
-      const avatar = document.createElement('div'); avatar.className = 'pick-card-avatar'; avatar.style.background = avatarGradient(login); avatar.textContent = (name || '?').charAt(0).toUpperCase(); 
-      const nameEl = document.createElement('div'); nameEl.className = 'pick-card-name'; nameEl.textContent = name; 
-      back.appendChild(avatar); back.appendChild(nameEl); card.appendChild(front); card.appendChild(back); card.classList.add('pick-card-flipped'); grid.appendChild(card); 
-      return { card, login }; 
-    }); 
-    let picked = null; 
-    const clickHandler = (e) => { 
-      if (picked) return; 
-      const card = e.target.closest('.pick-card'); 
-      if (!card) return; 
-      let finalCard = card;
-      if (riggedLogin) {
-        const riggedCardData = cardData.find(c => c.login === riggedLogin);
-        if (riggedCardData) finalCard = riggedCardData.card;
-      }
-      picked = finalCard; 
-      cardData.forEach(({ card: c }) => { c.removeEventListener('click', clickHandler); c.dataset.clickable = 'false'; }); 
-      picked.classList.add('pick-card-flipped'); picked.classList.add('pick-card-winner'); 
-      setTimeout(() => { cardsCancelFn = null; resolve(picked.dataset.login); }, 900); 
-    }; 
-    cardsCancelFn = () => { cardData.forEach(({ card }) => card.removeEventListener('click', clickHandler)); cardsCancelFn = null; resolve(null); }; 
-    (async () => { 
-      await sleep(1500); 
-      if (spinCancel || picked) return; 
-      cardData.forEach(({ card }) => card.classList.remove('pick-card-flipped')); 
-      await sleep(450); 
-      if (spinCancel) return; 
-      for (let i = 0; i < 3; i++) { if (spinCancel) return; await shuffleCardsWithFlip(grid); await sleep(80); } 
-      if (spinCancel) return; 
-      cardData.forEach(({ card }) => { card.dataset.clickable = 'true'; card.addEventListener('click', clickHandler); }); 
-    })(); 
-  }); 
-}
-
-function playWheel(pool, winnerLogin, winnerName) { return new Promise((resolve) => { els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = false; els.spinBingo.hidden = true; els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true; let wheelLogins = pool.length <= 12 ? [...pool] : pool.filter(l => l !== winnerLogin).slice(0, 11).concat([winnerLogin]); for (let i = wheelLogins.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [wheelLogins[i], wheelLogins[j]] = [wheelLogins[j], wheelLogins[i]]; } const N = wheelLogins.length; const segAngle = 360 / N; const winnerIdx = wheelLogins.indexOf(winnerLogin); const svgNS = 'http://www.w3.org/2000/svg'; const g = els.wheelRotating; g.innerHTML = ''; const c1 = getComputedStyle(document.documentElement).getPropertyValue('--bg-tertiary').trim() || '#3c1a1a'; const c2 = getComputedStyle(document.documentElement).getPropertyValue('--bg-elevated').trim() || '#4d2222'; const c3 = getComputedStyle(document.documentElement).getPropertyValue('--bg-secondary').trim() || '#260f0f'; const themeColors = [c1, c2, c3]; for (let i = 0; i < N; i++) { const startAngle = -90 + i * segAngle; const endAngle = -90 + (i + 1) * segAngle; const midAngle = (startAngle + endAngle) / 2; const startRad = startAngle * Math.PI / 180; const endRad = endAngle * Math.PI / 180; const path = document.createElementNS(svgNS, 'path'); path.setAttribute('d', `M 0 0 L ${Math.cos(startRad) * 140} ${Math.sin(startRad) * 140} A 140 140 0 ${segAngle > 180 ? 1 : 0} 1 ${Math.cos(endRad) * 140} ${Math.sin(endRad) * 140} Z`); path.setAttribute('fill', themeColors[i % themeColors.length]); path.setAttribute('stroke', getComputedStyle(document.documentElement).getPropertyValue('--border').trim() || '#5c2828'); path.setAttribute('stroke-width', '1.5'); g.appendChild(path); const midRad = midAngle * Math.PI / 180; const name = state.users.get(wheelLogins[i]) || wheelLogins[i]; const display = name.length > 11 ? name.slice(0, 10) + '…' : name; const text = document.createElementNS(svgNS, 'text'); text.setAttribute('text-anchor', 'start'); text.setAttribute('dominant-baseline', 'middle'); text.setAttribute('fill', '#f2e6e6'); text.setAttribute('font-size', display.length > 9 ? '9' : (display.length > 7 ? '10' : '11')); text.setAttribute('font-weight', '700'); text.setAttribute('transform', `translate(${Math.cos(midRad) * 40} ${Math.sin(midRad) * 40}) rotate(${midAngle})`); text.textContent = display; g.appendChild(text); } const targetRotation = 360 * 5 - (winnerIdx + 0.5) * segAngle; g.style.transition = 'none'; g.style.transform = 'rotate(0deg)'; void g.getBoundingClientRect(); const duration = 4200; const start = performance.now(); function tick(now) { if (spinCancel) { resolve(); return; } const elapsed = now - start; const t = Math.min(elapsed / duration, 1); const eased = 1 - Math.pow(1 - t, 4); g.style.transform = `rotate(${targetRotation * eased}deg)`; if (t < 1) requestAnimationFrame(tick); else { g.style.transform = `rotate(${targetRotation}deg)`; setTimeout(() => { els.spinWheel.hidden = true; resolve(); }, 900); } } requestAnimationFrame(tick); }); }
+function playWheel(pool, winnerLogin, winnerName) { return new Promise((resolve) => { els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = false; els.spinBingo.hidden = true; els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true; let wheelLogins = pool.length <= 12 ? [...pool] : pool.filter(l => l !== winnerLogin).slice(0, 11).concat([winnerLogin]); for (let i = wheelLogins.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [wheelLogins[i], wheelLogins[j]] = [wheelLogins[j], wheelLogins[i]]; } const N = wheelLogins.length; const segAngle = 360 / N; const winnerIdx = wheelLogins.indexOf(winnerLogin); const svgNS = 'http://www.w3.org/2000/svg'; const g = els.wheelRotating; g.innerHTML = ''; const c1 = getComputedStyle(document.documentElement).getPropertyValue('--bg-tertiary').trim() || '#3c1a1a'; const c2 = getComputedStyle(document.documentElement).getPropertyValue('--bg-elevated').trim() || '#4d2222'; const c3 = getComputedStyle(document.documentElement).getPropertyValue('--bg-secondary').trim() || '#260f0f'; const themeColors = [c1, c2, c3]; for (let i = 0; i < N; i++) { const startAngle = -90 + i * segAngle; const endAngle = -90 + (i + 1) * segAngle; const midAngle = (startAngle + endAngle) / 2; const startRad = startAngle * Math.PI / 180; const endRad = endAngle * Math.PI / 180; const path = document.createElementNS(svgNS, 'path'); path.setAttribute('d', `M 0 0 L ${Math.cos(startRad) * 140} ${Math.sin(startRad) * 140} A 140 140 0 ${segAngle > 180 ? 1 : 0} 1 ${Math.cos(endRad) * 140} ${Math.sin(endRad) * 140} Z`); path.setAttribute('fill', themeColors[i % themeColors.length]); path.setAttribute('stroke', getComputedStyle(document.documentElement).getPropertyValue('--border').trim() || '#5c2828'); path.setAttribute('stroke-width', '1.5'); g.appendChild(path); const midRad = midAngle * Math.PI / 180; const name = state.users.get(wheelLogins[i]) || wheelLogins[i]; const display = name.length > 11 ? name.slice(0, 10) + '…' : name; const text = document.createElementNS(svgNS, 'text'); text.setAttribute('text-anchor', 'start'); text.setAttribute('dominant-baseline', 'middle'); text.setAttribute('fill', '#f2e6e6'); text.setAttribute('font-size', display.length > 9 ? '9' : (display.length > 7 ? '10' : '11')); text.setAttribute('font-weight', '700'); text.setAttribute('transform', `translate(${Math.cos(midRad) * 40} ${Math.sin(midRad) * 40}) rotate(${midAngle})`); text.textContent = display; g.appendChild(text); } const targetRotation = 360 * 5 - (winnerIdx + 0.5) * segAngle; g.style.transition = 'none'; g.style.transform = 'rotate(0deg)'; void g.getBoundingClientRect(); const duration = 4200; const start = performance.now(); function tick(now) { if (spinCancel) { resolve(); return; } const elapsed = now - start; const t = Math.min(elapsed / duration, 1); const eased = 1 - Math.pow(1 - t, 4); g.style.transform = `rotate(${targetRotation * eased}deg)`; if (t < 1) requestAnimationFrame(tick); else { g.style.transform = `rotate(${targetRotation}deg)`; const winPath = g.children[winnerIdx * 2]; if (winPath) { winPath.setAttribute('stroke', '#ffd700'); winPath.setAttribute('stroke-width', '3'); winPath.style.filter = 'drop-shadow(0 0 10px #ffd700)'; } setTimeout(() => { els.spinWheel.hidden = true; resolve(); }, 1400); } } requestAnimationFrame(tick); }); }
 function playBingo(pool, winnerLogin, winnerName) { return new Promise((resolve) => { els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = false; els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true; const grid = els.bingoGrid; grid.innerHTML = ''; let bingoLogins = [...pool]; if (bingoLogins.length > 25) { bingoLogins = bingoLogins.slice(0, 25); if (!bingoLogins.includes(winnerLogin)) bingoLogins[24] = winnerLogin; } else if (bingoLogins.length < 25) { while (bingoLogins.length < 25) bingoLogins.push(bingoLogins[Math.floor(Math.random() * bingoLogins.length)] || winnerLogin); } for (let i = bingoLogins.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [bingoLogins[i], bingoLogins[j]] = [bingoLogins[j], bingoLogins[i]]; } const cells = []; bingoLogins.forEach((login) => { const name = state.users.get(login) || login; const cell = document.createElement('div'); cell.className = 'bingo-cell'; const avatar = document.createElement('div'); avatar.className = 'bingo-avatar'; avatar.style.background = avatarGradient(login); avatar.textContent = (name || '?').charAt(0).toUpperCase(); const nameEl = document.createElement('div'); nameEl.className = 'bingo-name'; nameEl.textContent = name; cell.appendChild(avatar); cell.appendChild(nameEl); grid.appendChild(cell); cells.push({ el: cell, login }); }); const toCross = cells.filter(c => c.login !== winnerLogin); for (let i = toCross.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [toCross[i], toCross[j]] = [toCross[j], toCross[i]]; } let index = 0; const interval = 400; function crossNext() { if (spinCancel) { resolve(); return; } if (index < toCross.length) { toCross[index].el.classList.add('crossed'); index++; setTimeout(crossNext, interval); } else { const winnerCell = cells.find(c => c.login === winnerLogin); if (winnerCell) winnerCell.el.classList.add('winner'); setTimeout(() => { els.spinBingo.hidden = true; resolve(); }, 1500); } } setTimeout(crossNext, 500); }); }
 async function playHotPotato(pool, winnerLogin, winnerName) {
   els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true;
