@@ -509,11 +509,14 @@ function addMessage(login, displayName, text) {
   state.users.set(login, displayName); if (!state.messages.has(login)) state.messages.set(login, []);
   state.messages.get(login).push({ text, time });
   if (state.bombActive) handleBombGuess(login, displayName, text);
+
   const keyword = state.keyword.trim().toLowerCase();
-  if (keyword && text.trim().toLowerCase() === keyword && !state.collectedUsers.has(login)) {
+  const matchesKeyword = keyword === '' || text.trim().toLowerCase() === keyword;
+  if (matchesKeyword && !state.collectedUsers.has(login)) {
     state.collectedUsers.add(login); state.orderedParticipants.push(login);
     renderParticipant(login, displayName, true); updateParticipantCount(); updatePickWinnerButton();
   }
+
   if (state.currentWinner === login && els.modal.classList.contains('active') && !state.isSpinning) {
     appendWinnerMessage({ text, time }, true);
     if (!state.winnerHasResponded) { state.winnerHasResponded = true; stopWinnerTimer(); }
@@ -1606,9 +1609,6 @@ function init() {
   initPanelLayout();
   updateCommitButton(); updateTopModeButton(); updateSortWinnersButton();
   renderWinnersHistory(); updateParticipantCount();
-
-  els.keywordInput.value = 'nrg';
-  state.keyword = 'nrg';
 
   if (els.participantsSearch) {
     els.participantsSearch.addEventListener('input', applyParticipantFilter);
