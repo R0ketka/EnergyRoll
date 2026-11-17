@@ -14,8 +14,8 @@ const state = {
 };
 
 const SITES = [
-  { id: 'magicdrop', name: 'Magic Drop' }, { id: 'ninjacase', name: 'NinjaCase' },
-  { id: 'zavod', name: 'Zavod' }, { id: 'downgrader', name: 'Downgrader' }, { id: 'cshappy', name: 'CShappy' }
+  { id: 'magicdrop', name: 'Magic Drop' }, { id: 'ninjacase', name: 'Ninja Case' },
+  { id: 'zavod', name: 'Zavod Drop' }, { id: 'downgrader', name: 'Downgrader' }, { id: 'cshappy', name: 'CS Happy' }
 ];
 
 const SITE_ICONS = {
