@@ -48,7 +48,7 @@ const els = {
   modalSpin: document.getElementById('modal-spin'), spinRoulette: document.getElementById('spin-roulette'),
   spinRouletteName: document.getElementById('spin-roulette-name'), spinDrum: document.getElementById('spin-drum'),
   drumStrip: document.getElementById('drum-strip'), spinCase: document.getElementById('spin-case'),
-  caseContainer: document.getElementById('case-container'), caseStrip: document.getElementById('case-strip'),
+  case3d: document.getElementById('case-3d'), caseStripArea: document.getElementById('case-strip-area'), caseStrip: document.getElementById('case-strip'),
   spinCards: document.getElementById('spin-cards'), cardsGrid: document.getElementById('cards-grid'),
   spinWheel: document.getElementById('spin-wheel'), wheelRotating: document.getElementById('wheel-rotating'),
   spinBingo: document.getElementById('spin-bingo'), bingoGrid: document.getElementById('bingo-grid'),
@@ -603,8 +603,103 @@ function playRoulette(displayName) { return new Promise((resolve) => { els.spinR
 const DRUM_ITEM_HEIGHT = 64; const DRUM_VISIBLE_ITEMS = 5; const DRUM_TOTAL_ITEMS = 50; const DRUM_WINNER_INDEX = 22; const DRUM_DURATION = 3800;
 function createDrumItem(login, name) { const item = document.createElement('div'); item.className = 'drum-item'; const avatar = document.createElement('div'); avatar.className = 'drum-avatar'; avatar.style.background = avatarGradient(login); avatar.textContent = (name || '?').charAt(0).toUpperCase(); const nameEl = document.createElement('div'); nameEl.className = 'drum-name'; nameEl.textContent = name; item.appendChild(avatar); item.appendChild(nameEl); return item; }
 function playDrum(winnerLogin, winnerName) { return new Promise((resolve) => { els.spinRoulette.hidden = true; els.spinDrum.hidden = false; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true; els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true; const strip = els.drumStrip; strip.innerHTML = ''; strip.style.transform = 'translateY(0)'; for (let i = 0; i < DRUM_TOTAL_ITEMS; i++) { let login, name; if (i === DRUM_WINNER_INDEX) { login = winnerLogin; name = winnerName; } else { login = randomParticipantLogin(); name = state.users.get(login) || login; } strip.appendChild(createDrumItem(login, name)); } void strip.offsetHeight; const centerIndex = Math.floor(DRUM_VISIBLE_ITEMS / 2); const targetTranslate = -(DRUM_WINNER_INDEX - centerIndex) * DRUM_ITEM_HEIGHT; const start = performance.now(); const tick = (now) => { if (spinCancel) { resolve(); return; } const elapsed = now - start; const t = Math.min(elapsed / DRUM_DURATION, 1); const eased = 1 - Math.pow(1 - t, 3); strip.style.transform = `translateY(${targetTranslate * eased}px)`; if (t < 1) requestAnimationFrame(tick); else { strip.style.transform = `translateY(${targetTranslate}px)`; setTimeout(() => { els.spinDrum.hidden = true; resolve(); }, 700); } }; requestAnimationFrame(tick); }); }
-const CASE_ITEM_WIDTH = 120; const CASE_ITEM_GAP = 8; const CASE_TOTAL_ITEMS = 40; const CASE_WINNER_IDX = 25; const CASE_DURATION = 3600;
-function playCase(winnerLogin, winnerName) { return new Promise((resolve) => { els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = false; els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true; els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true; const strip = els.caseStrip; strip.innerHTML = ''; strip.style.transform = 'translateX(0)'; const rarities = ['common', 'uncommon', 'rare', 'epic']; for (let i = 0; i < CASE_TOTAL_ITEMS; i++) { let login, name, rarity; if (i === CASE_WINNER_IDX) { login = winnerLogin; name = winnerName; rarity = 'legendary'; } else { login = randomParticipantLogin(); name = state.users.get(login) || login; rarity = rarities[Math.floor(Math.random() * rarities.length)]; } const item = document.createElement('div'); item.className = 'case-item case-rarity-' + rarity; const avatar = document.createElement('div'); avatar.className = 'case-avatar'; avatar.style.background = avatarGradient(login); avatar.textContent = (name || '?').charAt(0).toUpperCase(); const nameEl = document.createElement('div'); nameEl.className = 'case-name'; nameEl.textContent = name; item.appendChild(avatar); item.appendChild(nameEl); strip.appendChild(item); } void strip.offsetHeight; const containerWidth = els.caseContainer.clientWidth; const targetX = containerWidth / 2 - CASE_ITEM_WIDTH / 2 - (CASE_WINNER_IDX * (CASE_ITEM_WIDTH + CASE_ITEM_GAP)); const start = performance.now(); function tick(now) { if (spinCancel) { resolve(); return; } const elapsed = now - start; const t = Math.min(elapsed / CASE_DURATION, 1); const eased = 1 - Math.pow(1 - t, 4); strip.style.transform = `translateX(${targetX * eased}px)`; if (t < 1) requestAnimationFrame(tick); else { strip.style.transform = `translateX(${targetX}px)`; strip.children[CASE_WINNER_IDX].classList.add('case-item-winner'); setTimeout(() => { els.spinCase.hidden = true; resolve(); }, 900); } } requestAnimationFrame(tick); }); }
+
+const CASE_ITEM_WIDTH = 100; const CASE_ITEM_GAP = 8; const CASE_TOTAL_ITEMS = 40; const CASE_WINNER_IDX = 25;
+
+async function playCase(winnerLogin, winnerName) {
+  els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = false;
+  els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true;
+  els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true;
+
+  await sleep(50);
+
+  const case3d = els.case3d;
+  const stripArea = els.caseStripArea;
+  const strip = els.caseStrip;
+  if (!case3d || !stripArea || !strip) { els.spinCase.hidden = true; return; }
+
+  case3d.classList.remove('dropped', 'opened', 'dimmed', 'impact');
+  stripArea.classList.remove('visible');
+  stripArea.hidden = true;
+  strip.innerHTML = '';
+  strip.style.transform = 'translateX(0)';
+
+  await sleep(30);
+  if (spinCancel) { els.spinCase.hidden = true; return; }
+
+  return new Promise(async (resolve) => {
+    if (spinCancel) { resolve(); return; }
+
+    case3d.classList.add('dropped');
+    await sleep(900);
+    if (spinCancel) { resolve(); return; }
+
+    case3d.classList.add('impact');
+    await sleep(420);
+    case3d.classList.remove('impact');
+    if (spinCancel) { resolve(); return; }
+
+    case3d.classList.add('opened');
+    await sleep(1000);
+    if (spinCancel) { resolve(); return; }
+
+    case3d.classList.add('dimmed');
+    await sleep(520);
+    if (spinCancel) { resolve(); return; }
+
+    const rarities = ['common', 'uncommon', 'rare', 'epic'];
+    for (let i = 0; i < CASE_TOTAL_ITEMS; i++) {
+      let login, name, rarity;
+      if (i === CASE_WINNER_IDX) { login = winnerLogin; name = winnerName; rarity = 'legendary'; }
+      else {
+        login = randomParticipantLogin();
+        name = state.users.get(login) || login;
+        rarity = rarities[Math.floor(Math.random() * rarities.length)];
+      }
+      const item = document.createElement('div');
+      item.className = 'case-item case-rarity-' + rarity;
+      const avatar = document.createElement('div');
+      avatar.className = 'case-avatar';
+      avatar.style.background = avatarGradient(login);
+      avatar.textContent = (name || '?').charAt(0).toUpperCase();
+      const nameEl = document.createElement('div');
+      nameEl.className = 'case-name';
+      nameEl.textContent = name;
+      item.appendChild(avatar);
+      item.appendChild(nameEl);
+      strip.appendChild(item);
+    }
+
+    void strip.offsetHeight;
+
+    stripArea.hidden = false;
+    await sleep(30);
+    stripArea.classList.add('visible');
+    await sleep(420);
+    if (spinCancel) { resolve(); return; }
+
+    const containerWidth = stripArea.clientWidth;
+    const targetX = containerWidth / 2 - CASE_ITEM_WIDTH / 2 - (CASE_WINNER_IDX * (CASE_ITEM_WIDTH + CASE_ITEM_GAP));
+    const duration = 3600;
+    const start = performance.now();
+
+    function tick(now) {
+      if (spinCancel) { resolve(); return; }
+      const elapsed = now - start;
+      const t = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - t, 4);
+      strip.style.transform = `translateX(${targetX * eased}px)`;
+      if (t < 1) requestAnimationFrame(tick);
+      else {
+        strip.style.transform = `translateX(${targetX}px)`;
+        strip.children[CASE_WINNER_IDX].classList.add('case-item-winner');
+        setTimeout(() => { els.spinCase.hidden = true; resolve(); }, 1400);
+      }
+    }
+    requestAnimationFrame(tick);
+  });
+}
+
 async function shuffleCardsWithFlip(grid) { return new Promise((resolve) => { const cards = Array.from(grid.children); const firstRects = new Map(); cards.forEach((c) => firstRects.set(c, c.getBoundingClientRect())); const shuffled = [...cards].sort(() => Math.random() - 0.5); shuffled.forEach((c) => grid.appendChild(c)); shuffled.forEach((c) => { const first = firstRects.get(c); const last = c.getBoundingClientRect(); const dx = first.left - last.left; const dy = first.top - last.top; if (dx || dy) c.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'translate(0, 0)' }], { duration: 320, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' }); }); setTimeout(resolve, 360); }); }
 
 function playCards(pool, riggedLogin = null) { 
@@ -1266,7 +1361,6 @@ function handleBombGuess(login, displayName, text) {
   const guess = digits.split('').map(Number);
   state.bombParticipants.add(login);
 
-  // 1) Сначала вычисляем, какие цифры В ПРИНЦИПЕ могли бы открыться (не мутируем state)
   let allCorrect = true;
   const candidates = [];
   for (let i = 0; i < 7; i++) {
@@ -1277,7 +1371,6 @@ function handleBombGuess(login, displayName, text) {
     }
   }
 
-  // 2) Полная победа — единственный случай, когда открываются все 7
   if (allCorrect) {
     state.bombActive = false; state.bombWinLogin = login;
     for (let i = 0; i < 7; i++) state.bombRevealed[i] = true;
@@ -1290,7 +1383,6 @@ function handleBombGuess(login, displayName, text) {
     return;
   }
 
-  // 3) Не победа — открываем максимум до 6 из 7
   if (candidates.length > 0) {
     const currentCount = state.bombRevealed.filter(Boolean).length;
     const maxCanOpen = Math.max(0, 6 - currentCount);
