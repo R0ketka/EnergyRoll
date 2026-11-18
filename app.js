@@ -605,7 +605,7 @@ function createDrumItem(login, name) { const item = document.createElement('div'
 function playDrum(winnerLogin, winnerName) { return new Promise((resolve) => { els.spinRoulette.hidden = true; els.spinDrum.hidden = false; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true; els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true; const strip = els.drumStrip; strip.innerHTML = ''; strip.style.transform = 'translateY(0)'; for (let i = 0; i < DRUM_TOTAL_ITEMS; i++) { let login, name; if (i === DRUM_WINNER_INDEX) { login = winnerLogin; name = winnerName; } else { login = randomParticipantLogin(); name = state.users.get(login) || login; } strip.appendChild(createDrumItem(login, name)); } void strip.offsetHeight; const centerIndex = Math.floor(DRUM_VISIBLE_ITEMS / 2); const targetTranslate = -(DRUM_WINNER_INDEX - centerIndex) * DRUM_ITEM_HEIGHT; const start = performance.now(); const tick = (now) => { if (spinCancel) { resolve(); return; } const elapsed = now - start; const t = Math.min(elapsed / DRUM_DURATION, 1); const eased = 1 - Math.pow(1 - t, 3); strip.style.transform = `translateY(${targetTranslate * eased}px)`; if (t < 1) requestAnimationFrame(tick); else { strip.style.transform = `translateY(${targetTranslate}px)`; setTimeout(() => { els.spinDrum.hidden = true; resolve(); }, 700); } }; requestAnimationFrame(tick); }); }
 
 /* === CASE CS2 === */
-const CASE_ITEM_WIDTH = 100; const CASE_ITEM_GAP = 8; const CASE_TOTAL_ITEMS = 40; const CASE_WINNER_IDX = 25;
+const CASE_ITEM_WIDTH = 110; const CASE_ITEM_GAP = 8; const CASE_TOTAL_ITEMS = 100; const CASE_WINNER_IDX = 78;
 
 async function playCase(winnerLogin, winnerName) {
   els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = false;
@@ -630,19 +630,24 @@ async function playCase(winnerLogin, winnerName) {
   return new Promise((resolve) => {
     const timers = [];
     const wait = (ms) => new Promise((r) => { const t = setTimeout(r, ms); timers.push(t); });
+    const cleanup = () => timers.forEach(clearTimeout);
 
     (async () => {
-      await wait(1000);
-      if (spinCancel) { timers.forEach(clearTimeout); resolve(); return; }
+      // 1. Кейс падает (~1.2s)
+      await wait(1200);
+      if (spinCancel) { cleanup(); resolve(); return; }
 
+      // 2. Крышка открывается
       case3d.classList.add('opened');
-      await wait(950);
-      if (spinCancel) { timers.forEach(clearTimeout); resolve(); return; }
+      await wait(1100);
+      if (spinCancel) { cleanup(); resolve(); return; }
 
+      // 3. Кейс мутнеет
       case3d.classList.add('dimmed');
       await wait(700);
-      if (spinCancel) { timers.forEach(clearTimeout); resolve(); return; }
+      if (spinCancel) { cleanup(); resolve(); return; }
 
+      // 4. Заполняем длинную ленту
       const rarities = ['common', 'uncommon', 'rare', 'epic'];
       for (let i = 0; i < CASE_TOTAL_ITEMS; i++) {
         let login, name, rarity;
@@ -668,28 +673,30 @@ async function playCase(winnerLogin, winnerName) {
 
       void strip.offsetHeight;
 
+      // 5. Показываем ленту
       stripArea.hidden = false;
       await wait(30);
       stripArea.classList.add('visible');
       await wait(450);
-      if (spinCancel) { timers.forEach(clearTimeout); resolve(); return; }
+      if (spinCancel) { cleanup(); resolve(); return; }
 
+      // 6. Прокрут: 8 секунд, quintic ease-out — длинный хвост замедления
       const containerWidth = stripArea.clientWidth;
       const targetX = containerWidth / 2 - CASE_ITEM_WIDTH / 2 - (CASE_WINNER_IDX * (CASE_ITEM_WIDTH + CASE_ITEM_GAP));
-      const duration = 3600;
+      const duration = 8000;
       const start = performance.now();
 
       function tick(now) {
-        if (spinCancel) { timers.forEach(clearTimeout); resolve(); return; }
+        if (spinCancel) { cleanup(); resolve(); return; }
         const elapsed = now - start;
         const t = Math.min(elapsed / duration, 1);
-        const eased = 1 - Math.pow(1 - t, 4);
+        const eased = 1 - Math.pow(1 - t, 5);
         strip.style.transform = `translateX(${targetX * eased}px)`;
         if (t < 1) requestAnimationFrame(tick);
         else {
           strip.style.transform = `translateX(${targetX}px)`;
           strip.children[CASE_WINNER_IDX].classList.add('case-item-winner');
-          wait(1400).then(() => { els.spinCase.hidden = true; resolve(); });
+          wait(1600).then(() => { els.spinCase.hidden = true; resolve(); });
         }
       }
       requestAnimationFrame(tick);
