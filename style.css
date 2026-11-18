@@ -687,9 +687,9 @@ main {
 .case-scene {
   position: relative;
   width: 100%;
-  height: 520px;
-  perspective: 1800px;
-  perspective-origin: 50% 50%;
+  height: 560px;
+  perspective: 1600px;
+  perspective-origin: 50% 35%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -698,83 +698,123 @@ main {
 
 .case-3d {
   position: relative;
-  width: 320px;
-  height: 210px;
+  width: 400px;
+  height: 280px;
   transform-style: preserve-3d;
-  transform: rotateX(78deg);
+  transform: rotateX(52deg);
   animation: caseDrop 1.2s cubic-bezier(0.34, 1.4, 0.64, 1) forwards;
   z-index: 2;
 }
 
 @keyframes caseDrop {
-  0%   { transform: translateY(-700px) rotateX(92deg) scale(0.4); opacity: 0; }
-  55%  { transform: translateY(10px) rotateX(74deg) scale(1.03); opacity: 1; }
-  100% { transform: translateY(0) rotateX(78deg) scale(1); opacity: 1; }
+  0%   { transform: translateY(-700px) rotateX(70deg) scale(0.4); opacity: 0; }
+  55%  { transform: translateY(10px) rotateX(48deg) scale(1.03); opacity: 1; }
+  100% { transform: translateY(0) rotateX(52deg) scale(1); opacity: 1; }
 }
 
 .case-3d.dimmed {
   animation: caseDim 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 @keyframes caseDim {
-  from { transform: translateY(0) rotateX(78deg) scale(1); opacity: 1; filter: blur(0); }
-  to   { transform: translateY(-50px) rotateX(60deg) scale(0.5); opacity: 0.12; filter: blur(10px); }
+  from { transform: translateY(0) rotateX(52deg) scale(1); opacity: 1; filter: blur(0); }
+  to   { transform: translateY(-60px) rotateX(35deg) scale(0.5); opacity: 0.12; filter: blur(10px); }
 }
 
-/* === КОРПУС (виден, когда крышка открыта) === */
+/* === КОРПУС (нижняя часть, золото) === */
 .case-base {
   position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, #4a4a4a 0%, #2e2e2e 45%, #1a1a1a 100%);
-  border: 2px solid #050505;
-  border-radius: 6px;
+  top: 70px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(180deg,
+    #e6be4a 0%,
+    #c89638 30%,
+    #a67c2d 60%,
+    #7a5420 100%);
+  border: 2px solid #3a2410;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
   box-shadow:
-    inset 0 3px 6px rgba(255,255,255,0.1),
-    inset 0 -5px 12px rgba(0,0,0,0.9),
-    0 18px 40px rgba(0,0,0,0.75);
+    inset 0 4px 8px rgba(255,220,140,0.35),
+    inset 0 -8px 16px rgba(0,0,0,0.6),
+    inset 6px 0 12px rgba(0,0,0,0.25),
+    inset -6px 0 12px rgba(0,0,0,0.25),
+    0 22px 50px rgba(0,0,0,0.85),
+    0 0 50px rgba(230,56,88,0.15);
+  overflow: hidden;
 }
 
-/* Внутренний бархат внутри корпуса */
+/* Гравировка / декоративные полосы на корпусе */
 .case-base::before {
   content: '';
   position: absolute;
-  inset: 14px;
+  inset: 12px 60px;
   background:
-    repeating-linear-gradient(90deg, rgba(0,0,0,0.15) 0 1px, transparent 1px 40px),
-    repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0 1px, transparent 1px 40px),
-    radial-gradient(ellipse at 50% 45%, #3a1420 0%, #1a0610 55%, #0a0208 100%);
+    linear-gradient(180deg, rgba(0,0,0,0.2) 0%, transparent 8%, transparent 92%, rgba(0,0,0,0.3) 100%),
+    linear-gradient(90deg, rgba(255,255,255,0.1) 0%, transparent 5%, transparent 95%, rgba(0,0,0,0.2) 100%);
+  border: 1px solid rgba(0,0,0,0.4);
   border-radius: 4px;
-  border: 1px solid rgba(0,0,0,0.7);
   box-shadow:
-    inset 0 0 30px rgba(0,0,0,0.95),
-    inset 0 0 0 2px rgba(80,20,40,0.3);
+    inset 0 0 0 1px rgba(255,220,140,0.15),
+    inset 0 0 20px rgba(0,0,0,0.2);
+  pointer-events: none;
+  z-index: 2;
 }
 
-/* Болты в углах корпуса */
+/* Гравировка CS2 на корпусе */
 .case-base::after {
-  content: '';
+  content: 'CS2';
   position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at 8px 8px, #5a5a5a 0, #5a5a5a 2px, #2a2a2a 3px, transparent 4px),
-    radial-gradient(circle at calc(100% - 8px) 8px, #5a5a5a 0, #5a5a5a 2px, #2a2a2a 3px, transparent 4px),
-    radial-gradient(circle at 8px calc(100% - 8px), #5a5a5a 0, #5a5a5a 2px, #2a2a2a 3px, transparent 4px),
-    radial-gradient(circle at calc(100% - 8px) calc(100% - 8px), #5a5a5a 0, #5a5a5a 2px, #2a2a2a 3px, transparent 4px);
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Arial Black', Impact, sans-serif;
+  font-size: 32px;
+  font-weight: 900;
+  letter-spacing: 6px;
+  color: rgba(60, 40, 10, 0.75);
+  text-shadow:
+    0 -1px 0 rgba(255,220,140,0.35),
+    0 2px 3px rgba(0,0,0,0.6);
   pointer-events: none;
   z-index: 3;
 }
 
+/* Болты в углах корпуса */
+.case-base .case-bolt {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: radial-gradient(circle at 35% 35%, #c0c0c0, #4a4a4a 70%, #1a1a1a);
+  border-radius: 50%;
+  box-shadow:
+    0 1px 2px rgba(0,0,0,0.8),
+    inset 0 1px 0 rgba(255,255,255,0.4);
+  z-index: 4;
+}
+.case-bolt-tl { top: 14px; left: 14px; }
+.case-bolt-tr { top: 14px; right: 14px; }
+.case-bolt-bl { bottom: 14px; left: 14px; }
+.case-bolt-br { bottom: 14px; right: 14px; }
+
 /* Боковые металлические рейки */
 .case-strap {
   position: absolute;
-  top: 14px;
-  bottom: 14px;
-  width: 10px;
-  background: linear-gradient(90deg, #0a0a0a 0%, #4a4a4a 50%, #0a0a0a 100%);
+  top: 0;
+  bottom: 0;
+  width: 14px;
+  background: linear-gradient(90deg,
+    #0a0a0a 0%,
+    #4a4a4a 25%,
+    #6a6a6a 50%,
+    #4a4a4a 75%,
+    #0a0a0a 100%);
   border-radius: 2px;
   box-shadow:
-    inset 0 0 3px rgba(255,255,255,0.2),
-    0 0 6px rgba(0,0,0,0.9);
-  z-index: 3;
+    inset 0 0 4px rgba(255,255,255,0.25),
+    0 0 8px rgba(0,0,0,0.9);
+  z-index: 4;
 }
 .strap-left  { left: 8px; }
 .strap-right { right: 8px; }
@@ -782,16 +822,16 @@ main {
 /* Защёлки по фронту */
 .case-buckle {
   position: absolute;
-  bottom: -9px;
-  width: 36px;
-  height: 26px;
-  background: linear-gradient(180deg, #6a6a6a 0%, #3a3a3a 50%, #1a1a1a 100%);
-  border: 2px solid #000;
-  border-radius: 4px;
+  bottom: -12px;
+  width: 42px;
+  height: 30px;
+  background: linear-gradient(180deg, #c8b060 0%, #8a6a2a 55%, #4a3410 100%);
+  border: 2px solid #1a1004;
+  border-radius: 5px;
   box-shadow:
-    0 4px 10px rgba(0,0,0,0.85),
-    inset 0 2px 0 rgba(255,255,255,0.3),
-    inset 0 -2px 0 rgba(0,0,0,0.4);
+    0 5px 12px rgba(0,0,0,0.85),
+    inset 0 2px 0 rgba(255,240,180,0.5),
+    inset 0 -2px 0 rgba(0,0,0,0.5);
   z-index: 10;
 }
 .case-buckle::before {
@@ -800,57 +840,71 @@ main {
   top: 5px;
   left: 50%;
   transform: translateX(-50%);
-  width: 22px;
-  height: 5px;
+  width: 26px;
+  height: 6px;
   background: #050505;
   border-radius: 2px;
-  box-shadow: inset 0 1px 2px rgba(0,0,0,1), 0 1px 0 rgba(255,255,255,0.15);
+  box-shadow:
+    inset 0 1px 2px rgba(0,0,0,1),
+    0 1px 0 rgba(255,255,255,0.25);
 }
 .case-buckle::after {
   content: '';
   position: absolute;
-  bottom: 4px;
+  bottom: 5px;
   left: 50%;
   transform: translateX(-50%);
-  width: 6px;
-  height: 6px;
-  background: radial-gradient(circle at 35% 35%, #aaa, #333);
+  width: 8px;
+  height: 8px;
+  background: radial-gradient(circle at 35% 35%, #d0d0d0, #444 70%, #1a1a1a);
   border-radius: 50%;
   box-shadow: 0 1px 2px rgba(0,0,0,0.9);
 }
-.buckle-left  { left: 32px; }
-.buckle-right { right: 32px; }
+.buckle-left  { left: 42px; }
+.buckle-right { right: 42px; }
 
-/* === КРЫШКА === */
+/* === КРЫШКА (верхняя часть, тоже золото) === */
 .case-lid {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 70px;
   transform-style: preserve-3d;
   transform-origin: 50% 100%;
   transform: translateZ(2px) rotateX(0deg);
   transition: transform 1.2s cubic-bezier(0.4, 1.1, 0.6, 1);
-  z-index: 5;
+  z-index: 6;
 }
 .case-3d.opened .case-lid {
   transform: translateZ(2px) rotateX(-115deg);
 }
 
-/* Внешняя сторона крышки */
+/* Внешняя сторона крышки (золотая с бликом и CS2-гравировкой) */
 .case-lid-inner {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.18) 0%, transparent 8%),
-    linear-gradient(180deg, #4a4a4a 0%, #2a2a2a 55%, #0a0a0a 100%);
-  border: 2px solid #000;
-  border-radius: 6px;
+    linear-gradient(180deg,
+      rgba(255,240,180,0.5) 0%,
+      rgba(255,220,140,0.15) 18%,
+      transparent 35%),
+    linear-gradient(180deg,
+      #e6be4a 0%,
+      #c89638 35%,
+      #a67c2d 70%,
+      #6a4820 100%);
+  border: 2px solid #3a2410;
+  border-radius: 8px 8px 0 0;
   box-shadow:
-    inset 0 2px 4px rgba(255,255,255,0.2),
-    inset 0 -3px 10px rgba(0,0,0,0.85),
-    0 4px 12px rgba(0,0,0,0.6);
+    inset 0 3px 0 rgba(255,240,180,0.55),
+    inset 0 -4px 10px rgba(0,0,0,0.55),
+    0 -4px 12px rgba(0,0,0,0.45);
   backface-visibility: hidden;
   overflow: hidden;
 }
+
+/* Гравировка CS2 на крышке */
 .case-lid-inner::before {
   content: 'CS2';
   position: absolute;
@@ -858,37 +912,58 @@ main {
   left: 50%;
   transform: translate(-50%, -50%);
   font-family: 'Arial Black', Impact, sans-serif;
-  font-size: 36px;
+  font-size: 40px;
   font-weight: 900;
-  letter-spacing: 5px;
-  color: rgba(90,90,90,0.6);
+  letter-spacing: 6px;
+  color: rgba(60, 40, 10, 0.75);
   text-shadow:
-    0 1px 0 rgba(150,150,150,0.4),
-    0 2px 4px rgba(0,0,0,0.9);
+    0 -1px 0 rgba(255,240,180,0.4),
+    0 2px 3px rgba(0,0,0,0.6);
 }
+
+/* Декоративная рамка на крышке */
 .case-lid-inner::after {
   content: '';
   position: absolute;
-  inset: 18px;
-  border: 1px solid rgba(0,0,0,0.6);
-  border-radius: 3px;
+  inset: 12px;
+  border: 1px solid rgba(60,40,10,0.5);
+  border-radius: 4px;
   box-shadow:
-    inset 0 0 0 1px rgba(255,255,255,0.04),
-    0 0 0 1px rgba(255,255,255,0.03);
+    inset 0 0 0 1px rgba(255,220,140,0.2),
+    0 0 0 1px rgba(255,220,140,0.1);
   pointer-events: none;
 }
 
-/* Внутренняя сторона крышки — бархат */
+/* Петли по заднему краю крышки */
+.case-lid::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: 20px;
+  right: 20px;
+  height: 8px;
+  background: repeating-linear-gradient(90deg,
+    transparent 0, transparent 6px,
+    #8a6528 6px, #8a6528 9px,
+    #4a2e0a 9px, #4a2e0a 28px,
+    #8a6528 28px, #8a6528 31px
+  );
+  border-radius: 4px 4px 0 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.7);
+  z-index: 7;
+}
+
+/* Внутренняя сторона крышки — бархат (виден при открытии) */
 .case-lid::before {
   content: '';
   position: absolute;
   inset: 0;
   background:
-    repeating-linear-gradient(90deg, rgba(0,0,0,0.15) 0 1px, transparent 1px 40px),
-    repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0 1px, transparent 1px 40px),
+    repeating-linear-gradient(90deg, rgba(0,0,0,0.18) 0 1px, transparent 1px 40px),
+    repeating-linear-gradient(0deg, rgba(0,0,0,0.18) 0 1px, transparent 1px 40px),
     radial-gradient(ellipse at 50% 45%, #3a1420 0%, #1a0610 55%, #0a0208 100%);
-  border: 2px solid #050505;
-  border-radius: 6px;
+  border: 2px solid #1a0e04;
+  border-radius: 8px 8px 0 0;
   box-shadow: inset 0 0 30px rgba(0,0,0,0.95);
   transform: rotateX(180deg);
   backface-visibility: hidden;
@@ -904,7 +979,7 @@ main {
   overflow: hidden;
   opacity: 0;
   transition: opacity 0.5s ease;
-  z-index: 6;
+  z-index: 8;
 }
 .case-strip-area.visible { opacity: 1; }
 
@@ -989,7 +1064,7 @@ main {
     var(--accent) 88%,
     transparent 100%);
   box-shadow: 0 0 12px var(--accent), 0 0 24px var(--accent);
-  z-index: 7;
+  z-index: 9;
   pointer-events: none;
 }
 .case-marker-line::before,
