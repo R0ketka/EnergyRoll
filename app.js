@@ -600,7 +600,7 @@ function initMinigames() {
 }
 function updateRouletteName(name) { els.spinRouletteName.textContent = name; els.spinRouletteName.title = name; const len = name.length; els.spinRouletteName.classList.toggle('spin-name-long', len > 12 && len <= 20); els.spinRouletteName.classList.toggle('spin-name-xlong', len > 20); }
 function playRoulette(displayName) { return new Promise((resolve) => { els.spinRoulette.hidden = false; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true; els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true; els.spinRouletteName.classList.remove('spin-name-final'); const duration = 2500; const start = performance.now(); const tick = () => { if (spinCancel) { resolve(); return; } const elapsed = performance.now() - start; if (elapsed >= duration) { updateRouletteName(displayName); els.spinRouletteName.classList.add('spin-name-final'); setTimeout(() => { els.spinRoulette.hidden = true; els.spinRouletteName.classList.remove('spin-name-final'); resolve(); }, 500); return; } updateRouletteName(randomParticipantName()); const progress = elapsed / duration; const interval = 45 + progress * 160; setTimeout(tick, interval); }; tick(); }); }
-const DRUM_ITEM_HEIGHT = 64; const DRUM_VISIBLE_ITEMS = 5; const DRUM_TOTAL_ITEMS = 50; const DRUM_WINNER_INDEX = 22; const DRUM_DURATION = 3800;
+const DRUM_ITEM_HEIGHT = 64; const DRUM_VISIBLE_ITEMS = 5; const DRUM_TOTAL_ITEMS = 80; const DRUM_WINNER_INDEX = 62; const DRUM_DURATION = 7000;
 function createDrumItem(login, name) { const item = document.createElement('div'); item.className = 'drum-item'; const avatar = document.createElement('div'); avatar.className = 'drum-avatar'; avatar.style.background = avatarGradient(login); avatar.textContent = (name || '?').charAt(0).toUpperCase(); const nameEl = document.createElement('div'); nameEl.className = 'drum-name'; nameEl.textContent = name; item.appendChild(avatar); item.appendChild(nameEl); return item; }
 async function playDrum(winnerLogin, winnerName) {
   els.spinRoulette.hidden = true; els.spinDrum.hidden = false; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true; els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true;
@@ -805,81 +805,186 @@ function getGridPositions(count, W, H, paddingX = 50, paddingY = 50) {
   }
   return positions;
 }
+
 async function playLaserRange(pool, winnerLogin, winnerName) {
   els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true; els.spinHotPotato.hidden = true; els.spinZeus.hidden = true;
   els.spinLaser.hidden = false; await sleep(50);
-  return new Promise((resolve) => {
-    const container = document.getElementById('laser-container'); const crosshair = document.getElementById('laser-crosshair');
-    container.querySelectorAll('.laser-participant, .laser-beam, svg').forEach(el => el.remove());
-    let lPool = [...pool]; if (lPool.length > 12) { lPool = lPool.sort(() => Math.random() - 0.5).slice(0, 12); if (!lPool.includes(winnerLogin)) lPool[11] = winnerLogin; } lPool = lPool.sort(() => Math.random() - 0.5);
-    const rect = container.getBoundingClientRect(); const W = rect.width || 700; const H = rect.height || 500;
-    const positions = getGridPositions(lPool.length, W, H, 60, 60); const nodes = [];
-    lPool.forEach((login, i) => { const { x, y } = positions[i]; const node = document.createElement('div'); node.className = 'laser-participant'; node.style.left = `${x}px`; node.style.top = `${y}px`; const fullName = state.users.get(login) || login; node.textContent = fullName; node.title = fullName; container.appendChild(node); nodes.push({ el: node, login, x, y }); });
-    const duration = 4000; const start = performance.now(); let fired = false; const winnerNode = nodes.find(n => n.login === winnerLogin);
-    let cx = W / 2, cy = H / 2; let angle = Math.random() * Math.PI * 2; const speed = 700; let lastTime = performance.now(); const margin = 40;
-    function animate(now) {
-      if (spinCancel) { resolve(); return; }
-      const elapsed = now - start; const t = Math.min(elapsed / duration, 1);
-      if (t < 0.85) {
-        const dt = Math.min((now - lastTime) / 1000, 0.05); lastTime = now;
-        angle += 0.35 * dt; cx += Math.cos(angle) * speed * dt; cy += Math.sin(angle) * speed * dt;
-        if (cx < margin) { cx = margin; angle = Math.PI - angle; } else if (cx > W - margin) { cx = W - margin; angle = Math.PI - angle; }
-        if (cy < margin) { cy = margin; angle = -angle; } else if (cy > H - margin) { cy = H - margin; angle = -angle; }
-        crosshair.style.left = `${cx}px`; crosshair.style.top = `${cy}px`; requestAnimationFrame(animate);
-      } else if (!fired) {
-        fired = true; crosshair.style.transition = 'all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1)'; crosshair.style.left = `${winnerNode.x}px`; crosshair.style.top = `${winnerNode.y}px`;
-        setTimeout(() => {
-          const beam = document.createElement('div'); beam.className = 'laser-beam';
-          const sx = crosshair.offsetLeft, sy = crosshair.offsetTop; beam.style.left = `${sx}px`; beam.style.top = `${sy}px`;
-          const dx = winnerNode.x - sx, dy = winnerNode.y - sy; beam.style.width = `${Math.sqrt(dx * dx + dy * dy)}px`; beam.style.transform = `rotate(${Math.atan2(dy, dx) * 180 / Math.PI}deg)`;
-          container.appendChild(beam); beam.animate([{ opacity: 1 }, { opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' });
-          setTimeout(() => { winnerNode.el.classList.add('hit'); setTimeout(() => { els.spinLaser.hidden = true; resolve(); }, 1200); }, 100);
-        }, 600);
-      }
-    }
-    requestAnimationFrame(animate);
+
+  const container = document.getElementById('laser-container'); const crosshair = document.getElementById('laser-crosshair');
+  container.querySelectorAll('.laser-participant, .laser-beam, svg').forEach(el => el.remove());
+  crosshair.classList.remove('locked');
+
+  // Участники на поле (до 12), победитель обязательно среди них
+  let lPool = [...pool];
+  if (lPool.length > 12) { lPool = lPool.sort(() => Math.random() - 0.5).slice(0, 12); if (!lPool.includes(winnerLogin)) lPool[11] = winnerLogin; }
+  if (!lPool.includes(winnerLogin)) lPool.push(winnerLogin);
+  lPool = lPool.sort(() => Math.random() - 0.5);
+
+  const rect = container.getBoundingClientRect(); const W = rect.width || 700; const H = rect.height || 500;
+  const positions = getGridPositions(lPool.length, W, H, 60, 60); const nodes = [];
+  lPool.forEach((login, i) => {
+    const { x, y } = positions[i];
+    const node = document.createElement('div'); node.className = 'laser-participant';
+    node.style.left = `${x}px`; node.style.top = `${y}px`;
+    const fullName = state.users.get(login) || login; node.textContent = fullName; node.title = fullName;
+    container.appendChild(node); nodes.push({ el: node, login, x, y });
   });
+  const winnerNode = nodes.find(n => n.login === winnerLogin);
+
+  // Старт: центр поля, без анимации
+  crosshair.style.transition = 'none';
+  crosshair.style.left = `${W / 2}px`; crosshair.style.top = `${H / 2}px`;
+  void crosshair.offsetWidth;
+
+  // Маршрут: прицел прыгает от игрока к игроку, последний — победитель
+  const HOPS = nodes.length > 1 ? 14 : 1;
+  const route = []; let prev = null;
+  for (let i = 0; i < HOPS; i++) {
+    let pick;
+    if (i === HOPS - 1) pick = winnerNode;
+    else {
+      let opts = nodes.filter(n => n !== prev);
+      if (i === HOPS - 2) { const o2 = opts.filter(n => n !== winnerNode); if (o2.length) opts = o2; }
+      pick = opts[secureRandomInt(opts.length)];
+    }
+    route.push(pick); prev = pick;
+  }
+
+  let prevEl = null;
+  for (let i = 0; i < route.length; i++) {
+    if (spinCancel) return;
+    const p = i / Math.max(route.length - 1, 1);
+    const interval = Math.round(240 + 380 * p * p);          // прыжки всё медленнее
+    const fly = Math.round(interval * 0.8);
+    const node = route[i];
+    if (prevEl) prevEl.classList.remove('targeted');
+    crosshair.style.transition = `left ${fly}ms cubic-bezier(0.45, 0, 0.2, 1), top ${fly}ms cubic-bezier(0.45, 0, 0.2, 1)`;
+    crosshair.style.left = `${node.x}px`; crosshair.style.top = `${node.y}px`;
+    await sleep(fly);
+    node.el.classList.add('targeted'); prevEl = node.el;     // прицел «поймал» игрока
+    await sleep(interval - fly);
+  }
+  if (spinCancel) return;
+
+  // Захват цели и выстрел из нижнего центра поля
+  crosshair.classList.add('locked');
+  await sleep(900);
+  if (spinCancel) return;
+  const beam = document.createElement('div'); beam.className = 'laser-beam';
+  const sx = W / 2, sy = H; beam.style.left = `${sx}px`; beam.style.top = `${sy}px`;
+  const dx = winnerNode.x - sx, dy = winnerNode.y - sy;
+  beam.style.width = `${Math.sqrt(dx * dx + dy * dy)}px`; beam.style.transform = `rotate(${Math.atan2(dy, dx) * 180 / Math.PI}deg)`;
+  container.appendChild(beam); beam.animate([{ opacity: 1 }, { opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' });
+  await sleep(100);
+  winnerNode.el.classList.remove('targeted'); winnerNode.el.classList.add('hit');
+  await sleep(1200);
+  crosshair.classList.remove('locked');
+  els.spinLaser.hidden = true;
 }
 async function playZeusLightning(pool, winnerLogin, winnerName) {
   els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true; els.spinHotPotato.hidden = true; els.spinLaser.hidden = true;
   els.spinZeus.hidden = false; await sleep(50);
-  return new Promise((resolve) => {
-    const container = document.getElementById('zeus-container'); const flash = document.getElementById('zeus-flash');
-    container.querySelectorAll('.zeus-participant, svg').forEach(el => el.remove());
-    let zPool = [...pool]; if (zPool.length > 12) { zPool = zPool.sort(() => Math.random() - 0.5).slice(0, 12); if (!zPool.includes(winnerLogin)) zPool[11] = winnerLogin; } zPool = zPool.sort(() => Math.random() - 0.5);
-    const rect = container.getBoundingClientRect(); const W = rect.width || 700; const H = rect.height || 500;
-    const positions = getGridPositions(zPool.length, W, H, 60, 120); const nodes = [];
-    zPool.forEach((login, i) => { const { x, y } = positions[i]; const node = document.createElement('div'); node.className = 'zeus-participant'; node.style.left = `${x}px`; node.style.top = `${y}px`; const fullName = state.users.get(login) || login; node.textContent = fullName; node.title = fullName; container.appendChild(node); nodes.push({ el: node, login, x, y }); });
-    const victims = nodes.filter(n => n.login !== winnerLogin); victims.sort(() => Math.random() - 0.5);
-    const duration = 4000; const interval = duration / (victims.length + 1); const start = performance.now(); let victimIndex = 0, nextStrikeTime = start + interval;
-    const winnerNode = nodes.find(n => n.login === winnerLogin);
-    function createBolt(x1, y1, x2, y2) {
-      const svgNS = 'http://www.w3.org/2000/svg'; const svg = document.createElementNS(svgNS, 'svg'); svg.setAttribute('style', 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;');
-      const poly = document.createElementNS(svgNS, 'polyline'); let points = `${x1},${y1} `, cx = x1, cy = y1;
-      for (let i = 1; i <= 5; i++) { const tx = x1 + (x2 - x1) * (i / 5), ty = y1 + (y2 - y1) * (i / 5); if (i !== 5) { cx = tx + (Math.random() - 0.5) * 40; cy = ty; } else { cx = tx; cy = ty; } points += `${cx},${cy} `; }
-      poly.setAttribute('points', points); poly.setAttribute('fill', 'none'); poly.setAttribute('stroke', '#fff'); poly.setAttribute('stroke-width', '4'); poly.setAttribute('style', 'filter: drop-shadow(0 0 8px #60a5fa);');
-      svg.appendChild(poly); container.appendChild(svg); svg.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' }); setTimeout(() => svg.remove(), 300);
-    }
-    function animate(now) {
-      if (spinCancel) { resolve(); return; }
-      if (now >= nextStrikeTime && victimIndex < victims.length) {
-        const victim = victims[victimIndex];
-        if (victim.el.parentNode) {
-          flash.style.animation = 'none'; void flash.offsetWidth; flash.style.animation = 'flashAnim 0.3s ease-out';
-          createBolt(victim.x + (Math.random() - 0.5) * 20, 0, victim.x, victim.y);
-          setTimeout(() => { victim.el.classList.add('struck'); setTimeout(() => { victim.el.style.opacity = '0'; victim.el.style.transform = 'translate(-50%, -50%) scale(0)'; victim.el.remove(); }, 200); }, 100);
-        }
-        victimIndex++; nextStrikeTime = now + interval;
-      }
-      if (victimIndex < victims.length) { requestAnimationFrame(animate); }
-      else {
-        flash.style.animation = 'none'; void flash.offsetWidth; flash.style.animation = 'flashAnim 0.4s ease-out';
-        createBolt(winnerNode.x, 0, winnerNode.x, winnerNode.y); winnerNode.el.classList.add('winner');
-        setTimeout(() => { els.spinZeus.hidden = true; resolve(); }, 1500);
-      }
-    }
-    requestAnimationFrame(animate);
+
+  const container = document.getElementById('zeus-container'); const flash = document.getElementById('zeus-flash');
+  container.querySelectorAll('.zeus-participant, .zeus-fx, svg').forEach(el => el.remove());
+
+  // Участники на поле (до 12), победитель обязательно среди них
+  let zPool = [...pool];
+  if (zPool.length > 12) { zPool = zPool.sort(() => Math.random() - 0.5).slice(0, 12); if (!zPool.includes(winnerLogin)) zPool[11] = winnerLogin; }
+  if (!zPool.includes(winnerLogin)) zPool.push(winnerLogin);
+  zPool = zPool.sort(() => Math.random() - 0.5);
+
+  const rect = container.getBoundingClientRect(); const W = rect.width || 700; const H = rect.height || 500;
+  const positions = getGridPositions(zPool.length, W, H, 60, 120); const nodes = [];
+  zPool.forEach((login, i) => {
+    const { x, y } = positions[i];
+    const node = document.createElement('div'); node.className = 'zeus-participant';
+    node.style.left = `${x}px`; node.style.top = `${y}px`;
+    const fullName = state.users.get(login) || login; node.textContent = fullName; node.title = fullName;
+    container.appendChild(node); nodes.push({ el: node, login, x, y });
   });
+  const winnerNode = nodes.find(n => n.login === winnerLogin);
+  const victims = nodes.filter(n => n !== winnerNode).sort(() => Math.random() - 0.5);
+
+  const svgNS = 'http://www.w3.org/2000/svg';
+
+  // Ветвистая молния: основной зигзаг + ответвления, три слоя (свечение, середина, белое ядро)
+  function bolt(x1, y1, x2, y2, big) {
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('style', 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;');
+    const line = (ax, ay, bx, by, segs, jit) => {
+      const pts = [[ax, ay]];
+      for (let i = 1; i < segs; i++) { const t = i / segs; pts.push([ax + (bx - ax) * t + (Math.random() - 0.5) * jit, ay + (by - ay) * t + (Math.random() - 0.5) * jit * 0.3]); }
+      pts.push([bx, by]); return pts;
+    };
+    const draw = (pts, stroke, w, op) => {
+      const p = document.createElementNS(svgNS, 'polyline');
+      p.setAttribute('points', pts.map(q => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' '));
+      p.setAttribute('fill', 'none'); p.setAttribute('stroke', stroke); p.setAttribute('stroke-width', w);
+      p.setAttribute('stroke-linejoin', 'round'); p.setAttribute('stroke-linecap', 'round');
+      if (op) p.setAttribute('stroke-opacity', op); svg.appendChild(p);
+    };
+    const main = line(x1, y1, x2, y2, 9, big ? 70 : 46);
+    const all = [main];
+    const nb = big ? 3 : 2;
+    for (let b = 0; b < nb; b++) {
+      const base = main[2 + Math.floor(Math.random() * 5)]; const dir = Math.random() < 0.5 ? -1 : 1;
+      all.push(line(base[0], base[1], base[0] + dir * (40 + Math.random() * 60), base[1] + 50 + Math.random() * 60, 4, 24));
+    }
+    const k = big ? 1.8 : 1;
+    all.forEach((pts, i) => { const s = i === 0 ? 1 : 0.5; draw(pts, '#60a5fa', 16 * k * s, 0.22); draw(pts, '#bfdbfe', 8 * k * s, 0.6); draw(pts, '#ffffff', 3 * k * s); });
+    container.appendChild(svg);
+    svg.animate([{ opacity: 1 }, { opacity: 0.3 }, { opacity: 1 }, { opacity: 0.5 }, { opacity: 0 }], { duration: big ? 700 : 380, easing: 'linear' }).onfinish = () => svg.remove();
+  }
+  // Вспышка, тряска, кольцо и искры в точке удара
+  function impact(x, y, big, gold) {
+    flash.style.setProperty('--fx', (x / W * 100) + '%'); flash.style.animation = 'none'; void flash.offsetWidth; flash.style.animation = `flashAnim ${big ? 0.6 : 0.35}s ease-out`;
+    const a = big ? 6 : 3;
+    container.animate([{ transform: 'translate(0,0)' }, { transform: `translate(${-a}px,${a * 0.7}px)` }, { transform: `translate(${a}px,${-a * 0.7}px)` }, { transform: `translate(${-a * 0.6}px,0)` }, { transform: 'translate(0,0)' }], { duration: big ? 380 : 240 });
+    const ring = document.createElement('div'); ring.className = 'zeus-fx zeus-ring' + (gold ? ' gold' : '');
+    ring.style.cssText = `left:${x}px;top:${y}px;width:24px;height:24px;margin:-12px 0 0 -12px;`; container.appendChild(ring);
+    ring.animate([{ transform: 'scale(0.4)', opacity: 1 }, { transform: `scale(${big ? 8 : 5})`, opacity: 0 }], { duration: big ? 800 : 450, easing: 'ease-out' }).onfinish = () => ring.remove();
+    const n = big ? 14 : 8;
+    for (let i = 0; i < n; i++) {
+      const sp = document.createElement('div'); sp.className = 'zeus-fx zeus-spark' + (gold ? ' gold' : '');
+      sp.style.cssText = `left:${x}px;top:${y}px;margin:-2px 0 0 -2px;`; container.appendChild(sp);
+      const ang = Math.random() * Math.PI * 2; const dist = (big ? 60 : 36) + Math.random() * (big ? 90 : 50);
+      sp.animate([{ transform: 'translate(0,0) scale(1)', opacity: 1 }, { transform: `translate(${Math.cos(ang) * dist}px,${Math.sin(ang) * dist}px) scale(0.2)`, opacity: 0 }], { duration: 400 + Math.random() * 300, easing: 'cubic-bezier(0.2,0.7,0.3,1)' }).onfinish = () => sp.remove();
+    }
+  }
+
+  // Затишье перед бурей
+  await sleep(600);
+  if (spinCancel) return;
+
+  // Удары по всем, кроме победителя (суммарно ~4с, как раньше)
+  const interval = Math.max(300, Math.min(700, 4000 / (victims.length + 1)));
+  for (const v of victims) {
+    if (spinCancel) return;
+    v.el.classList.add('warn');
+    await sleep(interval * 0.6);
+    if (spinCancel) return;
+    v.el.classList.remove('warn');
+    bolt(v.x + (Math.random() - 0.5) * 30, 45, v.x, v.y, false); impact(v.x, v.y, false, false);
+    v.el.classList.add('struck');
+    setTimeout(() => { v.el.classList.remove('struck'); v.el.classList.add('burnt'); }, 120);
+    setTimeout(() => {
+      const a = v.el.animate([{ transform: 'translate(-50%,-50%) scale(1.05) rotate(0deg)', opacity: 1 }, { transform: `translate(-50%,-150%) scale(0.5) rotate(${(Math.random() - 0.5) * 70}deg)`, opacity: 0 }], { duration: 420, easing: 'ease-in', fill: 'forwards' });
+      a.onfinish = () => v.el.remove();
+    }, 330);
+    await sleep(interval * 0.4);
+  }
+  if (spinCancel) return;
+
+  // Финал: все погасли, остался один — главный удар
+  winnerNode.el.classList.add('warn');
+  await sleep(900);
+  if (spinCancel) return;
+  winnerNode.el.classList.remove('warn');
+  bolt(winnerNode.x, 45, winnerNode.x, winnerNode.y, true); impact(winnerNode.x, winnerNode.y, true, true);
+  winnerNode.el.classList.add('winner');
+  await sleep(1800);
+  els.spinZeus.hidden = true;
 }
 
 /* =========================================================

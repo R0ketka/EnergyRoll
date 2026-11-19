@@ -1338,6 +1338,11 @@ main {
   z-index: 9;
   pointer-events: none;
 }
+
+.laser-participant.targeted { border-color: #ff4040; background: rgba(90, 15, 15, 0.95); box-shadow: 0 0 16px rgba(255, 0, 0, 0.85); transform: translate(-50%, -50%) scale(1.12); z-index: 5; }
+.laser-crosshair.locked { border-color: #ff2a2a; box-shadow: 0 0 22px rgba(255, 0, 0, 0.9), inset 0 0 12px rgba(255, 0, 0, 0.5); animation: laserLock 0.35s ease-in-out infinite alternate; }
+@keyframes laserLock { from { transform: scale(1.25); } to { transform: scale(0.85); } }
+
 .laser-participant.hit {
   background: red;
   border-color: #fff;
@@ -1346,75 +1351,131 @@ main {
   z-index: 15;
 }
 
+/* =========================================================
+   МОЛНИЯ ЗЕВСА — грозовое небо, дождь, ветвистые молнии
+   ========================================================= */
 .zeus-container {
   position: relative;
   width: 100%;
   max-width: 700px;
   height: 500px;
   margin: 0 auto;
-  background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+  background:
+    radial-gradient(ellipse at 50% 0%, #2c3d6b 0%, transparent 62%),
+    linear-gradient(180deg, #0a0f20 0%, #121b36 55%, #1b2745 100%);
   border-radius: var(--r-lg);
   overflow: hidden;
   border: 2px solid #334155;
+  box-shadow: inset 0 0 40px rgba(0,0,0,0.65);
 }
+/* Тучи (медленно плывут, иногда подсвечиваются изнутри) */
 .zeus-clouds {
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 80px;
-  background: radial-gradient(circle at 20% 50%, #334155 0%, transparent 50%),
-              radial-gradient(circle at 50% 30%, #475569 0%, transparent 60%),
-              radial-gradient(circle at 80% 50%, #334155 0%, transparent 50%);
-  opacity: 0.8;
-  filter: drop-shadow(0 5px 10px rgba(0,0,0,0.5));
+  position: absolute; top: -20px; left: -10%; right: -10%; height: 160px;
+  z-index: 3; pointer-events: none;
+  background:
+    radial-gradient(ellipse 130px 55px at 8% 40%,  #1c2540 0%, transparent 72%),
+    radial-gradient(ellipse 170px 70px at 24% 30%, #2b3758 0%, transparent 72%),
+    radial-gradient(ellipse 150px 60px at 42% 46%, #19213d 0%, transparent 72%),
+    radial-gradient(ellipse 190px 75px at 60% 28%, #2e3b60 0%, transparent 72%),
+    radial-gradient(ellipse 140px 60px at 78% 42%, #1c2540 0%, transparent 72%),
+    radial-gradient(ellipse 160px 65px at 95% 30%, #2b3758 0%, transparent 72%);
+  animation: zeusCloudDrift 14s ease-in-out infinite alternate;
 }
+.zeus-clouds::after {
+  content: ''; position: absolute; inset: 0; opacity: 0;
+  background: radial-gradient(ellipse 220px 60px at 50% 55%, rgba(147,197,253,0.45), transparent 72%);
+  animation: zeusCloudFlicker 3.4s steps(1) infinite;
+}
+@keyframes zeusCloudDrift { from { transform: translateX(-3%); } to { transform: translateX(3%); } }
+@keyframes zeusCloudFlicker {
+  0%, 100% { opacity: 0; } 8% { opacity: 0.9; } 10% { opacity: 0.1; } 12% { opacity: 0.7; } 14% { opacity: 0; }
+  60% { opacity: 0; } 62% { opacity: 0.55; } 64% { opacity: 0; }
+}
+/* Дождь: длинные тонкие капли, слой просто едет вниз */
+.zeus-rain {
+  position: absolute; inset: -25%; z-index: 1; pointer-events: none; opacity: 0.55;
+  background:
+    radial-gradient(ellipse 1px 20px at 12px 28px, rgba(190,210,255,0.55), transparent) 0 0 / 26px 70px,
+    radial-gradient(ellipse 1px 16px at 20px 40px, rgba(190,210,255,0.4),  transparent) 0 0 / 37px 91px;
+  transform: rotate(10deg);
+  animation: zeusRain 0.55s linear infinite;
+}
+@keyframes zeusRain { from { transform: rotate(10deg) translateY(0); } to { transform: rotate(10deg) translateY(70px); } }
+/* Земля с лёгким свечением */
+.zeus-ground {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 80px; z-index: 1; pointer-events: none;
+  background: linear-gradient(0deg, rgba(96,165,250,0.22), transparent), linear-gradient(180deg, transparent, rgba(0,0,0,0.35));
+  border-top: 1px solid rgba(147,197,253,0.12);
+}
+
+/* Участники — «каменные таблички» */
 .zeus-participant {
   position: absolute;
   transform: translate(-50%, -50%);
-  padding: 5px 10px;
-  border-radius: 6px;
-  background: rgba(30, 41, 59, 0.9);
-  border: 1px solid #60a5fa;
-  color: #fff;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #26355a, #131c33);
+  border: 1px solid rgba(214, 174, 86, 0.85);
+  color: #eaf2ff;
   font-weight: 800;
   font-size: 12px;
   white-space: nowrap;
   max-width: 110px;
   overflow: hidden;
   text-overflow: ellipsis;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.12);
   z-index: 2;
-  transition: all 0.2s ease;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
 }
-.zeus-bolt {
-  position: absolute;
-  top: 0;
-  width: 4px;
-  background: #fff;
-  box-shadow: 0 0 20px 5px #60a5fa, 0 0 40px 10px #3b82f6;
-  z-index: 10;
-  pointer-events: none;
-  transform-origin: top center;
+/* Предупреждение: табличка дрожит и светится перед ударом */
+.zeus-participant.warn {
+  border-color: #93c5fd; color: #fff; z-index: 5;
+  box-shadow: 0 0 16px rgba(96,165,250,0.95), inset 0 0 8px rgba(96,165,250,0.5);
+  animation: zeusWarn 0.12s ease-in-out infinite alternate;
 }
+@keyframes zeusWarn {
+  from { transform: translate(-50%, -50%) scale(1.06) rotate(-2.5deg); }
+  to   { transform: translate(-50%, -50%) scale(1.1)  rotate(2.5deg); }
+}
+/* Удар → обугливание */
 .zeus-participant.struck {
-  background: #fff !important;
-  border-color: #fff;
-  color: #3b82f6;
-  box-shadow: 0 0 30px #60a5fa;
-  z-index: 15;
-  transform: translate(-50%, -50%) scale(1.2);
+  background: #fff !important; border-color: #fff; color: #2563eb;
+  box-shadow: 0 0 34px #93c5fd, 0 0 70px rgba(96,165,250,0.7);
+  z-index: 15; transform: translate(-50%, -50%) scale(1.22);
 }
+.zeus-participant.burnt {
+  background: #0b0f19 !important; border-color: #2a303d; color: #4b5563;
+  box-shadow: none; z-index: 15; transform: translate(-50%, -50%) scale(1.05);
+}
+/* Победитель — золотое сияние */
+.zeus-participant.winner {
+  background: linear-gradient(180deg, #fff7d1, #f5c542) !important; color: #3a2a00; border-color: #fff3b0;
+  z-index: 16; transform: translate(-50%, -50%) scale(1.3); max-width: 170px;
+  box-shadow: 0 0 0 3px rgba(255,215,90,0.5), 0 0 34px rgba(255,200,60,0.95);
+  animation: zeusWinPulse 0.8s ease-in-out infinite alternate;
+}
+.zeus-participant.winner::before { content: '⚡ '; }
+@keyframes zeusWinPulse {
+  from { box-shadow: 0 0 0 3px rgba(255,215,90,0.5),  0 0 24px rgba(255,200,60,0.8); }
+  to   { box-shadow: 0 0 0 6px rgba(255,215,90,0.25), 0 0 48px rgba(255,200,60,1); }
+}
+
+/* Эффекты удара (кольцо и искры создаются из JS) */
+.zeus-fx { position: absolute; pointer-events: none; z-index: 12; }
+.zeus-ring { border: 3px solid #bfdbfe; border-radius: 50%; box-shadow: 0 0 12px rgba(96,165,250,0.9); }
+.zeus-spark { width: 5px; height: 5px; border-radius: 50%; background: #fff; box-shadow: 0 0 8px 2px #60a5fa; }
+.zeus-ring.gold { border-color: #fde68a; box-shadow: 0 0 16px rgba(251,191,36,0.95); }
+.zeus-spark.gold { box-shadow: 0 0 8px 2px #fbbf24; }
+
+/* Вспышка — локальная, там, где ударила молния (--fx задаётся из JS) */
 .zeus-flash {
-  position: absolute;
-  inset: 0;
-  background: #fff;
-  opacity: 0;
-  pointer-events: none;
-  z-index: 20;
+  position: absolute; inset: 0; opacity: 0; pointer-events: none; z-index: 20;
+  background: radial-gradient(ellipse at var(--fx, 50%) 0%, rgba(255,255,255,0.95) 0%, rgba(147,197,253,0.5) 45%, rgba(147,197,253,0.15) 100%);
 }
 @keyframes flashAnim {
-  0% { opacity: 0.8; }
-  20% { opacity: 0; }
-  40% { opacity: 0.5; }
+  0%   { opacity: 0.9; }
+  25%  { opacity: 0.1; }
+  40%  { opacity: 0.5; }
   100% { opacity: 0; }
 }
 
