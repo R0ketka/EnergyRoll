@@ -602,7 +602,53 @@ function updateRouletteName(name) { els.spinRouletteName.textContent = name; els
 function playRoulette(displayName) { return new Promise((resolve) => { els.spinRoulette.hidden = false; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true; els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true; els.spinRouletteName.classList.remove('spin-name-final'); const duration = 2500; const start = performance.now(); const tick = () => { if (spinCancel) { resolve(); return; } const elapsed = performance.now() - start; if (elapsed >= duration) { updateRouletteName(displayName); els.spinRouletteName.classList.add('spin-name-final'); setTimeout(() => { els.spinRoulette.hidden = true; els.spinRouletteName.classList.remove('spin-name-final'); resolve(); }, 500); return; } updateRouletteName(randomParticipantName()); const progress = elapsed / duration; const interval = 45 + progress * 160; setTimeout(tick, interval); }; tick(); }); }
 const DRUM_ITEM_HEIGHT = 64; const DRUM_VISIBLE_ITEMS = 5; const DRUM_TOTAL_ITEMS = 50; const DRUM_WINNER_INDEX = 22; const DRUM_DURATION = 3800;
 function createDrumItem(login, name) { const item = document.createElement('div'); item.className = 'drum-item'; const avatar = document.createElement('div'); avatar.className = 'drum-avatar'; avatar.style.background = avatarGradient(login); avatar.textContent = (name || '?').charAt(0).toUpperCase(); const nameEl = document.createElement('div'); nameEl.className = 'drum-name'; nameEl.textContent = name; item.appendChild(avatar); item.appendChild(nameEl); return item; }
-function playDrum(winnerLogin, winnerName) { return new Promise((resolve) => { els.spinRoulette.hidden = true; els.spinDrum.hidden = false; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true; els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true; const strip = els.drumStrip; strip.innerHTML = ''; strip.style.transform = 'translateY(0)'; for (let i = 0; i < DRUM_TOTAL_ITEMS; i++) { let login, name; if (i === DRUM_WINNER_INDEX) { login = winnerLogin; name = winnerName; } else { login = randomParticipantLogin(); name = state.users.get(login) || login; } strip.appendChild(createDrumItem(login, name)); } void strip.offsetHeight; const centerIndex = Math.floor(DRUM_VISIBLE_ITEMS / 2); const targetTranslate = -(DRUM_WINNER_INDEX - centerIndex) * DRUM_ITEM_HEIGHT; const start = performance.now(); const tick = (now) => { if (spinCancel) { resolve(); return; } const elapsed = now - start; const t = Math.min(elapsed / DRUM_DURATION, 1); const eased = 1 - Math.pow(1 - t, 3); strip.style.transform = `translateY(${targetTranslate * eased}px)`; if (t < 1) requestAnimationFrame(tick); else { strip.style.transform = `translateY(${targetTranslate}px)`; setTimeout(() => { els.spinDrum.hidden = true; resolve(); }, 700); } }; requestAnimationFrame(tick); }); }
+async function playDrum(winnerLogin, winnerName) {
+  els.spinRoulette.hidden = true; els.spinDrum.hidden = false; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true; els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true;
+
+  const machine = document.getElementById('slot-machine');
+  const strip = els.drumStrip;
+  machine.classList.remove('pulled', 'spinning', 'win', 'kick');
+  strip.innerHTML = ''; strip.style.transform = 'translateY(0)';
+  for (let i = 0; i < DRUM_TOTAL_ITEMS; i++) {
+    let login, name;
+    if (i === DRUM_WINNER_INDEX) { login = winnerLogin; name = winnerName; }
+    else { login = randomParticipantLogin(); name = state.users.get(login) || login; }
+    strip.appendChild(createDrumItem(login, name));
+  }
+  void strip.offsetHeight;
+
+  // 1. Автомат выезжает, лампочки мигают
+  await sleep(1000);
+  if (spinCancel) return;
+
+  // 2. Ручку плавно тянут вниз
+  machine.classList.add('pulled');
+  await sleep(650);
+  if (spinCancel) return;
+
+  // 3. Ручка возвращается, автомат вздрагивает, барабан крутится (как раньше)
+  machine.classList.remove('pulled'); machine.classList.add('kick', 'spinning');
+  const centerIndex = Math.floor(DRUM_VISIBLE_ITEMS / 2);
+  const targetTranslate = -(DRUM_WINNER_INDEX - centerIndex) * DRUM_ITEM_HEIGHT;
+  await new Promise((resolve) => {
+    const start = performance.now();
+    const tick = (now) => {
+      if (spinCancel) { resolve(); return; }
+      const t = Math.min((now - start) / DRUM_DURATION, 1);
+      const eased = 1 - Math.pow(1 - t, 3);
+      strip.style.transform = `translateY(${targetTranslate * eased}px)`;
+      if (t < 1) requestAnimationFrame(tick); else resolve();
+    };
+    requestAnimationFrame(tick);
+  });
+  if (spinCancel) return;
+
+  // 4. Победитель найден: подсветка и мигание
+  machine.classList.remove('spinning'); machine.classList.add('win');
+  if (strip.children[DRUM_WINNER_INDEX]) strip.children[DRUM_WINNER_INDEX].classList.add('drum-item-win');
+  await sleep(1100);
+  els.spinDrum.hidden = true;
+}
 
 /* === CASE CS2 === */
 const CASE_ITEM_WIDTH = 110; const CASE_ITEM_GAP = 8; const CASE_TOTAL_ITEMS = 100; const CASE_WINNER_IDX = 78;
