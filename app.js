@@ -911,7 +911,7 @@ async function playElevator(pool, winnerLogin, winnerName) {
 }
 
 /* =========================================================
-   ПРОЖЕКТОР — 9 игроков, свет из глаз, защита от гонки
+   ПРОЖЕКТОР
    ========================================================= */
 let spotlightGameToken = 0;
 
@@ -1069,7 +1069,7 @@ async function playSpotlight(pool, winnerLogin, winnerName) {
 }
 
 /* =========================================================
-   ЧАСЫ + подкрутка через API + отмена предыдущей анимации
+   ЧАСЫ
    ========================================================= */
 async function playClock(pool, winnerLogin, winnerName) {
   els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true;
@@ -1441,6 +1441,93 @@ async function showWinnerWithSpin(login) {
   if (spinCancel) { els.modal.classList.remove('active'); els.modalContent.classList.remove('spinning'); state.isSpinning = false; return; }
   els.modalContent.classList.remove('spinning'); state.isSpinning = false; state.winnerSelectedAt = Date.now();
   fillWinnerInfo(login);
+}
+
+
+/* === КАРТЫ: раздача → показ ников → переворот → перемешивание → выбор === */
+async function playCards(pool) {
+  [els.spinRoulette, els.spinDrum, els.spinCase, els.spinWheel, els.spinBingo, els.spinHotPotato,
+   els.spinLaser, els.spinZeus, els.spinElevator, els.spinSpotlight, els.spinClock, els.spinBomb]
+    .forEach((el) => { if (el) el.hidden = true; });
+  els.spinCards.hidden = false;
+
+  const grid = els.cardsGrid;
+  const header = document.getElementById('cards-header');
+  const setHeader = (text, pick) => { header.textContent = text; header.classList.toggle('cards-header-pick', !!pick); };
+  grid.innerHTML = '';
+  grid.classList.remove('pickable');
+
+  // До 10 случайных участников из пула
+  const logins = [...new Set(pool)];
+  for (let i = logins.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [logins[i], logins[j]] = [logins[j], logins[i]]; }
+  logins.length = Math.min(logins.length, 10);
+  if (logins.length === 0) return null;
+
+  const mk = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  const wait = async (ms) => { await sleep(ms); return !spinCancel; };
+
+  // 1. Раздача: карты лежат лицом вверх, видны ники
+  const cards = logins.map((login, i) => {
+    const name = state.users.get(login) || login;
+    const letter = (name || '?').charAt(0).toUpperCase();
+    const card = mk('div', 'pick-card pick-card-flipped');
+    card.style.setProperty('--deal', (i * 0.07) + 's');
+    const inner = mk('div', 'pick-card-inner');
+    const back = mk('div', 'pick-card-face pick-card-back');
+    const front = mk('div', 'pick-card-face pick-card-front');
+    ['tl', 'br'].forEach((pos) => {
+      const corner = mk('div', 'pick-card-corner ' + pos);
+      corner.appendChild(mk('span', null, letter)); corner.appendChild(mk('span', 'pick-card-suit', '◆'));
+      front.appendChild(corner);
+    });
+    const avatar = mk('div', 'pick-card-avatar', letter); avatar.style.background = avatarGradient(login);
+    const nameEl = mk('div', 'pick-card-name', name);
+    if (name.length > 14) nameEl.style.fontSize = '8.5px'; else if (name.length > 10) nameEl.style.fontSize = '9.5px';
+    front.appendChild(avatar); front.appendChild(nameEl);
+    inner.appendChild(back); inner.appendChild(front); card.appendChild(inner);
+    grid.appendChild(card);
+    return card;
+  });
+
+  setHeader('Запоминайте карты');
+  if (!(await wait(1700 + logins.length * 70))) return null;
+
+  // 2. Переворачиваем рубашкой вверх
+  cards.forEach((c) => c.classList.remove('pick-card-flipped'));
+  setHeader('Переворачиваем…');
+  if (!(await wait(900))) return null;
+
+  // 3. Перемешиваем: карты меняются местами (через CSS translate)
+  setHeader('Перемешиваем…');
+  const slots = cards.map((c) => ({ x: c.offsetLeft, y: c.offsetTop }));
+  let order = cards.map((_, i) => i);
+  for (let r = 0; r < 7; r++) {
+    const perm = [...order];
+    for (let i = perm.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [perm[i], perm[j]] = [perm[j], perm[i]]; }
+    cards.forEach((c, k) => { c.style.translate = (slots[perm[k]].x - slots[k].x) + 'px ' + (slots[perm[k]].y - slots[k].y) + 'px'; });
+    order = perm;
+    if (!(await wait(580))) return null;
+  }
+
+  // 4. Стример выбирает карту кликом
+  setHeader('Выберите карту!', true);
+  grid.classList.add('pickable');
+  const picked = await new Promise((resolve) => {
+    let done = false; let poll = null;
+    const finish = (v) => { if (done) return; done = true; clearInterval(poll); cards.forEach((c) => { c.onclick = null; }); resolve(v); };
+    cards.forEach((c, k) => { c.onclick = () => finish(k); });
+    poll = setInterval(() => { if (spinCancel) finish(-1); }, 150);
+  });
+  grid.classList.remove('pickable');
+  if (picked < 0 || spinCancel) return null;
+
+  // 5. Открываем выбранную, затем остальные
+  setHeader('Ваша карта!');
+  cards[picked].classList.add('pick-card-flipped', 'pick-card-winner');
+  if (!(await wait(1000))) return null;
+  cards.forEach((c, k) => { if (k !== picked) c.classList.add('pick-card-flipped', 'pick-card-dim'); });
+  if (!(await wait(1500))) return null;
+  return logins[picked];
 }
 
 async function showCardsPick(pool, riggedLogin = null) {
