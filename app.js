@@ -617,7 +617,7 @@ async function playCase(winnerLogin, winnerName) {
   const strip = els.caseStrip;
   if (!case3d || !stripArea || !strip) { els.spinCase.hidden = true; return; }
 
-  case3d.classList.remove('opened', 'dimmed');
+  case3d.classList.remove('opened', 'dimmed', 'shake');
   case3d.style.animation = 'none';
   stripArea.classList.remove('visible');
   stripArea.hidden = true;
@@ -633,21 +633,26 @@ async function playCase(winnerLogin, winnerName) {
     const cleanup = () => timers.forEach(clearTimeout);
 
     (async () => {
-      // 1. Кейс падает (~1.2s)
-      await wait(1200);
+      // 1. Кейс падает и пружинит (~1.4s)
+      await wait(1450);
       if (spinCancel) { cleanup(); resolve(); return; }
 
-      // 2. Крышка открывается
+      // 2. Кейс трясётся, защёлки сдаются
+      case3d.classList.add('shake');
+      await wait(650);
+      if (spinCancel) { cleanup(); resolve(); return; }
+
+      // 3. Крышка открывается, изнутри бьёт свет
       case3d.classList.add('opened');
-      await wait(1100);
+      await wait(1700);
       if (spinCancel) { cleanup(); resolve(); return; }
 
-      // 3. Кейс мутнеет
+      // 4. Вспышка — кейс исчезает
       case3d.classList.add('dimmed');
       await wait(700);
       if (spinCancel) { cleanup(); resolve(); return; }
 
-      // 4. Заполняем длинную ленту
+      // 5. Заполняем длинную ленту
       const rarities = ['common', 'uncommon', 'rare', 'epic'];
       for (let i = 0; i < CASE_TOTAL_ITEMS; i++) {
         let login, name, rarity;
@@ -673,14 +678,14 @@ async function playCase(winnerLogin, winnerName) {
 
       void strip.offsetHeight;
 
-      // 5. Показываем ленту
+      // 6. Показываем ленту
       stripArea.hidden = false;
       await wait(30);
       stripArea.classList.add('visible');
       await wait(450);
       if (spinCancel) { cleanup(); resolve(); return; }
 
-      // 6. Прокрут: 8 секунд, quintic ease-out — длинный хвост замедления
+      // 7. Прокрут: 8 секунд, quintic ease-out — длинный хвост замедления
       const containerWidth = stripArea.clientWidth;
       const targetX = containerWidth / 2 - CASE_ITEM_WIDTH / 2 - (CASE_WINNER_IDX * (CASE_ITEM_WIDTH + CASE_ITEM_GAP));
       const duration = 8000;

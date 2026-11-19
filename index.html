@@ -243,16 +243,52 @@
         <div class="spin-view" id="spin-case" hidden>
           <div class="case-scene">
             <div class="case-3d" id="case-3d">
-              <div class="case-base">
-                <div class="case-strap strap-left"></div>
-                <div class="case-strap strap-right"></div>
-                <div class="case-buckle buckle-left"></div>
-                <div class="case-buckle buckle-right"></div>
-              </div>
-              <div class="case-lid" id="case-lid">
-                <div class="case-lid-inner"></div>
+              <div class="case-rock">
+                <div class="case-model">
+                  <!-- корпус -->
+                  <div class="cf cf-bottom"></div>
+                  <div class="cf cf-back"></div>
+                  <div class="cf cf-left"></div>
+                  <div class="cf cf-right"></div>
+                  <div class="cf cf-front">
+                    <div class="case-plate"><span>CS2</span></div>
+                    <div class="case-latch latch-l"></div>
+                    <div class="case-latch latch-r"></div>
+                  </div>
+                  <!-- внутренность -->
+                  <div class="ci ci-left"></div>
+                  <div class="ci ci-right"></div>
+                  <div class="ci ci-back"></div>
+                  <div class="ci ci-front"></div>
+                  <div class="ci ci-floor"></div>
+                  <div class="ci ci-rim"></div>
+                  <!-- свет -->
+                  <div class="case-rimglow"></div>
+                  <div class="case-beam beam-a"></div>
+                  <div class="case-beam beam-b"></div>
+                  <div class="cspark" style="--x:-90px;--z:-40px;--d:0s"></div>
+                  <div class="cspark" style="--x:-40px;--z:50px;--d:.25s"></div>
+                  <div class="cspark" style="--x:20px;--z:-60px;--d:.5s"></div>
+                  <div class="cspark" style="--x:80px;--z:30px;--d:.15s"></div>
+                  <div class="cspark" style="--x:-10px;--z:10px;--d:.7s"></div>
+                  <div class="cspark" style="--x:60px;--z:-20px;--d:.95s"></div>
+                  <div class="cspark" style="--x:-70px;--z:20px;--d:1.1s"></div>
+                  <div class="cspark" style="--x:30px;--z:60px;--d:.4s"></div>
+                  <!-- крышка на петле -->
+                  <div class="case-hinge">
+                    <div class="case-lid" id="case-lid">
+                      <div class="cl cl-under"></div>
+                      <div class="cl cl-back"></div>
+                      <div class="cl cl-left"></div>
+                      <div class="cl cl-right"></div>
+                      <div class="cl cl-front"></div>
+                      <div class="cl cl-top"><span class="lid-logo">CS2</span></div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
+            <div class="case-flash"></div>
             <div class="case-strip-area" id="case-strip-area" hidden>
               <div class="case-marker-line"></div>
               <div class="case-strip" id="case-strip"></div>
