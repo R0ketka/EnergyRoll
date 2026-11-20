@@ -322,20 +322,44 @@
 
         <div class="spin-view" id="spin-wheel" hidden>
           <div class="wheel-container">
-            <div class="wheel-pointer-wrap">
-              <div class="wheel-pointer-arrow"></div>
-              <div class="wheel-pointer-stem"></div>
-            </div>
+            <svg class="wheel-pointer" viewBox="-22 -4 44 74" aria-hidden="true">
+              <defs>
+                <linearGradient id="wheelPtrGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#fff3a0"/><stop offset="0.55" stop-color="#ffd24a"/><stop offset="1" stop-color="#b8860b"/>
+                </linearGradient>
+              </defs>
+              <g id="wheel-pointer-g">
+                <path d="M0 66 C -5 52 -19 32 -19 17 A 19 19 0 0 1 19 17 C 19 32 5 52 0 66 Z" fill="url(#wheelPtrGrad)" stroke="#3a2508" stroke-width="2.5" stroke-linejoin="round"/>
+                <circle cx="0" cy="17" r="7" fill="#3a2508"/>
+                <circle cx="-2" cy="15" r="2.4" fill="#fff3a0" opacity="0.85"/>
+              </g>
+            </svg>
             <svg viewBox="-150 -150 300 300" class="wheel-svg">
-              <circle cx="0" cy="0" r="143" fill="none" stroke="#7a3838" stroke-width="4"/>
+              <defs>
+                <linearGradient id="wheelRimGrad" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#fbe6a2"/><stop offset="0.35" stop-color="#c8942e"/><stop offset="0.6" stop-color="#f3d27a"/><stop offset="1" stop-color="#7a531a"/>
+                </linearGradient>
+                <radialGradient id="wheelGloss" cx="0.35" cy="0.28" r="0.85">
+                  <stop offset="0" stop-color="#fff" stop-opacity="0.22"/><stop offset="0.5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.35"/>
+                </radialGradient>
+              </defs>
+              <circle r="149" fill="url(#wheelRimGrad)"/>
+              <circle r="143" fill="#1b0d0d"/>
               <g class="wheel-rotating" id="wheel-rotating"></g>
+              <circle r="139" fill="url(#wheelGloss)" pointer-events="none"/>
+              <circle class="wheel-bulbs a" r="146" pointer-events="none"/>
+              <circle class="wheel-bulbs b" r="146" pointer-events="none"/>
             </svg>
             <div class="wheel-center-dot"></div>
           </div>
         </div>
 
         <div class="spin-view" id="spin-bingo" hidden>
-          <div class="bingo-grid" id="bingo-grid"></div>
+          <div class="bingo-card">
+            <div class="bingo-ball" id="bingo-ball">?</div>
+            <div class="bingo-title"><span>B</span><span>I</span><span>N</span><span>G</span><span>O</span></div>
+            <div class="bingo-grid" id="bingo-grid"></div>
+          </div>
         </div>
 
         <div class="spin-view" id="spin-hotpotato" hidden>
@@ -373,17 +397,51 @@
           <div class="spotlight-container" id="spotlight-container">
             <div class="spotlight-scene" id="spotlight-scene"></div>
             <div class="spotlight-darkness" id="spotlight-darkness"></div>
+            <div class="spotlight-beam" id="spotlight-beam"></div>
+            <div class="spotlight-lamp"></div>
           </div>
         </div>
 
         <div class="spin-view" id="spin-clock" hidden>
           <div class="clock-container" id="clock-container">
             <svg class="clock-face" viewBox="-150 -150 300 300">
+              <defs>
+                <linearGradient id="clockBezel" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#fbe6a2"/><stop offset="0.35" stop-color="#c8942e"/><stop offset="0.6" stop-color="#f3d27a"/><stop offset="1" stop-color="#7a531a"/>
+                </linearGradient>
+                <radialGradient id="clockBg" cx="0.5" cy="0.5" r="0.5">
+                  <stop offset="0" stop-color="#2a141b"/><stop offset="0.7" stop-color="#150a0e"/><stop offset="1" stop-color="#0b0507"/>
+                </radialGradient>
+                <radialGradient id="clockGloss" cx="0.35" cy="0.25" r="0.9">
+                  <stop offset="0" stop-color="#fff" stop-opacity="0.16"/><stop offset="0.55" stop-color="#fff" stop-opacity="0"/>
+                </radialGradient>
+                <linearGradient id="clockHourGrad" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0" stop-color="#ff7a92"/><stop offset="0.5" stop-color="#e63858"/><stop offset="1" stop-color="#a01c36"/>
+                </linearGradient>
+                <linearGradient id="clockMinGrad" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0" stop-color="#ffffff"/><stop offset="0.5" stop-color="#e8e8f0"/><stop offset="1" stop-color="#a9a9b8"/>
+                </linearGradient>
+              </defs>
+              <circle r="149" fill="url(#clockBezel)"/>
+              <circle r="143.5" fill="#1a0b10"/>
+              <circle r="141" fill="url(#clockBg)"/>
               <g id="clock-sectors"></g>
-              <line id="clock-hour-hand" x1="0" y1="0" x2="0" y2="-60" stroke="#e63858" stroke-width="5" stroke-linecap="round" />
-              <line id="clock-minute-hand" x1="0" y1="0" x2="0" y2="-110" stroke="#fff" stroke-width="3" stroke-linecap="round" />
-              <circle cx="0" cy="0" r="9" fill="#e63858" />
-              <circle cx="0" cy="0" r="4" fill="#fff" />
+              <g transform="rotate(-90)" pointer-events="none">
+                <circle r="134" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="6" stroke-dasharray="0.9 13.132" stroke-dashoffset="0.45"/>
+                <circle r="133" fill="none" stroke="#f3d27a" stroke-width="10" stroke-dasharray="2.4 67.24" stroke-dashoffset="1.2"/>
+              </g>
+              <circle r="141" fill="url(#clockGloss)" pointer-events="none"/>
+              <g id="clock-hour-hand">
+                <polygon points="0,14 -5.5,2 -3,-58 0,-66 3,-58 5.5,2" fill="rgba(0,0,0,0.35)" transform="translate(2.5,3)"/>
+                <polygon points="0,14 -5.5,2 -3,-58 0,-66 3,-58 5.5,2" fill="url(#clockHourGrad)" stroke="#5a0f1f" stroke-width="1"/>
+              </g>
+              <g id="clock-minute-hand">
+                <polygon points="0,20 -3.6,3 -1.8,-112 0,-120 1.8,-112 3.6,3" fill="rgba(0,0,0,0.35)" transform="translate(2.5,3)"/>
+                <polygon points="0,20 -3.6,3 -1.8,-112 0,-120 1.8,-112 3.6,3" fill="url(#clockMinGrad)" stroke="#6b6b78" stroke-width="0.6"/>
+              </g>
+              <circle r="11" fill="url(#clockBezel)" stroke="#3a2508" stroke-width="1.5"/>
+              <circle r="5" fill="#e63858"/>
+              <circle r="1.8" fill="#fff"/>
             </svg>
           </div>
         </div>

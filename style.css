@@ -1141,60 +1141,38 @@ main {
 .case-marker-line::before { top: -4px; }
 .case-marker-line::after  { bottom: -4px; }
 
-/* Колесо — большой указатель сверху */
-.wheel-container { position: relative; width: 100%; max-width: 400px; aspect-ratio: 1; margin: 0 auto; }
-.wheel-svg { width: 100%; height: 100%; }
+/* =========================================================
+   КОЛЕСО ФОРТУНЫ 
+   ========================================================= */
+.wheel-container { position: relative; width: 100%; max-width: 420px; aspect-ratio: 1; margin: 0 auto; }
+.wheel-svg { width: 100%; height: 100%; display: block; }
 
-.wheel-pointer-wrap {
-  position: absolute;
-  top: -55px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 10;
-  pointer-events: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.9))
-          drop-shadow(0 0 20px rgba(255, 170, 0, 0.6));
-  animation: pointerBob 1.2s ease-in-out infinite alternate;
-}
-@keyframes pointerBob {
-  from { transform: translateX(-50%) translateY(0); }
-  to   { transform: translateX(-50%) translateY(4px); }
-}
+.wheel-pointer { position: absolute; top: -15%; left: 50%; width: 11.5%; transform: translateX(-50%); z-index: 10; pointer-events: none; overflow: visible; }
 
-.wheel-pointer-arrow {
-  width: 0;
-  height: 0;
-  border-left: 22px solid transparent;
-  border-right: 22px solid transparent;
-  border-top: 34px solid #ffd700;
-  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.7));
-}
+/* Лампочки по ободу: две группы мигают по очереди */
+.wheel-bulbs { fill: none; stroke: #fff3a0; stroke-width: 5; stroke-linecap: round; stroke-dasharray: 0.01 38.21; }
+.wheel-bulbs.a { animation: wheelBulbA 0.8s steps(1) infinite; }
+.wheel-bulbs.b { stroke-dashoffset: 19.11; animation: wheelBulbB 0.8s steps(1) infinite; }
+@keyframes wheelBulbA { 0% { opacity: 1; } 50% { opacity: 0.25; } }
+@keyframes wheelBulbB { 0% { opacity: 0.25; } 50% { opacity: 1; } }
 
-.wheel-pointer-stem {
-  width: 4px;
-  height: 24px;
-  background: linear-gradient(180deg, #ffd700 0%, #ffaa00 100%);
-  border-radius: 2px;
-  margin-top: -2px;
-}
+/* Победитель: остальные сектора гаснут, у выигравшего золотая рамка */
+.wheel-rotating path, .wheel-rotating text { transition: opacity 0.5s; }
+.wheel-rotating.has-winner path { opacity: 0.35; }
+.wheel-rotating.has-winner text { opacity: 0.45; }
+.wheel-rotating.has-winner path.win, .wheel-rotating.has-winner text.win { opacity: 1; }
+.wheel-rotating .wheel-hl { opacity: 1 !important; animation: wheelHl 0.7s ease-in-out infinite alternate; }
+@keyframes wheelHl { from { stroke-opacity: 0.6; } to { stroke-opacity: 1; } }
 
 .wheel-center-dot {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 36px;
-  height: 36px;
-  background: radial-gradient(circle at 40% 40%, #ffd700 0%, #b8860b 100%);
-  border: 3px solid #1a1a2e;
-  border-radius: 50%;
+  position: absolute; top: 50%; left: 50%; width: 15%; aspect-ratio: 1;
+  background: radial-gradient(circle at 35% 30%, #fff3a0 0%, #ffd24a 35%, #b8860b 100%);
+  border: 4px solid #3a2508; border-radius: 50%;
   transform: translate(-50%, -50%);
-  box-shadow: 0 0 15px rgba(255,215,0,0.7), inset 0 -2px 4px rgba(0,0,0,0.4);
-  z-index: 9;
-  pointer-events: none;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.6), inset 0 -3px 6px rgba(0,0,0,0.35), 0 0 0 3px rgba(255,210,74,0.35);
+  z-index: 9; pointer-events: none;
 }
+.wheel-center-dot::after { content: ''; position: absolute; left: 50%; top: 50%; width: 34%; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; background: #3a2508; box-shadow: inset 0 1px 2px rgba(255,255,255,0.3); }
 
 /* =========================================================
    КАРТЫ 
@@ -1265,12 +1243,70 @@ main {
 .pick-card-winner .pick-card-front { border-color: #ffd24a; box-shadow: 0 0 0 3px #ffd24a, 0 0 30px rgba(255,210,74,0.9); }
 .pick-card-dim .pick-card-front::after { content: ''; position: absolute; inset: 0; background: rgba(0,0,0,0.5); }
 
-.bingo-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; width: 100%; max-width: min(500px, 65vh); margin: 0 auto; }
-.bingo-cell { aspect-ratio: 1; background: var(--bg-tertiary); border: 2px solid var(--border); border-radius: var(--r-sm); display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.3s ease; padding: 4px; overflow: hidden; min-width: 0; }
-.bingo-cell.crossed { opacity: 0.15; transform: scale(0.85); filter: grayscale(1); }
-.bingo-cell.winner { border-color: var(--accent); box-shadow: 0 0 20px var(--accent); opacity: 1; transform: scale(1.05); background: var(--bg-glow-1); z-index: 2; }
-.bingo-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; color: #fff; flex-shrink: 0; margin-bottom: 4px; }
-.bingo-name { font-size: 9px; font-weight: 600; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+/* =========================================================
+   БИНГО 
+   ========================================================= */
+.bingo-card {
+  position: relative; width: 100%; max-width: min(460px, 58vh); margin: 26px auto 0; padding: 24px 14px 12px;
+  border-radius: 18px; border: 2px solid var(--border);
+  background: linear-gradient(180deg, var(--bg-elevated), var(--bg-secondary));
+  box-shadow: 0 12px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.bingo-title { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
+.bingo-title span {
+  display: flex; align-items: center; justify-content: center; padding: 5px 0;
+  font-weight: 900; font-size: 20px; color: #fff; border-radius: 10px; text-shadow: 0 2px 0 rgba(0,0,0,0.4);
+  box-shadow: inset 0 -3px 0 rgba(0,0,0,0.25), 0 2px 6px rgba(0,0,0,0.4);
+}
+.bingo-title span:nth-child(1) { background: linear-gradient(180deg, #f0506e, #c42848); }
+.bingo-title span:nth-child(2) { background: linear-gradient(180deg, #fbbf24, #d97706); }
+.bingo-title span:nth-child(3) { background: linear-gradient(180deg, #60a5fa, #2563eb); }
+.bingo-title span:nth-child(4) { background: linear-gradient(180deg, #34d399, #059669); }
+.bingo-title span:nth-child(5) { background: linear-gradient(180deg, #a78bfa, #7c3aed); }
+
+/* Шарик с выпавшим номером */
+.bingo-ball {
+  position: absolute; top: -30px; right: -10px; z-index: 5; width: 54px; height: 54px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 17px; color: #1a1a2e;
+  background: radial-gradient(circle at 35% 30%, #fff, #e9e9ef 60%, #b9b9c8);
+  border: 4px solid var(--c, #8a8a9a); box-shadow: 0 6px 14px rgba(0,0,0,0.5);
+}
+.bingo-ball.pop { animation: bingoBallPop 0.45s cubic-bezier(0.2, 1.6, 0.4, 1); }
+.bingo-ball.win { font-size: 11px; background: radial-gradient(circle at 35% 30%, #fff7d1, #f5c542 70%, #b8860b); border-color: #fff3b0; box-shadow: 0 0 22px rgba(255,215,90,0.9); }
+@keyframes bingoBallPop { from { transform: scale(0) rotate(-120deg); } to { transform: scale(1) rotate(0); } }
+
+.bingo-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; width: 100%; }
+.bingo-cell {
+  position: relative; aspect-ratio: 1; min-width: 0; padding: 4px; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: linear-gradient(180deg, var(--bg-tertiary), var(--bg-secondary));
+  border: 2px solid var(--border); border-radius: 12px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+  transition: opacity 0.35s, transform 0.35s, border-color 0.3s, box-shadow 0.3s;
+}
+.bingo-num { position: absolute; top: 3px; left: 6px; font-size: 8px; font-weight: 800; opacity: 0.55; letter-spacing: 0.3px; }
+.bingo-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; color: #fff; flex-shrink: 0; margin-bottom: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
+.bingo-name { font-size: 9px; font-weight: 700; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+/* Вычеркнутая клетка: гаснет и получает красный крест */
+.bingo-cell.crossed { opacity: 0.3; transform: scale(0.92); }
+.bingo-cell.crossed::before, .bingo-cell.crossed::after {
+  content: ''; position: absolute; left: 50%; top: 50%; width: 86%; height: 5px; margin: -2.5px 0 0 -43%;
+  background: #e63858; border-radius: 3px; box-shadow: 0 0 6px rgba(230,56,88,0.8);
+}
+.bingo-cell.crossed::before { transform: rotate(45deg);  animation: bingoXa 0.3s ease-out backwards; }
+.bingo-cell.crossed::after  { transform: rotate(-45deg); animation: bingoXb 0.3s ease-out 0.08s backwards; }
+@keyframes bingoXa { from { transform: rotate(45deg) scaleX(0); } }
+@keyframes bingoXb { from { transform: rotate(-45deg) scaleX(0); } }
+
+/* Победитель — золотая клетка */
+.bingo-cell.winner {
+  opacity: 1; transform: scale(1.1); z-index: 3; border-color: #ffd24a;
+  background: linear-gradient(180deg, rgba(255,215,90,0.28), rgba(255,215,90,0.08));
+  box-shadow: 0 0 0 2px rgba(255,210,74,0.5), 0 0 26px rgba(255,210,74,0.9);
+  animation: bingoWin 0.7s ease-in-out infinite alternate;
+}
+.bingo-cell.winner::after { content: '★'; position: absolute; top: 2px; right: 6px; font-size: 13px; color: #ffd24a; }
+@keyframes bingoWin { from { box-shadow: 0 0 0 2px rgba(255,210,74,0.5), 0 0 18px rgba(255,210,74,0.7); } to { box-shadow: 0 0 0 4px rgba(255,210,74,0.3), 0 0 36px rgba(255,210,74,1); } }
 
 .hotpotato-container { position: relative; width: 100%; max-width: 400px; min-height: 300px; aspect-ratio: 1; margin: 0 auto; }
 .hotpotato-bomb { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 60px; z-index: 2; filter: drop-shadow(0 0 20px red); animation: bombPulse 0.5s infinite alternate; }
@@ -1649,137 +1685,122 @@ main {
   flex-shrink: 0;
 }
 
-/* =========================================================
-   ПРОЖЕКТОР — свет "от зрителя", круг обычного цвета с плавными краями
-   ========================================================= */
 .spotlight-container {
   position: relative;
-  width: min(440px, 80%, 42vh);
+  width: min(560px, 94%, 66vh);
   aspect-ratio: 4 / 3;
   margin: 0 auto;
-  background: linear-gradient(180deg, #1a1a30 0%, #1e1e38 50%, #14142a 100%);
-  border: 2px solid #20203a;
+  background: linear-gradient(180deg, #1c1630 0%, #261b44 100%);
+  border: 2px solid #3a2f5c;
   border-radius: var(--r-lg);
   overflow: hidden;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.55);
 }
-.spotlight-scene {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
+/* Сцена: деревянный пол и бархатные занавесы (видны в свете прожектора) */
+.spotlight-scene { position: absolute; inset: 0; z-index: 1; }
+.spotlight-scene::before {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 42%;
+  background: repeating-linear-gradient(90deg, rgba(0,0,0,0.2) 0 2px, transparent 2px 46px), linear-gradient(180deg, #4d3622, #2a1a0e);
+  border-top: 2px solid rgba(255,220,150,0.18);
+}
+.spotlight-scene::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(0,0,0,0.45), transparent 9%) 0 0 / 100% 100% no-repeat,
+    repeating-linear-gradient(90deg, #5a0f1c 0 7px, #7e1628 7px 14px) 0 0 / 9% 100% no-repeat,
+    repeating-linear-gradient(90deg, #7e1628 0 7px, #5a0f1c 7px 14px) 100% 0 / 9% 100% no-repeat;
 }
 .spotlight-figure {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
+  position: absolute; z-index: 3;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
   transform: translate(-50%, -50%);
 }
 .spotlight-avatar {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  font-weight: 900;
-  color: #fff;
-  border: 2px solid rgba(255,255,255,0.18);
+  width: 58px; height: 58px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 23px; font-weight: 900; color: #fff;
+  border: 3px solid rgba(255,255,255,0.25);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.5), inset 0 -4px 8px rgba(0,0,0,0.25);
   text-shadow: 0 1px 3px rgba(0,0,0,0.6);
   transition: all 0.4s ease;
 }
 .spotlight-name {
-  font-size: 12px;
-  font-weight: 800;
-  color: #fff;
-  background: rgba(0,0,0,0.65);
-  padding: 3px 9px;
-  border-radius: 5px;
-  white-space: nowrap;
-  max-width: 140px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+  font-size: 12px; font-weight: 800; color: #fff;
+  background: rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.12);
+  padding: 3px 10px; border-radius: 6px; white-space: nowrap; max-width: 140px;
+  overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 2px rgba(0,0,0,0.8);
   transition: all 0.4s ease;
 }
 .spotlight-figure.winner .spotlight-avatar {
   background: linear-gradient(135deg, #fff3a0, #ffd700) !important;
-  color: #1a1a2e;
-  border-color: #ffd700;
-  box-shadow: 0 0 0 3px rgba(255,215,0,0.4), 0 0 35px rgba(255,215,0,0.9);
-  text-shadow: none;
+  color: #1a1a2e; border-color: #fff3b0; text-shadow: none;
+  box-shadow: 0 0 0 4px rgba(255,215,0,0.4), 0 0 38px rgba(255,215,0,0.95);
 }
-.spotlight-figure.winner .spotlight-name {
-  color: #ffd700;
-  background: rgba(20,15,0,0.92);
-  box-shadow: 0 0 15px rgba(255,215,0,0.5);
+.spotlight-figure.winner .spotlight-name { color: #ffd700; background: rgba(20,15,0,0.92); border-color: rgba(255,215,0,0.5); box-shadow: 0 0 15px rgba(255,215,0,0.5); }
+.spotlight-figure.winner::before {
+  content: '👑'; position: absolute; top: -26px; left: 50%; transform: translateX(-50%); font-size: 26px;
+  animation: spotCrown 0.6s cubic-bezier(0.2, 1.6, 0.4, 1) backwards;
 }
+@keyframes spotCrown { from { transform: translateX(-50%) translateY(-30px) scale(0.3); opacity: 0; } }
 
+/* Тьма с «дыркой» под прожектором */
 .spotlight-darkness {
-  position: absolute;
-  width: 110px;
-  height: 110px;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    rgba(0,0,0,0) 0%,
-    rgba(0,0,0,0) 35%,
-    rgba(0,0,0,0.3) 50%,
-    rgba(0,0,0,0.7) 65%,
-    rgba(0,0,0,0.9) 82%,
-    rgba(0,0,0,0.97) 94%,
-    rgba(0,0,0,0.98) 100%
-  );
+  position: absolute; width: 26%; aspect-ratio: 1; border-radius: 50%;
+  background: radial-gradient(circle,
+    rgba(255,230,150,0.10) 0%, rgba(255,230,150,0) 38%,
+    rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.7) 65%, rgba(0,0,0,0.9) 82%, rgba(0,0,0,0.97) 94%, rgba(0,0,0,0.98) 100%);
   box-shadow: 0 0 0 10000px rgba(0,0,0,0.98);
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  z-index: 2;
-  left: 50%;
-  top: 50%;
-  transition:
-    left 0.38s cubic-bezier(0.4, 0, 0.2, 1),
-    top 0.38s cubic-bezier(0.4, 0, 0.2, 1),
-    width 0.5s ease,
-    height 0.5s ease;
+  transform: translate(-50%, -50%); pointer-events: none; z-index: 2; left: 50%; top: 50%;
+  transition: left 0.38s cubic-bezier(0.4, 0, 0.2, 1), top 0.38s cubic-bezier(0.4, 0, 0.2, 1), width 0.5s ease, box-shadow 0.9s ease;
 }
-.spotlight-darkness.winner {
-  width: 150px;
-  height: 150px;
-}
+.spotlight-darkness.winner { width: 36%; box-shadow: 0 0 0 10000px rgba(0,0,0,0.82); }
 
-/* =========================================================
-   ЧАСЫ
-   ========================================================= */
+/* Луч прожектора от лампы под потолком к кружку света */
+.spotlight-beam {
+  position: absolute; left: 50%; top: -4%; width: 26%; height: 100px; margin-left: -13%;
+  transform-origin: 50% 0; z-index: 3; pointer-events: none;
+  background: linear-gradient(180deg, rgba(255,236,170,0.55) 0%, rgba(255,236,170,0.15) 70%, rgba(255,236,170,0.06) 100%);
+  clip-path: polygon(40% 0, 60% 0, 100% 100%, 0 100%);
+  transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.spotlight-lamp {
+  position: absolute; left: 50%; top: -12px; width: 48px; height: 26px; margin-left: -24px; z-index: 4; pointer-events: none;
+  border-radius: 0 0 16px 16px; background: linear-gradient(180deg, #555, #222); border: 2px solid #777;
+}
+.spotlight-lamp::after { content: ''; position: absolute; left: 50%; bottom: -3px; width: 20px; height: 8px; margin-left: -10px; border-radius: 50%; background: #fff3b0; box-shadow: 0 0 12px 4px rgba(255,236,150,0.9); }
+
 .clock-container {
   width: min(480px, 95%, 65vh);
   aspect-ratio: 1;
   margin: 0 auto;
   position: relative;
+  border-radius: 50%;
+  box-shadow: 0 0 40px rgba(230,56,88,0.25), 0 14px 30px rgba(0,0,0,0.6);
 }
-.clock-face {
-  width: 100%;
-  height: 100%;
-  filter: drop-shadow(0 0 25px rgba(230,56,88,0.25));
-}
+.clock-face { width: 100%; height: 100%; display: block; }
 #clock-hour-hand, #clock-minute-hand {
   transform-origin: 0 0;
   will-change: transform;
 }
-.clock-sector {
-  transition: opacity 0.4s;
-}
+/* Сектора: чередуются по яркости */
+path.clock-sector { transition: opacity 0.4s, fill 0.4s; }
+path.clock-sector:nth-of-type(odd)  { fill: rgba(230,56,88,0.14); stroke: rgba(243,210,122,0.35); }
+path.clock-sector:nth-of-type(even) { fill: rgba(230,56,88,0.28); stroke: rgba(243,210,122,0.35); }
 .clock-sector.dead {
-  opacity: 0.1;
+  opacity: 0.12;
 }
 .clock-sector.winner {
-  fill: rgba(255, 215, 0, 0.35) !important;
+  fill: rgba(255, 215, 0, 0.4) !important;
   stroke: #ffd700 !important;
+  stroke-width: 2.5 !important;
   opacity: 1 !important;
 }
 .clock-sector-name {
   font-weight: 800;
-  fill: #f2e6e6;
+  fill: #f6ecec;
+  stroke: rgba(0,0,0,0.6);
+  stroke-width: 2px;
+  paint-order: stroke;
   text-anchor: middle;
   dominant-baseline: middle;
   pointer-events: none;
@@ -1788,7 +1809,8 @@ main {
 .clock-sector-name.dead { opacity: 0.1; }
 .clock-sector-name.winner {
   fill: #ffd700;
-  filter: drop-shadow(0 0 8px #ffd700);
+  stroke: rgba(40,25,0,0.85);
+  stroke-width: 3px;
 }
 
 /* =========================================================
