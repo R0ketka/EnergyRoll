@@ -805,9 +805,9 @@ function playWheel(pool, winnerLogin, winnerName) { return new Promise((resolve)
   }
   texts.forEach(t => g.appendChild(t));
 
-  const ptr = document.getElementById('wheel-pointer-g');
-  const setPtr = (deg) => { if (ptr) ptr.setAttribute('transform', `rotate(${deg} 0 17)`); };
-  setPtr(0);
+  const ptr = document.getElementById('wheel-pointer-g'); const bob = els.spinWheel.querySelector('.wheel-ptr-bob');
+  const setPtr = (deg) => { if (ptr) ptr.setAttribute('transform', `rotate(${deg} 0 -176)`); };
+  setPtr(0); if (bob) bob.classList.remove('done');
 
   const targetRotation = 360 * 5 - (winnerIdx + 0.5) * segAngle;
   g.style.transition = 'none'; g.style.transform = 'rotate(0deg)'; void g.getBoundingClientRect();
@@ -821,18 +821,19 @@ function playWheel(pool, winnerLogin, winnerName) { return new Promise((resolve)
     const dist = segAngle - (angle % segAngle); const reach = segAngle * 0.3;
     setPtr(dist < reach ? -24 * (1 - dist / reach) : 0);
     if (t < 1) { requestAnimationFrame(tick); return; }
-    g.style.transform = `rotate(${targetRotation}deg)`; setPtr(0);
+    g.style.transform = `rotate(${targetRotation}deg)`; setPtr(0); if (bob) bob.classList.add('done'); 
     g.classList.add('has-winner'); segPaths[winnerIdx].classList.add('win'); segTexts[winnerIdx].classList.add('win');
     const hl = segPaths[winnerIdx].cloneNode(); hl.setAttribute('class', 'wheel-hl'); hl.setAttribute('fill', 'rgba(255,255,255,0.12)'); hl.setAttribute('stroke', '#ffd24a'); hl.setAttribute('stroke-width', '3.5'); g.appendChild(hl);
-    const box = els.spinWheel.querySelector('.wheel-container'); if (box) burstConfetti(box, box.clientWidth / 2, box.clientHeight * 0.1, 34);
+    try { const box = els.spinWheel.querySelector('.wheel-container'); if (box) burstConfetti(box, box.clientWidth / 2, box.clientHeight * 0.1, 34); } catch (e) {}
     setTimeout(() => { els.spinWheel.hidden = true; resolve(); }, 1900);
   }
   requestAnimationFrame(tick);
 }); }
+
 function playBingo(pool, winnerLogin, winnerName) { return new Promise((resolve) => {
   els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = false; els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true;
   const grid = els.bingoGrid; grid.innerHTML = '';
-  const ball = document.getElementById('bingo-ball'); ball.className = 'bingo-ball'; ball.textContent = '?'; ball.style.removeProperty('--c');
+  const ball = document.getElementById('bingo-ball') || document.createElement('div'); ball.className = 'bingo-ball'; ball.textContent = '?'; ball.style.removeProperty('--c');
   const LETTERS = ['B', 'I', 'N', 'G', 'O']; const COLORS = ['#e63858', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6'];
 
   // 25 клеток: если участников меньше, добираем другими (не победителем — он должен быть в одной клетке)
@@ -865,11 +866,13 @@ function playBingo(pool, winnerLogin, winnerName) { return new Promise((resolve)
   function crossNext() {
     if (spinCancel) { resolve(); return; }
     if (index < toCross.length) {
-      const c = toCross[index]; showBall(c.tag, c.col, false); c.el.classList.add('crossed'); index++;
+      const c = toCross[index]; try { showBall(c.tag, c.col, false); } catch (e) {} c.el.classList.add('crossed'); index++;
       setTimeout(crossNext, interval);
     } else {
       const w = cells.find(c => c.login === winnerLogin);
-      if (w) { w.el.classList.add('winner'); showBall('BINGO!', w.col, true); const card = grid.parentElement; burstConfetti(card, w.el.offsetLeft + w.el.offsetWidth / 2, w.el.offsetTop + w.el.offsetHeight / 2, 32); }
+      try {
+        if (w) { w.el.classList.add('winner'); showBall('BINGO!', w.col, true); const card = grid.parentElement; burstConfetti(card, w.el.offsetLeft + w.el.offsetWidth / 2, w.el.offsetTop + w.el.offsetHeight / 2, 32); }
+      } catch (e) { /* конфетти — просто украшение, игра не должна из-за него зависать */ }
       setTimeout(() => { els.spinBingo.hidden = true; resolve(); }, 1900);
     }
   }

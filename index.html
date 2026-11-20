@@ -27,6 +27,10 @@
             <input type="text" id="keyword-input" class="keyword-input" placeholder="Пусто = любое сообщение" maxlength="50" autocomplete="off" spellcheck="false" />
     </div>
 
+    <div class="logo">
+      <span class="logo-text">EnergyRoll</span>
+    </div>
+
     <div id="auth-section">
       <div class="channel-box">
         <input type="text" id="channel-input" class="keyword-input" placeholder="Имя канала" autocomplete="off" spellcheck="false" list="streamers-list" />
@@ -322,19 +326,7 @@
 
         <div class="spin-view" id="spin-wheel" hidden>
           <div class="wheel-container">
-            <svg class="wheel-pointer" viewBox="-22 -4 44 74" aria-hidden="true">
-              <defs>
-                <linearGradient id="wheelPtrGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0" stop-color="#fff3a0"/><stop offset="0.55" stop-color="#ffd24a"/><stop offset="1" stop-color="#b8860b"/>
-                </linearGradient>
-              </defs>
-              <g id="wheel-pointer-g">
-                <path d="M0 66 C -5 52 -19 32 -19 17 A 19 19 0 0 1 19 17 C 19 32 5 52 0 66 Z" fill="url(#wheelPtrGrad)" stroke="#3a2508" stroke-width="2.5" stroke-linejoin="round"/>
-                <circle cx="0" cy="17" r="7" fill="#3a2508"/>
-                <circle cx="-2" cy="15" r="2.4" fill="#fff3a0" opacity="0.85"/>
-              </g>
-            </svg>
-            <svg viewBox="-150 -150 300 300" class="wheel-svg">
+            <svg viewBox="-150 -206 300 356" class="wheel-svg">
               <defs>
                 <linearGradient id="wheelRimGrad" x1="0" y1="0" x2="1" y2="1">
                   <stop offset="0" stop-color="#fbe6a2"/><stop offset="0.35" stop-color="#c8942e"/><stop offset="0.6" stop-color="#f3d27a"/><stop offset="1" stop-color="#7a531a"/>
@@ -342,6 +334,12 @@
                 <radialGradient id="wheelGloss" cx="0.35" cy="0.28" r="0.85">
                   <stop offset="0" stop-color="#fff" stop-opacity="0.22"/><stop offset="0.5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.35"/>
                 </radialGradient>
+                <radialGradient id="wheelHub" cx="0.35" cy="0.3" r="0.8">
+                  <stop offset="0" stop-color="#fff3a0"/><stop offset="0.45" stop-color="#ffd24a"/><stop offset="1" stop-color="#b8860b"/>
+                </radialGradient>
+                <linearGradient id="wheelPtrGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#fff3a0"/><stop offset="0.55" stop-color="#ffd24a"/><stop offset="1" stop-color="#b8860b"/>
+                </linearGradient>
               </defs>
               <circle r="149" fill="url(#wheelRimGrad)"/>
               <circle r="143" fill="#1b0d0d"/>
@@ -349,8 +347,18 @@
               <circle r="139" fill="url(#wheelGloss)" pointer-events="none"/>
               <circle class="wheel-bulbs a" r="146" pointer-events="none"/>
               <circle class="wheel-bulbs b" r="146" pointer-events="none"/>
+              <circle r="22" fill="url(#wheelHub)" stroke="#3a2508" stroke-width="4"/>
+              <circle r="8" fill="#3a2508"/>
+              <!-- Стрелка-указатель: смотрит остриём на выигравшую клетку -->
+              <g class="wheel-ptr-bob">
+                <g id="wheel-pointer-g">
+                  <path d="M0 -134 C -6 -148 -22 -160 -22 -176 A 22 22 0 0 1 22 -176 C 22 -160 6 -148 0 -134 Z" fill="none" stroke="#ffd24a" stroke-opacity="0.35" stroke-width="9" stroke-linejoin="round"/>
+                  <path d="M0 -134 C -6 -148 -22 -160 -22 -176 A 22 22 0 0 1 22 -176 C 22 -160 6 -148 0 -134 Z" fill="url(#wheelPtrGrad)" stroke="#3a2508" stroke-width="3" stroke-linejoin="round"/>
+                  <circle cx="0" cy="-176" r="8.5" fill="#3a2508"/>
+                  <circle cx="-2.5" cy="-178.5" r="3" fill="#fff3a0" opacity="0.85"/>
+                </g>
+              </g>
             </svg>
-            <div class="wheel-center-dot"></div>
           </div>
         </div>
 
