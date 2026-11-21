@@ -770,7 +770,6 @@ function burstConfetti(parent, x, y, count) {
     ], { duration: 1100 + Math.random() * 700, easing: 'ease-out' }).onfinish = () => p.remove();
   }
 }
-
 function playWheel(pool, winnerLogin, winnerName) { return new Promise((resolve) => {
   els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = false; els.spinBingo.hidden = true; els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true;
 
@@ -821,7 +820,7 @@ function playWheel(pool, winnerLogin, winnerName) { return new Promise((resolve)
     const dist = segAngle - (angle % segAngle); const reach = segAngle * 0.3;
     setPtr(dist < reach ? -24 * (1 - dist / reach) : 0);
     if (t < 1) { requestAnimationFrame(tick); return; }
-    g.style.transform = `rotate(${targetRotation}deg)`; setPtr(0); if (bob) bob.classList.add('done'); 
+    g.style.transform = `rotate(${targetRotation}deg)`; setPtr(0); if (bob) bob.classList.add('done');   // стрелка «клюёт» в выигравшую клетку
     g.classList.add('has-winner'); segPaths[winnerIdx].classList.add('win'); segTexts[winnerIdx].classList.add('win');
     const hl = segPaths[winnerIdx].cloneNode(); hl.setAttribute('class', 'wheel-hl'); hl.setAttribute('fill', 'rgba(255,255,255,0.12)'); hl.setAttribute('stroke', '#ffd24a'); hl.setAttribute('stroke-width', '3.5'); g.appendChild(hl);
     try { const box = els.spinWheel.querySelector('.wheel-container'); if (box) burstConfetti(box, box.clientWidth / 2, box.clientHeight * 0.1, 34); } catch (e) {}
@@ -829,7 +828,6 @@ function playWheel(pool, winnerLogin, winnerName) { return new Promise((resolve)
   }
   requestAnimationFrame(tick);
 }); }
-
 function playBingo(pool, winnerLogin, winnerName) { return new Promise((resolve) => {
   els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = false; els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true;
   const grid = els.bingoGrid; grid.innerHTML = '';
@@ -878,7 +876,6 @@ function playBingo(pool, winnerLogin, winnerName) { return new Promise((resolve)
   }
   setTimeout(crossNext, 500);
 }); }
-
 async function playHotPotato(pool, winnerLogin, winnerName) {
   els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true;
   els.spinHotPotato.hidden = false; await sleep(50);
@@ -927,7 +924,6 @@ function getGridPositions(count, W, H, paddingX = 50, paddingY = 50) {
   }
   return positions;
 }
-
 async function playLaserRange(pool, winnerLogin, winnerName) {
   els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true; els.spinHotPotato.hidden = true; els.spinZeus.hidden = true;
   els.spinLaser.hidden = false; await sleep(50);
@@ -1184,7 +1180,7 @@ async function playElevator(pool, winnerLogin, winnerName) {
 }
 
 /* =========================================================
-   ПРОЖЕКТОР
+   ПРОЖЕКТОР — 9 игроков, свет из глаз, защита от гонки
    ========================================================= */
 let spotlightGameToken = 0;
 
@@ -1285,7 +1281,7 @@ async function playSpotlight(pool, winnerLogin, winnerName) {
     }
     extendedSequence[extendedSequence.length - 1] = winnerFig;
 
-        function moveLight(fig) {
+    function moveLight(fig) {
       darkness.style.left = fig.x + '%';
       darkness.style.top = fig.y + '%';
       const beam = document.getElementById('spotlight-beam'); const stage = document.getElementById('spotlight-container');
@@ -1332,7 +1328,7 @@ async function playSpotlight(pool, winnerLogin, winnerName) {
         moveLight(winnerFig);
         darkness.classList.add('winner');
         winnerFig.el.classList.add('winner');
-        { const stage = document.getElementById('spotlight-container'); if (stage) burstConfetti(stage, stage.clientWidth * winnerFig.x / 100, stage.clientHeight * winnerFig.y / 100, 36); }        
+        try { const stage = document.getElementById('spotlight-container'); if (stage) burstConfetti(stage, stage.clientWidth * winnerFig.x / 100, stage.clientHeight * winnerFig.y / 100, 36); } catch (e) {}
         finishTimer = setTimeout(() => {
           if (myToken !== spotlightGameToken) return;
           spotlightCancelFn = null;
@@ -1349,7 +1345,7 @@ async function playSpotlight(pool, winnerLogin, winnerName) {
 }
 
 /* =========================================================
-   ЧАСЫ
+   ЧАСЫ + подкрутка через API + отмена предыдущей анимации
    ========================================================= */
 async function playClock(pool, winnerLogin, winnerName) {
   els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true;
@@ -1723,7 +1719,6 @@ async function showWinnerWithSpin(login) {
   fillWinnerInfo(login);
 }
 
-
 /* === КАРТЫ: раздача → показ ников → переворот → перемешивание → выбор === */
 async function playCards(pool) {
   [els.spinRoulette, els.spinDrum, els.spinCase, els.spinWheel, els.spinBingo, els.spinHotPotato,
@@ -1761,8 +1756,7 @@ async function playCards(pool) {
       front.appendChild(corner);
     });
     const avatar = mk('div', 'pick-card-avatar', letter); avatar.style.background = avatarGradient(login);
-    const nameEl = mk('div', 'pick-card-name', name);
-    if (name.length > 14) nameEl.style.fontSize = '8.5px'; else if (name.length > 10) nameEl.style.fontSize = '9.5px';
+    const nameEl = mk('div', 'pick-card-name', name); if (name.length > 14) nameEl.style.fontSize = '8.5px'; else if (name.length > 10) nameEl.style.fontSize = '9.5px';
     front.appendChild(avatar); front.appendChild(nameEl);
     inner.appendChild(back); inner.appendChild(front); card.appendChild(inner);
     grid.appendChild(card);
@@ -1780,7 +1774,7 @@ async function playCards(pool) {
   // 3. Перемешиваем: карты меняются местами (через CSS translate)
   setHeader('Перемешиваем…');
   const slots = cards.map((c) => ({ x: c.offsetLeft, y: c.offsetTop }));
-  let order = cards.map((_, i) => i);
+  let order = cards.map((_, i) => i);                       // order[k] — слот, где сейчас стоит карта k
   for (let r = 0; r < 7; r++) {
     const perm = [...order];
     for (let i = perm.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [perm[i], perm[j]] = [perm[j], perm[i]]; }
