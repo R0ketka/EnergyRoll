@@ -139,7 +139,7 @@ function loadChatState() {
     const data = JSON.parse(raw);
     if (data.users) for (const [login, name] of data.users) state.users.set(login, name);
     if (data.messages) for (const [login, msgs] of data.messages) state.messages.set(login, msgs.map(m => ({ text: m.text, time: new Date(m.time) })));
-    if (data.currentStreamWinners) state.currentStreamWinners = data.currentStreamWinners;
+    if (data.currentStreamWinners) { state.currentStreamWinners = data.currentStreamWinners; state.currentStreamWinners.forEach((w) => { delete w._syncing; w._pending = false; }); }
     if (data.excludedUsers) state.excludedUsers = new Set(data.excludedUsers);
   } catch (e) {}
 }
@@ -147,38 +147,91 @@ function loadChatState() {
 /* =========================================================
    API
    ========================================================= */
+const isTempId = (id) => typeof id === 'string' && id.startsWith('temp_');
+// Ник канала для сохранения: подключённый канал → поле ввода → последний сохранённый
+function getWinnerStreamer() {
+  const norm = (s) => String(s || '').toLowerCase().trim().replace(/^#/, '').replace(/[^a-z0-9_]/g, '');
+  return state.userLogin || norm(els.channelInput && els.channelInput.value) || norm(localStorage.getItem('energyroll_channel')) || '';
+}
+
 async function loadWinnersFromApi() {
   if (!state.userLogin) return;
   try {
     const res = await fetch(`${API_BASE}/winners?streamer=${state.userLogin}`);
     if (!res.ok) throw new Error(res.status);
     const list = await res.json();
-    if (list.length === 0 && state.winnersHistory.length > 0) return; 
-    state.winnersHistory = list.map((w) => ({ id: w.id, name: w.name, payout: w.payout || '', site: w.site || null, dep: w.dep || '', createdAt: w.createdAt }));
+    const serverList = list.map((w) => ({ id: w.id, name: w.name, payout: w.payout || '', site: w.site || null, dep: w.dep || '', createdAt: w.createdAt }));
+    const serverIds = new Set(serverList.map((w) => w.id));
+    // Никого не теряем: победители, добавленные в этой сессии (в т.ч. ещё не дошедшие до базы), остаются в «Все время»
+    const keep = []; const seen = new Set();
+    [...state.winnersHistory, ...state.currentStreamWinners].forEach((w) => {
+      if (serverIds.has(w.id) || seen.has(w.id)) return;
+      if (state.winnersHistory.includes(w) || isTempId(w.id)) { seen.add(w.id); keep.push(w); }
+    });
+    state.winnersHistory = [...keep, ...serverList].sort((x, y) => new Date(y.createdAt) - new Date(x.createdAt)).slice(0, 100);
     renderWinnersHistory();
+    syncPendingWinners();
   } catch (e) { addSystemMessage('⚠ Не удалось загрузить победителей.'); }
+}
+
+// Отправка одного победителя в базу (с повторами). Пока id временный — запись считается неотправленной.
+async function syncWinnerToApi(w) {
+  if (!w || !isTempId(w.id) || w._syncing) return;
+  const streamer = getWinnerStreamer();
+  if (!streamer) {
+    w._pending = false; w._failed = true; renderWinnersHistory(); saveChatState();
+    if (!w._warned) { w._warned = true; addSystemMessage('⚠ Укажите канал: победитель сохранён локально и уйдёт в базу после подключения.'); }
+    return;
+  }
+  w._syncing = true; w._pending = true; w._failed = false; renderWinnersHistory();
+  const tempId = w.id; const sent = { payout: w.payout, dep: w.dep, site: w.site };
+  const delays = [0, 1200, 3500, 8000];
+  for (let attempt = 0; attempt < delays.length; attempt++) {
+    if (delays[attempt]) await new Promise((r) => setTimeout(r, delays[attempt]));
+    try {
+      const res = await fetch(`${API_BASE}/winners`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: w.name, payout: sent.payout, dep: sent.dep, site: sent.site, streamer }) });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const saved = await res.json();
+      [state.currentStreamWinners, state.winnersHistory].forEach((arr) => arr.forEach((x) => { if (x.id === tempId) { x.id = saved.id; x._pending = false; x._failed = false; } }));
+      w.id = saved.id; w._pending = false; w._failed = false; w._syncing = false;
+      const stillThere = state.currentStreamWinners.includes(w) || state.winnersHistory.includes(w);
+      if (!stillThere) { fetch(`${API_BASE}/winners/${saved.id}`, { method: 'DELETE' }).catch(() => {}); return; }   // удалили, пока отправлялся
+      if (w.payout !== sent.payout || w.dep !== sent.dep || w.site !== sent.site) updateWinnerInApi(w.id, w.payout, w.dep, w.site);   // правили во время отправки
+      renderWinnersHistory(); saveChatState();
+      return;
+    } catch (e) { /* пробуем ещё раз */ }
+  }
+  w._syncing = false; w._pending = false; w._failed = true;
+  addSystemMessage('⚠ Не удалось сохранить в базу. Запись сохранена локально, отправка повторится автоматически.');
+  renderWinnersHistory(); saveChatState();
+}
+
+// Досылает всё, что ещё не попало в базу (после сбоя, перезагрузки страницы, подключения к каналу)
+let winnersSyncRunning = false;
+async function syncPendingWinners() {
+  if (winnersSyncRunning) return; winnersSyncRunning = true;
+  try {
+    const seen = new Set(); const pending = [];
+    [...state.currentStreamWinners, ...state.winnersHistory].forEach((w) => { if (isTempId(w.id) && !w._syncing && !seen.has(w.id)) { seen.add(w.id); pending.push(w); } });
+    for (const w of pending) await syncWinnerToApi(w);
+  } finally { winnersSyncRunning = false; }
 }
 
 async function addWinnerToHistory(displayName, payout = '', site = null, dep = '') {
   const tempId = 'temp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-  const newWinner = { id: tempId, name: displayName, payout, site, dep, createdAt: new Date().toISOString(), _pending: !!state.userLogin };
+  const newWinner = { id: tempId, name: displayName, payout, site, dep, createdAt: new Date().toISOString(), _pending: true };
   state.currentStreamWinners.unshift(newWinner);
-  state.winnersHistory.unshift(newWinner);
+  state.winnersHistory.unshift(newWinner);            // сразу и «За стрим», и «Все время»
   if (state.winnersHistory.length > 100) state.winnersHistory.length = 100;
   renderWinnersHistory(); saveChatState();
-  if (!state.userLogin) return;
-  try {
-    const res = await fetch(`${API_BASE}/winners`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: displayName, payout, dep, site, streamer: state.userLogin }) });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const saved = await res.json();
-    const s = state.currentStreamWinners.find(x => x.id === tempId); if (s) { s.id = saved.id; s._pending = false; }
-    const h = state.winnersHistory.find(x => x.id === tempId); if (h) { h.id = saved.id; h._pending = false; }
-  } catch (e) {
-    const s = state.currentStreamWinners.find(x => x.id === tempId); if (s) { s._failed = true; s._pending = false; }
-    const h = state.winnersHistory.find(x => x.id === tempId); if (h) { h._failed = true; h._pending = false; }
-    addSystemMessage('⚠ Не удалось сохранить в базу. Запись сохранена локально.'); renderWinnersHistory();
-  }
+  await syncWinnerToApi(newWinner);                   // сразу в базу
+}
+// Правка вывода/депа/сайта: обновляем обе вкладки и базу (раньше уходило в базу только из «Все время»)
+function pushWinnerEdit(target) {
+  if (!target) return;
+  [state.currentStreamWinners, state.winnersHistory].forEach((arr) => { const o = arr.find((x) => x.id === target.id); if (o && o !== target) { o.payout = target.payout; o.dep = target.dep; o.site = target.site; } });
+  updateWinnerInApi(target.id, target.payout, target.dep, target.site);
 }
 async function deleteWinnerFromApi(id) {
   if (typeof id === 'string' && id.startsWith('temp_')) {
@@ -456,9 +509,12 @@ function connectChatAnonymously(channelName) {
   if (!channel) { addSystemMessage('⚠ Введите корректное имя канала.'); setStatus('Введите имя канала', 'off'); return; }
   if (state.userLogin !== channel) {
     state.users.clear(); state.messages.clear(); topElements.clear();
+    const carryWinners = state.userLogin ? [] : state.currentStreamWinners.filter((w) => isTempId(w.id));   // добавлены до подключения к каналу — не теряем
     state.currentStreamWinners = []; state.winnersHistory = []; state.userLogin = channel;
     state.excludedUsers.clear();
-    loadChatState(); renderTopChatters(); renderWinnersHistory(); loadWinnersFromApi(); syncRigConfig();
+    loadChatState(); renderTopChatters();
+    if (carryWinners.length) { state.currentStreamWinners = [...carryWinners, ...state.currentStreamWinners]; state.winnersHistory = [...carryWinners]; saveChatState(); }
+    renderWinnersHistory(); loadWinnersFromApi(); syncRigConfig();
   }
   localStorage.setItem('energyroll_channel', channel); saveStreamerToList(channel); 
   setStatus('Подключение...', 'wait');
@@ -1923,7 +1979,7 @@ function renderWinnersHistory() {
     siteSelect.addEventListener('change', (e) => {
       const target = (state.winnersTab === 'stream' ? state.currentStreamWinners : state.winnersHistory).find((x) => x.id === w.id);
       if (!target) return; target.site = e.target.value || null;
-      if (state.winnersTab === 'all') updateWinnerInApi(target.id, target.payout, target.dep, target.site);
+      pushWinnerEdit(target);
       renderWinnersHistory(); saveChatState(); 
     });
     info.appendChild(siteSelect);
@@ -1932,7 +1988,7 @@ function renderWinnersHistory() {
     const input = document.createElement('input'); input.type = 'text'; input.className = 'winner-payout-input'; input.placeholder = '0'; input.value = w.payout || ''; input.disabled = !state.editWinnersMode;
     input.addEventListener('blur', () => {
       const target = (state.winnersTab === 'stream' ? state.currentStreamWinners : state.winnersHistory).find((x) => x.id === w.id);
-      if (target && state.winnersTab === 'all') updateWinnerInApi(target.id, target.payout, target.dep, target.site);
+      if (target) pushWinnerEdit(target);
       if (state.sortMode === 'payout' && state.editWinnersMode) renderWinnersHistory();
       saveChatState();
     });
@@ -1952,7 +2008,7 @@ function renderWinnersHistory() {
     });
     depInput.addEventListener('blur', () => {
       const target = (state.winnersTab === 'stream' ? state.currentStreamWinners : state.winnersHistory).find((x) => x.id === w.id);
-      if (target && state.winnersTab === 'all') updateWinnerInApi(target.id, target.payout, target.dep, target.site);
+      if (target) pushWinnerEdit(target);
       saveChatState();
     });
     const depCur = document.createElement('span'); depCur.className = 'winner-dep-currency'; depCur.textContent = '₽';
@@ -2051,6 +2107,7 @@ function init() {
 
   renderStreamersDatalist(); 
   setInterval(syncRigConfig, 15000);
+  setInterval(syncPendingWinners, 20000); window.addEventListener('online', syncPendingWinners);
   if (new URLSearchParams(window.location.search).has('admin')) { if (els.rigWrapper) els.rigWrapper.classList.add('show'); }
   els.connectBtn.addEventListener('click', handleConnectClick);
   els.channelInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleConnectClick(); });
