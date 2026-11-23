@@ -67,7 +67,7 @@ const els = {
   streamersList: document.getElementById('streamers-list'),
   spinElevator: document.getElementById('spin-elevator'),
   spinSpotlight: document.getElementById('spin-spotlight'),
-  spinClock: document.getElementById('spin-clock'),
+  spinClock: document.getElementById('spin-clock'), spinClaw: document.getElementById('spin-claw'),
   spinBomb: document.getElementById('spin-bomb'),
   bombBody: document.getElementById('bomb-body'),
   bombCodeDisplay: document.getElementById('bomb-code-display'),
@@ -630,7 +630,7 @@ function fillWinnerInfo(login) {
    МИНИ-ИГРЫ
    ========================================================= */
 function initMinigames() {
-  const known = ['instant', 'roulette', 'drum', 'case', 'cards', 'wheel', 'bingo', 'hotpotato', 'laser', 'zeus', 'elevator', 'spotlight', 'clock', 'bomb'];
+  const known = ['instant', 'roulette', 'drum', 'case', 'cards', 'wheel', 'bingo', 'hotpotato', 'laser', 'zeus', 'elevator', 'spotlight', 'clock', 'claw', 'bomb'];
   let saved = localStorage.getItem('energyroll_minigame'); if (!known.includes(saved)) saved = 'instant'; state.miniGame = saved;
   const buttons = document.querySelectorAll('.minigame-item');
   buttons.forEach((btn) => {
@@ -1248,7 +1248,7 @@ async function playSpotlight(pool, winnerLogin, winnerName) {
   els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true;
   els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true;
   els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true;
-  els.spinElevator.hidden = true; els.spinClock.hidden = true;
+  els.spinElevator.hidden = true; els.spinClock.hidden = true; els.spinClaw.hidden = true;
   els.spinSpotlight.hidden = false;
   await sleep(50);
 
@@ -1590,7 +1590,7 @@ async function startBombGame() {
   if (els.modalDepInput) els.modalDepInput.value = '';
   updateCommitButton();
   [els.spinRoulette, els.spinDrum, els.spinCase, els.spinCards, els.spinWheel, els.spinBingo,
-   els.spinHotPotato, els.spinLaser, els.spinZeus, els.spinElevator, els.spinSpotlight, els.spinClock]
+   els.spinHotPotato, els.spinLaser, els.spinZeus, els.spinElevator, els.spinSpotlight, els.spinClock, els.spinClaw]
     .forEach(el => { if (el) el.hidden = true; });
   els.spinBomb.hidden = false;
   const winner = await playBomb();
@@ -1746,7 +1746,7 @@ async function showWinnerWithSpin(login) {
   updateCommitButton();
 
   [els.spinRoulette, els.spinDrum, els.spinCase, els.spinCards, els.spinWheel, els.spinBingo,
-   els.spinHotPotato, els.spinLaser, els.spinZeus, els.spinElevator, els.spinSpotlight, els.spinClock, els.spinBomb]
+   els.spinHotPotato, els.spinLaser, els.spinZeus, els.spinElevator, els.spinSpotlight, els.spinClock, els.spinClaw, els.spinBomb]
     .forEach(el => { if (el) el.hidden = true; });
 
   if (state.miniGame === 'roulette') await playRoulette(displayName);
@@ -1758,6 +1758,7 @@ async function showWinnerWithSpin(login) {
   else if (state.miniGame === 'laser') { const bp = getActiveWinnerPool().filter((l) => l !== login); await playLaserRange([...new Set([...bp, login])], login, displayName); }
   else if (state.miniGame === 'zeus') { const bp = getActiveWinnerPool().filter((l) => l !== login); await playZeusLightning([...new Set([...bp, login])], login, displayName); }
   else if (state.miniGame === 'elevator') { const bp = getActiveWinnerPool().filter((l) => l !== login); await playElevator([...new Set([...bp, login])], login, displayName); }
+  else if (state.miniGame === 'claw') { const bp = getActiveWinnerPool().filter((l) => l !== login); await playClaw([...new Set([...bp, login])], login, displayName); }
   else if (state.miniGame === 'spotlight') {
     const bp = getActiveWinnerPool().filter((l) => l !== login);
     const res = await playSpotlight([...new Set([...bp, login])], login, displayName);
@@ -1775,10 +1776,142 @@ async function showWinnerWithSpin(login) {
   fillWinnerInfo(login);
 }
 
+/* === КРАН-МАШИНА: капсулы падают в кучу → клешня промахивается и роняет → хватает капсулу победителя → выдача === */
+async function playClaw(pool, winnerLogin, winnerName) {
+  [els.spinRoulette, els.spinDrum, els.spinCase, els.spinCards, els.spinWheel, els.spinBingo, els.spinHotPotato,
+   els.spinLaser, els.spinZeus, els.spinElevator, els.spinSpotlight, els.spinClock, els.spinBomb]
+    .forEach((el) => { if (el) el.hidden = true; });
+  els.spinClaw.hidden = false; await sleep(50);
+
+  const machine = document.getElementById('claw-machine'); const win = document.getElementById('claw-window');
+  const unit = document.getElementById('claw-unit'); const cable = document.getElementById('claw-cable'); const head = document.getElementById('claw-head');
+  const stick = document.getElementById('claw-stick'); const btn = document.getElementById('claw-btn'); const tray = document.getElementById('claw-tray');
+  const W = win.clientWidth || 420; const H = win.clientHeight || 320;
+  const wait = async (ms) => { await sleep(ms); return !spinCancel; };
+
+  // Сброс
+  win.querySelectorAll('.claw-ball, .claw-banner').forEach((e) => e.remove());
+  tray.innerHTML = '';
+  machine.classList.remove('busy', 'win'); stick.classList.remove('tilt-l', 'tilt-r'); btn.classList.remove('press');
+  head.classList.add('open');
+  unit.style.transition = 'none'; unit.style.left = (W / 2) + 'px';
+  cable.style.transition = 'none'; cable.style.height = '20px'; void unit.offsetWidth;
+
+  // До 12 участников, победитель обязательно среди них
+  let logins = [...new Set(pool)];
+  if (!logins.includes(winnerLogin)) logins.push(winnerLogin);
+  if (logins.length > 12) { logins = logins.filter((l) => l !== winnerLogin).sort(() => Math.random() - 0.5).slice(0, 11).concat([winnerLogin]); }
+
+  // 12 мест в куче: нижний ряд, средний, верхний
+  const floor = H - 8; const slots = [];
+  [[5, 52, 106, 60, 3], [4, 46, 136, 60, 2], [3, 42, 166, 60, 1]].forEach(([n, D, x0, pitch, z], row) => {
+    const y = row === 0 ? floor - D : (row === 1 ? floor - 52 - 36 : floor - 52 - 36 - 30);
+    for (let i = 0; i < n; i++) slots.push({ row, D, x: x0 + i * pitch, y, z, login: null });
+  });
+  const order = slots.map((_, i) => i).sort(() => Math.random() - 0.5);
+  logins.sort(() => Math.random() - 0.5).forEach((l, i) => { slots[order[i]].login = l; });
+  const hueOf = (s) => { let h = 0; for (const ch of String(s)) h = (h * 31 + ch.charCodeAt(0)) % 360; return h; };
+
+  const mkBall = (login, D, z) => {
+    const b = document.createElement('div'); b.className = 'claw-ball' + (login ? '' : ' decor');
+    b.style.width = D + 'px'; b.style.height = D + 'px'; b.style.zIndex = z; b.style.setProperty('--h', login ? hueOf(login) : (Math.floor(Math.random() * 6) * 60 + 20));
+    const top = document.createElement('div'); top.className = 'cb-top'; const bot = document.createElement('div'); bot.className = 'cb-bot';
+    const shine = document.createElement('div'); shine.className = 'cb-shine';
+    const name = document.createElement('div'); name.className = 'cb-name'; name.textContent = login ? (state.users.get(login) || login) : '?';
+    b.appendChild(bot); b.appendChild(top); b.appendChild(shine); b.appendChild(name);
+    return b;
+  };
+  slots.forEach((s, i) => {
+    s.el = mkBall(s.login, s.D, s.z); s.el.style.left = s.x + 'px'; s.el.style.top = '-70px';
+    win.appendChild(s.el);
+  });
+  void win.offsetWidth;
+  slots.forEach((s, i) => { s.el.style.transition = `top 0.6s cubic-bezier(0.3, 1.5, 0.5, 1) ${s.row * 0.18 + (i % 5) * 0.04}s`; s.el.style.top = s.y + 'px'; });
+  machine.classList.add('busy');
+  if (!(await wait(1700))) return;
+
+  // Управление клешнёй
+  const centerX = (s) => s.x + s.D / 2;
+  const cableFor = (s, short) => Math.max(20, s.y + s.D / 2 - 70 - (short || 0));
+  const goTo = async (x, ms) => {
+    const dir = x > parseFloat(unit.style.left) ? 'tilt-r' : 'tilt-l'; stick.classList.remove('tilt-l', 'tilt-r'); stick.classList.add(dir);
+    unit.style.transition = `left ${ms}ms cubic-bezier(0.45, 0, 0.25, 1)`; unit.style.left = x + 'px';
+    const ok = await wait(ms); stick.classList.remove('tilt-l', 'tilt-r'); return ok;
+  };
+  const setLen = async (L, ms) => { cable.style.transition = `height ${ms}ms ease-in-out`; cable.style.height = L + 'px'; return wait(ms); };
+  const press = () => { btn.classList.add('press'); setTimeout(() => btn.classList.remove('press'), 300); };
+  const closeClaw = async () => { press(); head.classList.remove('open'); return wait(420); };
+  const attach = (s) => {
+    const b = s.el; const br = b.getBoundingClientRect(); const hr = head.getBoundingClientRect();
+    head.insertBefore(b, head.firstChild);
+    b.style.transition = 'none'; b.style.left = (br.left - hr.left) + 'px'; b.style.top = (br.top - hr.top) + 'px'; b.style.zIndex = 1; void b.offsetWidth;
+    b.style.transition = 'left 0.25s ease, top 0.25s ease'; b.style.left = ((56 - s.D) / 2) + 'px'; b.style.top = '10px';
+  };
+  const detach = (s, toTop, z) => {
+    const b = s.el; const br = b.getBoundingClientRect(); const wr = win.getBoundingClientRect();
+    win.appendChild(b); b.style.transition = 'none'; b.style.left = (br.left - wr.left) + 'px'; b.style.top = (br.top - wr.top) + 'px'; b.style.zIndex = z; void b.offsetWidth;
+    b.style.transition = 'top 0.6s cubic-bezier(0.55, 0, 1, 0.5)'; b.style.top = toTop + 'px';
+  };
+  const winnerSlot = slots.find((s) => s.login === winnerLogin);
+  const others = slots.filter((s) => s !== winnerSlot);
+
+  // Попытка 1: клешня опускается чуть мимо и сжимается вхолостую
+  const missSlot = others.filter((s) => s.login).sort(() => Math.random() - 0.5)[0] || others[0];
+  if (missSlot) {
+    if (!(await goTo(centerX(missSlot), 900))) return;
+    if (!(await setLen(cableFor(missSlot, 34), 700))) return;
+    if (!(await closeClaw())) return;
+    if (!(await setLen(20, 650))) return;
+    head.classList.add('open'); if (!(await wait(350))) return;
+  }
+
+  // Попытка 2: хватает чужую капсулу, но она выскальзывает и падает обратно
+  const slipSlot = others.filter((s) => s.login && s !== missSlot).sort(() => Math.random() - 0.5)[0];
+  if (slipSlot) {
+    if (!(await goTo(centerX(slipSlot), 800))) return;
+    if (!(await setLen(cableFor(slipSlot), 700))) return;
+    if (!(await closeClaw())) return;
+    attach(slipSlot);
+    if (!(await setLen(Math.max(60, cableFor(slipSlot) - 90), 650))) return;
+    head.classList.add('open');
+    detach(slipSlot, slipSlot.y, slipSlot.z);
+    if (!(await wait(700))) return;
+    slipSlot.el.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(-10px)' }, { transform: 'translateY(0)' }], { duration: 260 });
+    if (!(await setLen(20, 500))) return;
+  }
+
+  // Попытка 3: хватает капсулу победителя
+  if (!(await goTo(centerX(winnerSlot), 900))) return;
+  if (!(await setLen(cableFor(winnerSlot), 750))) return;
+  if (!(await closeClaw())) return;
+  attach(winnerSlot);
+  if (!(await wait(280))) return;
+  if (!(await setLen(20, 900))) return;
+
+  // Несёт к выдаче и отпускает
+  if (!(await goTo(48, 1100))) return;
+  head.classList.add('open');
+  detach(winnerSlot, floor - winnerSlot.D, 4);
+  if (!(await wait(750))) return;
+  winnerSlot.el.style.opacity = '0';
+
+  // Капсула появляется в лотке и открывается
+  const prize = mkBall(winnerLogin, 52, 3); prize.classList.add('tray-in'); tray.appendChild(prize);
+  machine.classList.remove('busy'); machine.classList.add('win');
+  if (!(await setLen(20, 300))) return;
+  if (!(await wait(450))) return;
+  prize.classList.add('open');
+  const banner = document.createElement('div'); banner.className = 'claw-banner'; banner.textContent = '🎁 ' + (winnerName || state.users.get(winnerLogin) || winnerLogin); win.appendChild(banner);
+  void banner.offsetWidth; banner.classList.add('show');
+  try { burstConfetti(win, W / 2, H * 0.34, 36); } catch (e) {}
+  if (!(await wait(2300))) return;
+  els.spinClaw.hidden = true;
+}
+
 /* === КАРТЫ: раздача → показ ников → переворот → перемешивание → выбор === */
 async function playCards(pool) {
   [els.spinRoulette, els.spinDrum, els.spinCase, els.spinWheel, els.spinBingo, els.spinHotPotato,
-   els.spinLaser, els.spinZeus, els.spinElevator, els.spinSpotlight, els.spinClock, els.spinBomb]
+   els.spinLaser, els.spinZeus, els.spinElevator, els.spinSpotlight, els.spinClock, els.spinClaw, els.spinBomb]
     .forEach((el) => { if (el) el.hidden = true; });
   els.spinCards.hidden = false;
 

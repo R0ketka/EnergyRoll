@@ -126,6 +126,11 @@
             <div class="minigame-info"><div class="minigame-title">Часы</div></div>
             <span class="minigame-check">✓</span>
           </button>
+          <button class="minigame-item" data-mode="claw">
+            <span class="minigame-icon">🕹️</span>
+            <div class="minigame-info"><div class="minigame-title">Кран-машина</div></div>
+            <span class="minigame-check">✓</span>
+          </button>
           <button class="minigame-item" data-mode="bomb">
             <span class="minigame-icon">💣</span>
             <div class="minigame-info"><div class="minigame-title">Бомба</div></div>
@@ -447,6 +452,38 @@
               <circle r="5" fill="#e63858"/>
               <circle r="1.8" fill="#fff"/>
             </svg>
+          </div>
+        </div>
+
+        <div class="spin-view" id="spin-claw" hidden>
+          <div class="claw-machine" id="claw-machine">
+            <div class="claw-marquee">
+              <div class="claw-marquee-title">🕹️ КРАН-МАШИНА</div>
+              <div class="claw-bulbs"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            </div>
+            <div class="claw-body">
+              <div class="claw-window" id="claw-window">
+                <div class="claw-rail"></div>
+                <div class="claw-unit" id="claw-unit">
+                  <div class="claw-trolley"></div>
+                  <div class="claw-cable" id="claw-cable">
+                    <div class="claw-head open" id="claw-head">
+                      <div class="claw-hub"></div>
+                      <div class="claw-prong p-l"></div>
+                      <div class="claw-prong p-r"></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="claw-chute"><span>ВЫДАЧА</span></div>
+                <div class="claw-glass"></div>
+              </div>
+              <div class="claw-panel">
+                <div class="claw-coin"><i></i><span>ЖЕТОН</span></div>
+                <div class="claw-joy"><div class="claw-stick" id="claw-stick"><div class="claw-stick-ball"></div></div></div>
+                <div class="claw-btn" id="claw-btn"></div>
+              </div>
+              <div class="claw-tray" id="claw-tray"></div>
+            </div>
           </div>
         </div>
 

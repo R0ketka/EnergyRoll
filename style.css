@@ -1778,6 +1778,88 @@ main {
 
 
 /* =========================================================
+   КРАН-МАШИНА — капсулы с никами, клешня на тросе, выдача приза
+   ========================================================= */
+.claw-machine { position: relative; width: 100%; max-width: 480px; margin: 0 auto; animation: clawIn 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.15) backwards; }
+@keyframes clawIn { from { opacity: 0; transform: translateY(40px) scale(0.92); } to { opacity: 1; transform: none; } }
+
+/* Вывеска с лампочками */
+.claw-marquee { margin: 0 18px; padding: 8px 14px 10px; text-align: center; border-radius: 16px 16px 0 0; background: linear-gradient(180deg, #2a1470, #170a45); border: 3px solid #5eead4; border-bottom: none; }
+.claw-marquee-title { font-family: 'Arial Black', Impact, sans-serif; font-size: 20px; letter-spacing: 5px; color: #5eead4; text-shadow: 0 0 12px rgba(94,234,212,0.7), 0 2px 0 #0b3b36; }
+.claw-bulbs { display: flex; justify-content: space-between; margin-top: 6px; padding: 0 4px; }
+.claw-bulbs i { width: 9px; height: 9px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff, #f9a8d4 50%, #be185d); box-shadow: 0 0 8px #f472b6; animation: clawBulb 1.2s ease-in-out infinite alternate; }
+.claw-bulbs i:nth-child(even) { animation-delay: 0.6s; }
+@keyframes clawBulb { from { opacity: 1; } to { opacity: 0.35; } }
+@keyframes clawBulbFast { from { opacity: 1; } to { opacity: 0.2; } }
+.claw-machine.busy .claw-bulbs i { animation: clawBulbFast 0.25s steps(1) infinite alternate; }
+.claw-machine.win .claw-bulbs i { animation: clawBulbFast 0.16s steps(1) infinite alternate; }
+
+/* Корпус */
+.claw-body { position: relative; padding: 14px 14px 12px; border-radius: 14px; background: linear-gradient(180deg, #6b3fd4 0%, #35188a 55%, #22105e 100%); border: 3px solid #5eead4; box-shadow: inset 0 0 0 2px rgba(0,0,0,0.35), inset 0 6px 14px rgba(255,255,255,0.15), 0 14px 30px rgba(0,0,0,0.6); }
+
+/* Окно */
+.claw-window {
+  position: relative; width: 420px; height: 320px; max-width: 100%; margin: 0 auto; overflow: hidden; border-radius: 10px;
+  background: radial-gradient(ellipse at 50% 0%, #3a3590 0%, transparent 70%), linear-gradient(180deg, #1b2455 0%, #2b2a72 100%);
+  box-shadow: inset 0 0 0 3px #0e0a2e, inset 0 0 30px rgba(0,0,0,0.6), 0 0 0 3px #0e0a2e;
+}
+.claw-rail { position: absolute; left: 0; right: 0; top: 10px; height: 10px; background: linear-gradient(180deg, #9aa3b8, #4b5468); box-shadow: 0 2px 4px rgba(0,0,0,0.5); z-index: 6; }
+.claw-glass { position: absolute; inset: 0; z-index: 12; pointer-events: none; background: linear-gradient(115deg, rgba(255,255,255,0.12) 0 14%, transparent 14%), linear-gradient(180deg, rgba(255,255,255,0.06), transparent 30%); }
+
+/* Тележка, трос и клешня */
+.claw-unit { position: absolute; top: 0; left: 210px; width: 0; height: 100%; z-index: 10; pointer-events: none; }
+.claw-trolley { position: absolute; left: -24px; top: 6px; width: 48px; height: 24px; border-radius: 6px; background: linear-gradient(180deg, #f9a8d4, #be185d); border: 2px solid #4a0d2c; box-shadow: 0 3px 6px rgba(0,0,0,0.5); }
+.claw-cable { position: absolute; left: -2px; top: 30px; width: 4px; height: 20px; background: linear-gradient(90deg, #6a7287, #e5e9f2 50%, #5a6275); }
+.claw-head { position: absolute; left: 50%; top: 100%; width: 56px; height: 62px; margin-left: -28px; }
+.claw-hub { position: absolute; left: 0; top: 0; width: 56px; height: 16px; border-radius: 6px 6px 10px 10px; background: linear-gradient(180deg, #e5e9f2, #8791a8 60%, #4b5468); border: 2px solid #232a3b; z-index: 3; }
+.claw-prong { position: absolute; top: 12px; width: 9px; height: 46px; transform-origin: 50% 0; border-radius: 4px 4px 14px 14px; background: linear-gradient(90deg, #8791a8, #e5e9f2 50%, #6a7287); border: 1px solid #232a3b; z-index: 3; transition: transform 0.35s ease; }
+.claw-prong.p-l { left: 4px;  transform: rotate(-20deg); }
+.claw-prong.p-r { right: 4px; transform: rotate(20deg); }
+.claw-head.open .claw-prong.p-l { transform: rotate(32deg); }
+.claw-head.open .claw-prong.p-r { transform: rotate(-32deg); }
+
+/* Капсулы-шары с никами */
+.claw-ball { position: absolute; border-radius: 50%; overflow: hidden; z-index: 3; box-shadow: 0 4px 8px rgba(0,0,0,0.45); }
+.claw-ball .cb-top, .claw-ball .cb-bot { position: absolute; left: 0; right: 0; }
+.claw-ball .cb-top { top: 0; height: 52%; background: hsl(var(--h), 75%, 52%); }
+.claw-ball .cb-bot { bottom: 0; height: 48%; background: #f1f2f8; }
+.claw-ball .cb-shine { position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle at 32% 25%, rgba(255,255,255,0.7), transparent 38%), radial-gradient(circle at 50% 50%, transparent 55%, rgba(0,0,0,0.3) 100%); pointer-events: none; }
+.claw-ball .cb-name { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); max-width: 90%; padding: 1px 4px; border-radius: 4px; background: rgba(255,255,255,0.92); color: #1a1a2e; font-size: 9px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 2; }
+.claw-ball.decor .cb-name { font-size: 12px; padding: 0 5px; }
+.claw-ball.open { overflow: visible; }
+.claw-ball.open .cb-bot { border-radius: 0 0 50% 50% / 0 0 100% 100%; box-shadow: 0 4px 8px rgba(0,0,0,0.45); }
+.claw-ball.open .cb-shine { opacity: 0; }
+.claw-ball.open .cb-top { animation: clawCap 0.6s cubic-bezier(0.3, 1.4, 0.5, 1) forwards; border-radius: 50% 50% 0 0; }
+@keyframes clawCap { to { transform: translate(-8px, -30px) rotate(-28deg); opacity: 0.9; } }
+
+/* Выдача приза */
+.claw-chute { position: absolute; left: 0; bottom: 0; width: 96px; height: 112px; z-index: 5; background: linear-gradient(180deg, #0e0a2e, #1b1450); border-right: 3px solid #5eead4; border-top: 6px solid #5eead4; display: flex; align-items: flex-end; justify-content: center; }
+.claw-chute::before { content: ''; position: absolute; left: 8px; right: 8px; top: -2px; height: 10px; border-radius: 50%; background: #000; box-shadow: inset 0 2px 4px rgba(255,255,255,0.1); }
+.claw-chute span { margin-bottom: 8px; font-size: 11px; font-weight: 900; letter-spacing: 2px; color: #5eead4; text-shadow: 0 0 8px rgba(94,234,212,0.7); }
+.claw-banner { position: absolute; left: 50%; top: 34%; z-index: 11; transform: translate(-50%, -50%) scale(0.5); opacity: 0; padding: 10px 22px; border-radius: 14px; font-family: 'Arial Black', Impact, sans-serif; font-size: 24px; letter-spacing: 1px; color: #3a2508; white-space: nowrap; max-width: 92%; overflow: hidden; text-overflow: ellipsis; background: linear-gradient(180deg, #fff7d1, #f5c542); border: 3px solid #fff3b0; box-shadow: 0 0 0 3px rgba(255,215,90,0.5), 0 0 34px rgba(255,200,60,0.95); transition: transform 0.5s cubic-bezier(0.2, 1.5, 0.4, 1), opacity 0.3s; }
+.claw-banner.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+/* Панель управления: жетон, джойстик, кнопка */
+.claw-panel { display: flex; align-items: center; justify-content: space-around; margin: 12px 0 0 0; padding: 8px 10px; height: 64px; border-radius: 10px; background: linear-gradient(180deg, #2a1470, #170a45); box-shadow: inset 0 2px 6px rgba(0,0,0,0.6); }
+.claw-coin { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.claw-coin i { width: 8px; height: 26px; border-radius: 4px; background: #05030f; box-shadow: inset 0 1px 3px #000, 0 1px 0 rgba(94,234,212,0.5); }
+.claw-coin span { font-size: 8px; font-weight: 800; letter-spacing: 1px; color: #5eead4; }
+.claw-joy { position: relative; width: 52px; height: 48px; display: flex; align-items: flex-end; justify-content: center; }
+.claw-joy::before { content: ''; position: absolute; bottom: 0; width: 44px; height: 14px; border-radius: 50%; background: radial-gradient(ellipse at 50% 30%, #4b5468, #151a28); box-shadow: 0 2px 4px #000; }
+.claw-stick { position: relative; width: 6px; height: 34px; margin-bottom: 7px; transform-origin: 50% 100%; transition: transform 0.25s ease; background: linear-gradient(90deg, #6a7287, #e5e9f2, #5a6275); border-radius: 3px; }
+.claw-stick-ball { position: absolute; left: 50%; top: -12px; width: 20px; height: 20px; margin-left: -10px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ff9a9a, #d01c2c 50%, #6a0610); box-shadow: 0 3px 6px rgba(0,0,0,0.6); }
+.claw-stick.tilt-l { transform: rotate(-24deg); }
+.claw-stick.tilt-r { transform: rotate(24deg); }
+.claw-btn { width: 40px; height: 40px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fde68a, #f59e0b 55%, #92400e); border: 3px solid #3a2508; box-shadow: 0 5px 0 #3a2508, 0 6px 10px rgba(0,0,0,0.6); transition: transform 0.12s, box-shadow 0.12s; }
+.claw-btn.press { transform: translateY(4px); box-shadow: 0 1px 0 #3a2508, 0 2px 4px rgba(0,0,0,0.6); }
+
+/* Лоток для приза */
+.claw-tray { position: relative; width: 150px; height: 54px; margin: 10px 0 0 6px; border-radius: 8px 8px 4px 4px; background: linear-gradient(180deg, #05030f, #120a34); border: 3px solid #5eead4; box-shadow: inset 0 6px 12px rgba(0,0,0,0.8); overflow: visible; }
+.claw-tray .claw-ball { left: 50px; top: 0; transform-origin: 50% 100%; }
+.claw-tray .claw-ball.tray-in { animation: clawTrayIn 0.7s cubic-bezier(0.3, 1.5, 0.5, 1) backwards; }
+@keyframes clawTrayIn { from { transform: translateY(-50px) scale(0.5); opacity: 0; } }
+
+/* =========================================================
    ЧАСЫ
    ========================================================= */
 .clock-container {
