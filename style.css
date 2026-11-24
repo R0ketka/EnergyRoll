@@ -1778,6 +1778,85 @@ main {
 
 
 /* =========================================================
+   PUBG — карта острова, самолёт, десант, сужающаяся зона, аирдроп
+   ========================================================= */
+.pg-wrap { width: 100%; }
+.pg-map {
+  position: relative; width: min(640px, 100%, 76vh); aspect-ratio: 1; margin: 0 auto; overflow: hidden; border-radius: 14px;
+  border: 3px solid #26382b; background: #153f66; box-shadow: 0 12px 30px rgba(0,0,0,0.55);
+}
+.pg-layer { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+
+/* Игроки: аватарка + ник на тёмной плашке (читаются на любой местности) */
+.pg-players { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+.pg-player { position: absolute; width: 0; height: 0; opacity: 0; }
+.pg-av {
+  position: absolute; left: -15px; top: -15px; width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; color: #fff;
+  border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.65); text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+  transition: transform 0.4s ease, box-shadow 0.2s;
+}
+.pg-nick {
+  position: absolute; left: 0; top: 17px; transform: translateX(-50%); padding: 1px 7px; border-radius: 9px; max-width: 96px;
+  background: rgba(8, 12, 20, 0.82); border: 1px solid rgba(255,255,255,0.28); color: #fff; font-size: 10.5px; font-weight: 800;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+.pg-chute { position: absolute; left: -16px; top: -52px; width: 32px; text-align: center; font-size: 30px; line-height: 1; opacity: 0; transition: opacity 0.3s; }
+.pg-player.dropping { z-index: 8; }
+.pg-player.dropping .pg-chute { opacity: 1; }
+.pg-player.dropping .pg-av { transform: scale(1.35); }
+.pg-player.running .pg-av { animation: pgRun 0.35s ease-in-out infinite alternate; }
+@keyframes pgRun { from { transform: translateY(0); } to { transform: translateY(-3px); } }
+.pg-player.danger .pg-av { box-shadow: 0 0 0 3px rgba(239,68,68,0.9), 0 0 14px #ef4444; }
+.pg-player.dead { z-index: 3; }
+.pg-player.dead .pg-av { background: #4b5563 !important; border-color: #9ca3af; color: transparent; text-shadow: none; box-shadow: none; }
+.pg-player.dead .pg-av::after { content: '💀'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+.pg-player.dead .pg-nick { opacity: 0.55; text-decoration: line-through; }
+.pg-player.winner { z-index: 20; }
+.pg-player.winner .pg-av { transform: scale(1.6); border-color: #fff3b0; box-shadow: 0 0 0 4px rgba(255,215,90,0.6), 0 0 28px rgba(255,200,60,1); animation: pgWinPulse 0.8s ease-in-out infinite alternate; }
+.pg-player.winner .pg-nick { background: linear-gradient(180deg, #fff7d1, #f5c542); color: #3a2508; border-color: #fff3b0; font-size: 12px; top: 26px; }
+@keyframes pgWinPulse { from { box-shadow: 0 0 0 4px rgba(255,215,90,0.6), 0 0 18px rgba(255,200,60,0.8); } to { box-shadow: 0 0 0 7px rgba(255,215,90,0.3), 0 0 36px rgba(255,200,60,1); } }
+
+/* Зона и вспышки */
+#pg-zone-next { animation: pgDash 0.8s linear infinite; }
+@keyframes pgDash { to { stroke-dashoffset: -16; } }
+.pg-hit { transform-box: fill-box; transform-origin: center; animation: pgHit 0.45s ease-out forwards; }
+@keyframes pgHit { from { transform: scale(0.4); opacity: 1; } to { transform: scale(2.4); opacity: 0; } }
+
+/* Самолёт */
+.pg-plane { position: absolute; width: 58px; height: 58px; margin: -29px 0 0 -29px; z-index: 25; pointer-events: none; opacity: 0; }
+.pg-plane svg { width: 100%; height: 100%; display: block; }
+
+/* Аирдроп */
+.pg-airdrop { position: absolute; width: 0; height: 0; z-index: 4; opacity: 0; pointer-events: none; }
+.pg-crate { position: absolute; left: -18px; top: -20px; font-size: 34px; line-height: 1; text-shadow: 0 3px 6px rgba(0,0,0,0.5); }
+.pg-crate-chute { position: absolute; left: -22px; top: -62px; width: 44px; text-align: center; font-size: 40px; line-height: 1; opacity: 0; }
+.pg-smoke { position: absolute; left: -10px; top: -10px; width: 20px; height: 20px; border-radius: 50%; background: radial-gradient(circle, rgba(255,70,70,0.9), rgba(255,70,70,0) 70%); opacity: 0; }
+.pg-airdrop.show { opacity: 1; }
+.pg-airdrop.show .pg-crate { animation: pgCrateDrop 2.2s cubic-bezier(0.3, 0.7, 0.4, 1) both; }
+.pg-airdrop.show .pg-crate-chute { animation: pgChuteDrop 2.2s cubic-bezier(0.3, 0.7, 0.4, 1) both; }
+.pg-airdrop.landed .pg-smoke { animation: pgSmoke 2.2s ease-out infinite; }
+@keyframes pgCrateDrop { from { transform: translateY(-420px) scale(1.5); } to { transform: none; } }
+@keyframes pgChuteDrop { 0% { transform: translateY(-420px) scale(1.5); opacity: 1; } 85% { opacity: 1; } 100% { transform: none; opacity: 0; } }
+@keyframes pgSmoke { 0% { transform: translateY(0) scale(1); opacity: 0.9; } 100% { transform: translateY(-70px) scale(5); opacity: 0; } }
+
+/* Интерфейс поверх карты */
+.pg-hud { position: absolute; z-index: 30; padding: 4px 11px; border-radius: 9px; background: rgba(8, 12, 20, 0.78); border: 1px solid rgba(255,255,255,0.2); color: #fff; font-size: 13px; font-weight: 800; pointer-events: none; }
+.pg-hud-alive { left: 10px; top: 10px; }
+.pg-hud-zone { right: 10px; top: 10px; max-width: 66%; text-align: right; }
+.pg-feed { position: absolute; left: 10px; bottom: 10px; z-index: 30; display: flex; flex-direction: column; align-items: flex-start; pointer-events: none; }
+.pg-feed-line { margin-top: 3px; padding: 3px 9px; border-radius: 7px; background: rgba(8, 12, 20, 0.78); color: #fff; font-size: 11.5px; font-weight: 700; animation: pgFeed 5.2s forwards; }
+.pg-feed-line .k { color: #ffd24a; } .pg-feed-line .v { color: #ff8a8a; }
+@keyframes pgFeed { 0% { opacity: 0; transform: translateX(-12px); } 6% { opacity: 1; transform: none; } 85% { opacity: 1; } 100% { opacity: 0; } }
+.pg-banner {
+  position: absolute; left: 50%; top: 13%; z-index: 40; transform: translate(-50%, -50%) scale(0.5); opacity: 0; padding: 10px 24px; border-radius: 14px;
+  font-family: 'Arial Black', Impact, sans-serif; font-size: 22px; color: #3a2508; white-space: nowrap; max-width: 94%; overflow: hidden; text-overflow: ellipsis; text-align: center;
+  background: linear-gradient(180deg, #fff7d1, #f5c542); border: 3px solid #fff3b0; box-shadow: 0 0 0 3px rgba(255,215,90,0.5), 0 0 34px rgba(255,200,60,0.95);
+  transition: transform 0.5s cubic-bezier(0.2, 1.5, 0.4, 1), opacity 0.3s; pointer-events: none;
+}
+.pg-banner.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+/* =========================================================
    КРАН-МАШИНА — капсулы с никами, клешня на тросе, выдача приза
    ========================================================= */
 .claw-machine { position: relative; width: 100%; max-width: 480px; margin: 0 auto; animation: clawIn 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.15) backwards; }
@@ -1808,27 +1887,65 @@ main {
 
 /* Тележка, трос и клешня */
 .claw-unit { position: absolute; top: 0; left: 210px; width: 0; height: 100%; z-index: 10; pointer-events: none; }
-.claw-trolley { position: absolute; left: -24px; top: 6px; width: 48px; height: 24px; border-radius: 6px; background: linear-gradient(180deg, #f9a8d4, #be185d); border: 2px solid #4a0d2c; box-shadow: 0 3px 6px rgba(0,0,0,0.5); }
-.claw-cable { position: absolute; left: -2px; top: 30px; width: 4px; height: 20px; background: linear-gradient(90deg, #6a7287, #e5e9f2 50%, #5a6275); }
-.claw-head { position: absolute; left: 50%; top: 100%; width: 56px; height: 62px; margin-left: -28px; }
-.claw-hub { position: absolute; left: 0; top: 0; width: 56px; height: 16px; border-radius: 6px 6px 10px 10px; background: linear-gradient(180deg, #e5e9f2, #8791a8 60%, #4b5468); border: 2px solid #232a3b; z-index: 3; }
-.claw-prong { position: absolute; top: 12px; width: 9px; height: 46px; transform-origin: 50% 0; border-radius: 4px 4px 14px 14px; background: linear-gradient(90deg, #8791a8, #e5e9f2 50%, #6a7287); border: 1px solid #232a3b; z-index: 3; transition: transform 0.35s ease; }
-.claw-prong.p-l { left: 4px;  transform: rotate(-20deg); }
-.claw-prong.p-r { right: 4px; transform: rotate(20deg); }
-.claw-head.open .claw-prong.p-l { transform: rotate(32deg); }
-.claw-head.open .claw-prong.p-r { transform: rotate(-32deg); }
+.claw-trolley {
+  position: absolute; left: -30px; top: 4px; width: 60px; height: 26px; border-radius: 8px;
+  background: linear-gradient(180deg, #fbcfe8 0%, #f472b6 35%, #be185d 100%); border: 2px solid #4a0d2c;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.55), inset 0 2px 0 rgba(255,255,255,0.5);
+}
+.claw-trolley::before, .claw-trolley::after { content: ''; position: absolute; top: -9px; width: 14px; height: 14px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #f4f7ff, #7b86a0 60%, #343b4f); border: 2px solid #1d2333; }
+.claw-trolley::before { left: 6px; } .claw-trolley::after { right: 6px; }
+.claw-cable {
+  position: absolute; left: -3px; top: 30px; width: 6px; height: 20px; border-radius: 0 0 3px 3px;
+  background: repeating-linear-gradient(135deg, #cfd5e4 0 2px, #6a7287 2px 4px); box-shadow: 1px 0 2px rgba(0,0,0,0.5);
+}
+.claw-head { position: absolute; left: 50%; top: 100%; width: 64px; height: 76px; margin-left: -32px; }
+/* шейка, соединяющая трос с корпусом клешни */
+.claw-head::before { content: ''; position: absolute; left: 50%; top: -6px; width: 16px; height: 12px; margin-left: -8px; border-radius: 3px; background: linear-gradient(90deg, #6a7287, #f4f7ff 45%, #5d667c); border: 1px solid #1d2333; z-index: 4; }
+.claw-hub {
+  position: absolute; left: 0; top: 0; width: 64px; height: 22px; border-radius: 8px 8px 12px 12px; z-index: 4;
+  background: linear-gradient(180deg, #f4f7ff 0%, #aab3c8 45%, #5d667c 100%); border: 2px solid #1d2333;
+  box-shadow: 0 3px 5px rgba(0,0,0,0.5), inset 0 -3px 0 rgba(0,0,0,0.2);
+}
+/* золотая полоска и светодиод на корпусе (зелёный — открыта, красный — сжата) */
+.claw-hub::before { content: ''; position: absolute; left: 6px; right: 6px; top: 9px; height: 4px; border-radius: 2px; background: linear-gradient(90deg, #b45309, #fde68a 50%, #b45309); }
+.claw-hub::after { content: ''; position: absolute; left: 50%; top: 2px; width: 6px; height: 6px; margin-left: -3px; border-radius: 50%; background: #ef4444; box-shadow: 0 0 6px #ef4444; transition: background 0.2s, box-shadow 0.2s; }
+.claw-head.open .claw-hub::after { background: #22c55e; box-shadow: 0 0 6px #22c55e; }
+/* лапы: хромированные, с шарниром и загнутым кончиком */
+.claw-prong {
+  position: absolute; top: 16px; width: 11px; height: 48px; transform-origin: 50% 0; border-radius: 5px 5px 4px 4px; z-index: 3;
+  background: linear-gradient(90deg, #7b86a0 0%, #f4f7ff 40%, #aab3c8 62%, #5d667c 100%); border: 1px solid #1d2333;
+  transition: transform 0.35s ease;
+}
+.claw-prong::before { content: ''; position: absolute; top: -3px; left: 50%; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fde68a, #b45309); border: 1px solid #1d2333; }
+.claw-prong::after { content: ''; position: absolute; top: 38px; left: 0; width: 10px; height: 18px; transform-origin: 50% 0; border-radius: 3px 3px 8px 8px; background: inherit; border: 1px solid #1d2333; }
+.claw-prong.p-l { left: 6px;  transform: rotate(5deg); }
+.claw-prong.p-l::after { transform: rotate(-50deg); }
+.claw-prong.p-r { right: 6px; transform: rotate(-5deg); }
+.claw-prong.p-r::after { transform: rotate(50deg); }
+.claw-head.open .claw-prong.p-l { transform: rotate(40deg); }
+.claw-head.open .claw-prong.p-r { transform: rotate(-40deg); }
+/* средняя лапа — позади капсулы */
+.claw-prong.p-m { left: 50%; margin-left: -5.5px; z-index: 0; height: 44px; opacity: 0.9; }
+.claw-prong.p-m::after { left: 0; transform: rotate(0deg); height: 14px; top: 36px; }
+.claw-prong.p-m::before { display: none; }
 
-/* Капсулы-шары с никами */
-.claw-ball { position: absolute; border-radius: 50%; overflow: hidden; z-index: 3; box-shadow: 0 4px 8px rgba(0,0,0,0.45); }
+/* Капсулы: все одного размера, глянцевые, с полоской-стыком и табличкой с ником */
+.claw-ball { position: absolute; border-radius: 50%; overflow: hidden; z-index: 3; box-shadow: 0 5px 8px rgba(0,0,0,0.5); }
 .claw-ball .cb-top, .claw-ball .cb-bot { position: absolute; left: 0; right: 0; }
-.claw-ball .cb-top { top: 0; height: 52%; background: hsl(var(--h), 75%, 52%); }
-.claw-ball .cb-bot { bottom: 0; height: 48%; background: #f1f2f8; }
-.claw-ball .cb-shine { position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle at 32% 25%, rgba(255,255,255,0.7), transparent 38%), radial-gradient(circle at 50% 50%, transparent 55%, rgba(0,0,0,0.3) 100%); pointer-events: none; }
-.claw-ball .cb-name { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); max-width: 90%; padding: 1px 4px; border-radius: 4px; background: rgba(255,255,255,0.92); color: #1a1a2e; font-size: 9px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 2; }
-.claw-ball.decor .cb-name { font-size: 12px; padding: 0 5px; }
+.claw-ball .cb-top { top: 0; height: 51%; background: linear-gradient(160deg, hsl(var(--h), 90%, 70%) 0%, hsl(var(--h), 80%, 50%) 55%, hsl(var(--h), 82%, 34%) 100%); }
+.claw-ball .cb-bot { bottom: 0; height: 49%; background: linear-gradient(160deg, #ffffff 0%, #e9ebf5 55%, #b7bdd2 100%); }
+.claw-ball .cb-seam { position: absolute; left: 0; right: 0; top: 49%; height: 4px; z-index: 1; background: linear-gradient(180deg, rgba(0,0,0,0.38), rgba(0,0,0,0.06)); box-shadow: 0 1px 0 rgba(255,255,255,0.55); }
+.claw-ball .cb-shine { position: absolute; inset: 0; border-radius: 50%; pointer-events: none; z-index: 1;
+  background: radial-gradient(ellipse 36% 24% at 30% 20%, rgba(255,255,255,0.9), transparent 72%), radial-gradient(circle at 50% 50%, transparent 56%, rgba(0,0,0,0.3) 100%); }
+.claw-ball .cb-name {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); max-width: 88%; padding: 1px 5px; z-index: 2;
+  border-radius: 9px; background: rgba(255,255,255,0.97); border: 1px solid rgba(0,0,0,0.2); box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  color: #1a1a2e; font-size: 9px; font-weight: 800; letter-spacing: 0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.claw-ball.decor .cb-name { font-size: 12px; padding: 0 7px; }
 .claw-ball.open { overflow: visible; }
 .claw-ball.open .cb-bot { border-radius: 0 0 50% 50% / 0 0 100% 100%; box-shadow: 0 4px 8px rgba(0,0,0,0.45); }
-.claw-ball.open .cb-shine { opacity: 0; }
+.claw-ball.open .cb-shine, .claw-ball.open .cb-seam { opacity: 0; }
 .claw-ball.open .cb-top { animation: clawCap 0.6s cubic-bezier(0.3, 1.4, 0.5, 1) forwards; border-radius: 50% 50% 0 0; }
 @keyframes clawCap { to { transform: translate(-8px, -30px) rotate(-28deg); opacity: 0.9; } }
 

@@ -67,7 +67,7 @@ const els = {
   streamersList: document.getElementById('streamers-list'),
   spinElevator: document.getElementById('spin-elevator'),
   spinSpotlight: document.getElementById('spin-spotlight'),
-  spinClock: document.getElementById('spin-clock'), spinClaw: document.getElementById('spin-claw'),
+  spinClock: document.getElementById('spin-clock'), spinClaw: document.getElementById('spin-claw'), spinPubg: document.getElementById('spin-pubg'),
   spinBomb: document.getElementById('spin-bomb'),
   bombBody: document.getElementById('bomb-body'),
   bombCodeDisplay: document.getElementById('bomb-code-display'),
@@ -630,7 +630,7 @@ function fillWinnerInfo(login) {
    МИНИ-ИГРЫ
    ========================================================= */
 function initMinigames() {
-  const known = ['instant', 'roulette', 'drum', 'case', 'cards', 'wheel', 'bingo', 'hotpotato', 'laser', 'zeus', 'elevator', 'spotlight', 'clock', 'claw', 'bomb'];
+  const known = ['instant', 'roulette', 'drum', 'case', 'cards', 'wheel', 'bingo', 'hotpotato', 'laser', 'zeus', 'elevator', 'spotlight', 'clock', 'claw', 'pubg', 'bomb'];
   let saved = localStorage.getItem('energyroll_minigame'); if (!known.includes(saved)) saved = 'instant'; state.miniGame = saved;
   const buttons = document.querySelectorAll('.minigame-item');
   buttons.forEach((btn) => {
@@ -1248,7 +1248,7 @@ async function playSpotlight(pool, winnerLogin, winnerName) {
   els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true;
   els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true;
   els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true;
-  els.spinElevator.hidden = true; els.spinClock.hidden = true; els.spinClaw.hidden = true;
+  els.spinElevator.hidden = true; els.spinClock.hidden = true; els.spinClaw.hidden = true; els.spinPubg.hidden = true;
   els.spinSpotlight.hidden = false;
   await sleep(50);
 
@@ -1590,7 +1590,7 @@ async function startBombGame() {
   if (els.modalDepInput) els.modalDepInput.value = '';
   updateCommitButton();
   [els.spinRoulette, els.spinDrum, els.spinCase, els.spinCards, els.spinWheel, els.spinBingo,
-   els.spinHotPotato, els.spinLaser, els.spinZeus, els.spinElevator, els.spinSpotlight, els.spinClock, els.spinClaw]
+   els.spinHotPotato, els.spinLaser, els.spinZeus, els.spinElevator, els.spinSpotlight, els.spinClock, els.spinClaw, els.spinPubg]
     .forEach(el => { if (el) el.hidden = true; });
   els.spinBomb.hidden = false;
   const winner = await playBomb();
@@ -1746,7 +1746,7 @@ async function showWinnerWithSpin(login) {
   updateCommitButton();
 
   [els.spinRoulette, els.spinDrum, els.spinCase, els.spinCards, els.spinWheel, els.spinBingo,
-   els.spinHotPotato, els.spinLaser, els.spinZeus, els.spinElevator, els.spinSpotlight, els.spinClock, els.spinClaw, els.spinBomb]
+   els.spinHotPotato, els.spinLaser, els.spinZeus, els.spinElevator, els.spinSpotlight, els.spinClock, els.spinClaw, els.spinPubg, els.spinBomb]
     .forEach(el => { if (el) el.hidden = true; });
 
   if (state.miniGame === 'roulette') await playRoulette(displayName);
@@ -1759,6 +1759,7 @@ async function showWinnerWithSpin(login) {
   else if (state.miniGame === 'zeus') { const bp = getActiveWinnerPool().filter((l) => l !== login); await playZeusLightning([...new Set([...bp, login])], login, displayName); }
   else if (state.miniGame === 'elevator') { const bp = getActiveWinnerPool().filter((l) => l !== login); await playElevator([...new Set([...bp, login])], login, displayName); }
   else if (state.miniGame === 'claw') { const bp = getActiveWinnerPool().filter((l) => l !== login); await playClaw([...new Set([...bp, login])], login, displayName); }
+  else if (state.miniGame === 'pubg') { const bp = getActiveWinnerPool().filter((l) => l !== login); await playPubg([...new Set([...bp, login])], login, displayName); }
   else if (state.miniGame === 'spotlight') {
     const bp = getActiveWinnerPool().filter((l) => l !== login);
     const res = await playSpotlight([...new Set([...bp, login])], login, displayName);
@@ -1777,19 +1778,23 @@ async function showWinnerWithSpin(login) {
 }
 
 /* === КРАН-МАШИНА: капсулы падают в кучу → клешня промахивается и роняет → хватает капсулу победителя → выдача === */
+let clawRunId = 0;   // номер запуска: если игру закрыли и запустили заново, старый запуск сам останавливается
 async function playClaw(pool, winnerLogin, winnerName) {
+  const runId = ++clawRunId;
+  const alive = () => runId === clawRunId && !spinCancel;
+  const wait = async (ms) => { await sleep(ms); return alive(); };
   [els.spinRoulette, els.spinDrum, els.spinCase, els.spinCards, els.spinWheel, els.spinBingo, els.spinHotPotato,
    els.spinLaser, els.spinZeus, els.spinElevator, els.spinSpotlight, els.spinClock, els.spinBomb]
     .forEach((el) => { if (el) el.hidden = true; });
   els.spinClaw.hidden = false; await sleep(50);
+  if (!alive()) return;
 
   const machine = document.getElementById('claw-machine'); const win = document.getElementById('claw-window');
   const unit = document.getElementById('claw-unit'); const cable = document.getElementById('claw-cable'); const head = document.getElementById('claw-head');
   const stick = document.getElementById('claw-stick'); const btn = document.getElementById('claw-btn'); const tray = document.getElementById('claw-tray');
   const W = win.clientWidth || 420; const H = win.clientHeight || 320;
-  const wait = async (ms) => { await sleep(ms); return !spinCancel; };
 
-  // Сброс
+  // Полный сброс (в т.ч. капсулы, застрявшие в клешне или в лотке от прошлого запуска)
   win.querySelectorAll('.claw-ball, .claw-banner').forEach((e) => e.remove());
   tray.innerHTML = '';
   machine.classList.remove('busy', 'win'); stick.classList.remove('tilt-l', 'tilt-r'); btn.classList.remove('press');
@@ -1802,29 +1807,26 @@ async function playClaw(pool, winnerLogin, winnerName) {
   if (!logins.includes(winnerLogin)) logins.push(winnerLogin);
   if (logins.length > 12) { logins = logins.filter((l) => l !== winnerLogin).sort(() => Math.random() - 0.5).slice(0, 11).concat([winnerLogin]); }
 
-  // 12 мест в куче: нижний ряд, средний, верхний
-  const floor = H - 8; const slots = [];
-  [[5, 52, 106, 60, 3], [4, 46, 136, 60, 2], [3, 42, 166, 60, 1]].forEach(([n, D, x0, pitch, z], row) => {
-    const y = row === 0 ? floor - D : (row === 1 ? floor - 52 - 36 : floor - 52 - 36 - 30);
-    for (let i = 0; i < n; i++) slots.push({ row, D, x: x0 + i * pitch, y, z, login: null });
+  // 12 мест в куче: все капсулы одного размера, ряды уложены «сотами» (5 + 4 + 3)
+  const BALL = 50; const floor = H - 8; const slots = [];
+  [[5, 112, 3], [4, 140, 2], [3, 168, 1]].forEach(([n, x0, z], row) => {
+    for (let i = 0; i < n; i++) slots.push({ row, D: BALL, x: x0 + i * 56, y: floor - BALL - row * 42, z, login: null });
   });
   const order = slots.map((_, i) => i).sort(() => Math.random() - 0.5);
   logins.sort(() => Math.random() - 0.5).forEach((l, i) => { slots[order[i]].login = l; });
   const hueOf = (s) => { let h = 0; for (const ch of String(s)) h = (h * 31 + ch.charCodeAt(0)) % 360; return h; };
+  const decorHues = [350, 200, 140, 45, 275, 20];
 
   const mkBall = (login, D, z) => {
     const b = document.createElement('div'); b.className = 'claw-ball' + (login ? '' : ' decor');
-    b.style.width = D + 'px'; b.style.height = D + 'px'; b.style.zIndex = z; b.style.setProperty('--h', login ? hueOf(login) : (Math.floor(Math.random() * 6) * 60 + 20));
+    b.style.width = D + 'px'; b.style.height = D + 'px'; b.style.zIndex = z; b.style.setProperty('--h', login ? hueOf(login) : decorHues[Math.floor(Math.random() * decorHues.length)]);
     const top = document.createElement('div'); top.className = 'cb-top'; const bot = document.createElement('div'); bot.className = 'cb-bot';
-    const shine = document.createElement('div'); shine.className = 'cb-shine';
+    const seam = document.createElement('div'); seam.className = 'cb-seam'; const shine = document.createElement('div'); shine.className = 'cb-shine';
     const name = document.createElement('div'); name.className = 'cb-name'; name.textContent = login ? (state.users.get(login) || login) : '?';
-    b.appendChild(bot); b.appendChild(top); b.appendChild(shine); b.appendChild(name);
+    b.appendChild(bot); b.appendChild(top); b.appendChild(seam); b.appendChild(shine); b.appendChild(name);
     return b;
   };
-  slots.forEach((s, i) => {
-    s.el = mkBall(s.login, s.D, s.z); s.el.style.left = s.x + 'px'; s.el.style.top = '-70px';
-    win.appendChild(s.el);
-  });
+  slots.forEach((s) => { s.el = mkBall(s.login, s.D, s.z); s.el.style.left = s.x + 'px'; s.el.style.top = '-70px'; win.appendChild(s.el); });
   void win.offsetWidth;
   slots.forEach((s, i) => { s.el.style.transition = `top 0.6s cubic-bezier(0.3, 1.5, 0.5, 1) ${s.row * 0.18 + (i % 5) * 0.04}s`; s.el.style.top = s.y + 'px'; });
   machine.classList.add('busy');
@@ -1832,7 +1834,7 @@ async function playClaw(pool, winnerLogin, winnerName) {
 
   // Управление клешнёй
   const centerX = (s) => s.x + s.D / 2;
-  const cableFor = (s, short) => Math.max(20, s.y + s.D / 2 - 70 - (short || 0));
+  const cableFor = (s, short) => Math.max(20, s.y + s.D / 2 - 69 - (short || 0));
   const goTo = async (x, ms) => {
     const dir = x > parseFloat(unit.style.left) ? 'tilt-r' : 'tilt-l'; stick.classList.remove('tilt-l', 'tilt-r'); stick.classList.add(dir);
     unit.style.transition = `left ${ms}ms cubic-bezier(0.45, 0, 0.25, 1)`; unit.style.left = x + 'px';
@@ -1845,7 +1847,7 @@ async function playClaw(pool, winnerLogin, winnerName) {
     const b = s.el; const br = b.getBoundingClientRect(); const hr = head.getBoundingClientRect();
     head.insertBefore(b, head.firstChild);
     b.style.transition = 'none'; b.style.left = (br.left - hr.left) + 'px'; b.style.top = (br.top - hr.top) + 'px'; b.style.zIndex = 1; void b.offsetWidth;
-    b.style.transition = 'left 0.25s ease, top 0.25s ease'; b.style.left = ((56 - s.D) / 2) + 'px'; b.style.top = '10px';
+    b.style.transition = 'left 0.25s ease, top 0.25s ease'; b.style.left = ((64 - s.D) / 2) + 'px'; b.style.top = '14px';
   };
   const detach = (s, toTop, z) => {
     const b = s.el; const br = b.getBoundingClientRect(); const wr = win.getBoundingClientRect();
@@ -1871,6 +1873,7 @@ async function playClaw(pool, winnerLogin, winnerName) {
     if (!(await goTo(centerX(slipSlot), 800))) return;
     if (!(await setLen(cableFor(slipSlot), 700))) return;
     if (!(await closeClaw())) return;
+    if (!alive()) return;
     attach(slipSlot);
     if (!(await setLen(Math.max(60, cableFor(slipSlot) - 90), 650))) return;
     head.classList.add('open');
@@ -1884,6 +1887,7 @@ async function playClaw(pool, winnerLogin, winnerName) {
   if (!(await goTo(centerX(winnerSlot), 900))) return;
   if (!(await setLen(cableFor(winnerSlot), 750))) return;
   if (!(await closeClaw())) return;
+  if (!alive()) return;
   attach(winnerSlot);
   if (!(await wait(280))) return;
   if (!(await setLen(20, 900))) return;
@@ -1896,7 +1900,7 @@ async function playClaw(pool, winnerLogin, winnerName) {
   winnerSlot.el.style.opacity = '0';
 
   // Капсула появляется в лотке и открывается
-  const prize = mkBall(winnerLogin, 52, 3); prize.classList.add('tray-in'); tray.appendChild(prize);
+  const prize = mkBall(winnerLogin, BALL, 3); prize.classList.add('tray-in'); tray.appendChild(prize);
   machine.classList.remove('busy'); machine.classList.add('win');
   if (!(await setLen(20, 300))) return;
   if (!(await wait(450))) return;
@@ -1908,10 +1912,309 @@ async function playClaw(pool, winnerLogin, winnerName) {
   els.spinClaw.hidden = true;
 }
 
+/* === PUBG: карта острова, самолёт сбрасывает игроков, зона сужается, перестрелки, финал у аирдропа === */
+function pubgBuildMap(svg) {
+  const mulberry32 = (a) => () => { let t = a += 0x6D2B79F5; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const rnd = mulberry32(20240607);   // карта всегда одинаковая
+  const CX = 320, CY = 320;
+  const rAt = (a) => 236 + 20 * Math.sin(3 * a + 1) + 13 * Math.sin(5 * a + 2) + 9 * Math.sin(7 * a + 0.5);
+  const inside = (x, y, sc) => Math.hypot(x - CX, y - CY) < rAt(Math.atan2(y - CY, x - CX)) * (sc == null ? 1 : sc);
+  const poly = (sc) => { const pts = []; for (let i = 0; i < 90; i++) { const a = i / 90 * Math.PI * 2; const r = rAt(a) * sc; pts.push((CX + Math.cos(a) * r).toFixed(1) + ',' + (CY + Math.sin(a) * r).toFixed(1)); } return pts.join(' '); };
+  const f1 = (n) => n.toFixed(1);
+  const randIn = (sc) => { for (let i = 0; i < 300; i++) { const x = 60 + rnd() * 520, y = 60 + rnd() * 520; if (inside(x, y, sc)) return [x, y]; } return [CX, CY]; };
+
+  const locs = [
+    { n: 'Покровка', x: 325, y: 305, t: 'city' }, { n: 'Школа', x: 262, y: 372, t: 'school' }, { n: 'Военная база', x: 470, y: 185, t: 'military' },
+    { n: 'Порт', x: 520, y: 420, t: 'port' }, { n: 'Завод', x: 195, y: 228, t: 'factory' }, { n: 'Каменка', x: 140, y: 352, t: 'town' },
+    { n: 'Озёрск', x: 432, y: 352, t: 'town' }, { n: 'Лесхоз', x: 248, y: 140, t: 'village' }, { n: 'Ферма', x: 395, y: 478, t: 'farm' },
+    { n: 'Бункер', x: 340, y: 150, t: 'bunker' }, { n: 'Рыбацкий', x: 108, y: 250, t: 'village' }, { n: 'Шахта', x: 545, y: 300, t: 'mine' }, { n: 'Мост', x: 300, y: 455, t: 'bridge' }
+  ];
+  locs.forEach((l) => { for (let i = 0; i < 12 && !inside(l.x, l.y, 0.84); i++) { l.x += (CX - l.x) * 0.1; l.y += (CY - l.y) * 0.1; } });
+  const L = (name) => locs.find((l) => l.n === name);
+
+  let s = '<defs>' +
+    '<linearGradient id="pgOcean" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1f6194"/><stop offset="1" stop-color="#12395f"/></linearGradient>' +
+    '<pattern id="pgWaves" width="22" height="22" patternUnits="userSpaceOnUse" patternTransform="rotate(20)"><path d="M0 11 Q5.5 6 11 11 T22 11" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="1.4"/></pattern>' +
+    '<radialGradient id="pgGrass" cx="0.45" cy="0.42" r="0.7"><stop offset="0" stop-color="#86ad5f"/><stop offset="1" stop-color="#5f8b45"/></radialGradient>' +
+    '<clipPath id="pgIsland"><polygon points="' + poly(0.955) + '"/></clipPath></defs>';
+  s += '<rect width="640" height="640" fill="url(#pgOcean)"/><rect width="640" height="640" fill="url(#pgWaves)"/>';
+  s += '<polygon points="' + poly(1.03) + '" fill="#e3d49b" stroke="#cdb978" stroke-width="3" stroke-linejoin="round"/>';
+  s += '<polygon points="' + poly(0.955) + '" fill="url(#pgGrass)"/>';
+  s += '<g clip-path="url(#pgIsland)">';
+
+  // поля
+  const fieldCols = ['#b9c878', '#cdb86a', '#9cb860', '#c9c07a'];
+  for (let i = 0; i < 9; i++) { const [x, y] = randIn(0.8); s += '<rect x="' + f1(x) + '" y="' + f1(y) + '" width="' + (26 + rnd() * 26) + '" height="' + (16 + rnd() * 16) + '" fill="' + fieldCols[i % 4] + '" opacity="0.85" transform="rotate(' + Math.round(rnd() * 90) + ' ' + f1(x) + ' ' + f1(y) + ')"/>'; }
+  // леса
+  for (let c = 0; c < 13; c++) {
+    let [x, y] = randIn(0.84); if (locs.some((l) => Math.hypot(l.x - x, l.y - y) < 60)) continue;
+    for (let i = 0; i < 9; i++) { const a = rnd() * 6.283, r = rnd() * 32; const rr = 8 + rnd() * 8; s += '<circle cx="' + f1(x + Math.cos(a) * r) + '" cy="' + f1(y + Math.sin(a) * r) + '" r="' + f1(rr) + '" fill="#3e6c35" opacity="0.9"/>'; }
+    for (let i = 0; i < 4; i++) { const a = rnd() * 6.283, r = rnd() * 22; s += '<circle cx="' + f1(x + Math.cos(a) * r - 2) + '" cy="' + f1(y + Math.sin(a) * r - 2) + '" r="4" fill="#528a45" opacity="0.7"/>'; }
+  }
+  // горы на северо-востоке
+  [[440, 118], [468, 108], [496, 124], [452, 140], [482, 146]].forEach(([x, y]) => { s += '<polygon points="' + x + ',' + (y - 20) + ' ' + (x + 18) + ',' + (y + 12) + ' ' + (x - 18) + ',' + (y + 12) + '" fill="#8d9189" stroke="#6c7068" stroke-width="1"/><polygon points="' + x + ',' + (y - 20) + ' ' + (x + 7) + ',' + (y - 4) + ' ' + (x - 3) + ',' + (y - 1) + '" fill="#c4c8c0"/>'; });
+  // озёра и реки
+  s += '<ellipse cx="440" cy="300" rx="30" ry="17" fill="#3f8fbf" stroke="#2d6d96" stroke-width="2" transform="rotate(-20 440 300)"/>';
+  s += '<ellipse cx="215" cy="305" rx="19" ry="12" fill="#3f8fbf" stroke="#2d6d96" stroke-width="2" transform="rotate(15 215 305)"/>';
+  s += '<path d="M440 316 Q472 360 478 410 T505 520" fill="none" stroke="#3f8fbf" stroke-width="5" stroke-linecap="round"/>';
+  s += '<path d="M215 316 Q250 380 296 452 T340 600" fill="none" stroke="#3f8fbf" stroke-width="5" stroke-linecap="round"/>';
+  // дороги
+  [['Покровка', 'Школа'], ['Покровка', 'Озёрск'], ['Покровка', 'Бункер'], ['Покровка', 'Завод'], ['Школа', 'Каменка'], ['Школа', 'Мост'], ['Озёрск', 'Ферма'], ['Озёрск', 'Порт'],
+   ['Порт', 'Шахта'], ['Шахта', 'Военная база'], ['Бункер', 'Лесхоз'], ['Каменка', 'Рыбацкий'], ['Завод', 'Лесхоз'], ['Мост', 'Ферма']].forEach(([a, b]) => {
+    const A = L(a), B2 = L(b); const mx = (A.x + B2.x) / 2, my = (A.y + B2.y) / 2; const dx = B2.x - A.x, dy = B2.y - A.y; const k = (rnd() - 0.5) * 0.35;
+    const d = 'M' + f1(A.x) + ' ' + f1(A.y) + ' Q' + f1(mx - dy * k) + ' ' + f1(my + dx * k) + ' ' + f1(B2.x) + ' ' + f1(B2.y);
+    s += '<path d="' + d + '" fill="none" stroke="#7c6e50" stroke-width="5" stroke-linecap="round"/><path d="' + d + '" fill="none" stroke="#dccfa8" stroke-width="3" stroke-linecap="round"/>';
+  });
+  s += '</g>';
+
+  // поселения
+  const B = (x, y, w, h, fill, stroke) => '<rect x="' + f1(x - w / 2) + '" y="' + f1(y - h / 2) + '" width="' + w + '" height="' + h + '" fill="' + (fill || '#d8c8a5') + '" stroke="' + (stroke || '#6f6249') + '" stroke-width="0.9" rx="1"/>';
+  const cluster = (x, y, n, rad, wmin, wmax) => { let o = ''; for (let i = 0; i < n; i++) { const a = rnd() * 6.283, r = Math.sqrt(rnd()) * rad; o += B(x + Math.cos(a) * r, y + Math.sin(a) * r, wmin + Math.round(rnd() * (wmax - wmin)), wmin - 2 + Math.round(rnd() * (wmax - wmin - 2))); } return o; };
+  locs.forEach((l) => {
+    const { x, y } = l;
+    if (l.t === 'city') s += '<path d="M' + (x - 42) + ' ' + y + ' H' + (x + 42) + ' M' + x + ' ' + (y - 42) + ' V' + (y + 42) + '" stroke="#c9bb97" stroke-width="3" opacity="0.85"/>' + cluster(x, y, 20, 38, 8, 14);
+    else if (l.t === 'town') s += cluster(x, y, 10, 25, 7, 11);
+    else if (l.t === 'village') s += cluster(x, y, 5, 16, 6, 9);
+    else if (l.t === 'school') s += '<ellipse cx="' + (x - 8) + '" cy="' + (y + 22) + '" rx="15" ry="8" fill="#b4c89a" stroke="#fff" stroke-width="1" opacity="0.9"/>' + B(x, y, 28, 14, '#cfd6dd', '#58626c') + B(x + 22, y + 4, 12, 10, '#cfd6dd', '#58626c');
+    else if (l.t === 'military') s += B(x, y, 70, 46, '#7e8873', '#434a3b') + B(x - 18, y - 8, 16, 10, '#565d4c', '#2f3529') + B(x + 4, y + 8, 22, 10, '#565d4c', '#2f3529') + B(x + 20, y - 10, 12, 12, '#565d4c', '#2f3529') + '<circle cx="' + (x - 20) + '" cy="' + (y + 12) + '" r="7" fill="none" stroke="#e6d36a" stroke-width="1.6"/>';
+    else if (l.t === 'factory') s += B(x - 12, y, 26, 16, '#a9aeb6', '#4b5260') + B(x + 14, y + 6, 20, 12, '#a9aeb6', '#4b5260') + B(x, y - 16, 16, 10, '#9aa0a8', '#4b5260') + '<circle cx="' + (x - 20) + '" cy="' + (y - 12) + '" r="3.5" fill="#6f757e"/><circle cx="' + (x - 11) + '" cy="' + (y - 14) + '" r="3.5" fill="#6f757e"/>';
+    else if (l.t === 'port') { const a = Math.atan2(y - CY, x - CX); s += '<line x1="' + x + '" y1="' + y + '" x2="' + f1(x + Math.cos(a) * 40) + '" y2="' + f1(y + Math.sin(a) * 40) + '" stroke="#7a5c3a" stroke-width="5" stroke-linecap="round"/>' + B(x - 14, y - 6, 18, 12, '#cfc7b6') + B(x + 2, y + 12, 22, 12, '#cfc7b6') + B(x - 18, y + 12, 14, 10, '#c0b8a6'); }
+    else if (l.t === 'farm') s += B(x - 36, y + 6, 34, 20, '#c9c07a', '#8a8248') + B(x + 36, y - 4, 32, 22, '#9cb860', '#6b8a3c') + B(x, y, 14, 10) + B(x + 14, y + 8, 16, 11, '#b85a4a', '#6b2c22');
+    else if (l.t === 'bunker') s += '<circle cx="' + x + '" cy="' + y + '" r="12" fill="none" stroke="#6c7068" stroke-width="1.6" stroke-dasharray="3 3"/><circle cx="' + x + '" cy="' + y + '" r="6" fill="#3a3f36" stroke="#8d9189" stroke-width="1.5"/>';
+    else if (l.t === 'mine') s += '<polygon points="' + (x - 16) + ',' + (y + 10) + ' ' + (x - 6) + ',' + (y - 12) + ' ' + (x + 12) + ',' + (y - 8) + ' ' + (x + 18) + ',' + (y + 10) + '" fill="#8a6d4b" stroke="#5e4930" stroke-width="1.2"/><circle cx="' + x + '" cy="' + (y + 2) + '" r="5" fill="#2e2418"/>';
+    else if (l.t === 'bridge') s += '<rect x="' + (x - 13) + '" y="' + (y - 4) + '" width="26" height="8" fill="#8a6d4b" stroke="#4e3a22" stroke-width="1.2" rx="1"/>';
+  });
+  // подписи
+  locs.forEach((l) => { const big = l.t === 'city'; s += '<text x="' + f1(l.x) + '" y="' + f1(l.y + (big ? 56 : (l.t === 'military' || l.t === 'farm' ? 40 : 32))) + '" text-anchor="middle" font-family="Arial, sans-serif" font-size="' + (big ? 15 : 12) + '" font-weight="800" fill="#fff" stroke="#1c2b18" stroke-width="3.2" paint-order="stroke" stroke-linejoin="round">' + l.n + '</text>'; });
+  // сетка карты
+  s += '<g stroke="rgba(255,255,255,0.13)" stroke-width="1">'; for (let i = 1; i < 8; i++) s += '<line x1="' + i * 80 + '" y1="0" x2="' + i * 80 + '" y2="640"/><line x1="0" y1="' + i * 80 + '" x2="640" y2="' + i * 80 + '"/>'; s += '</g>';
+  s += '<g font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="rgba(255,255,255,0.7)">'; for (let i = 0; i < 8; i++) s += '<text x="' + (i * 80 + 38) + '" y="11">' + 'ABCDEFGH'[i] + '</text><text x="4" y="' + (i * 80 + 44) + '">' + (i + 1) + '</text>'; s += '</g>';
+  svg.innerHTML = s;
+  return { inside, locs, M: { x: CX, y: CY } };
+}
+
+let pubgRunId = 0;   // номер запуска: закрыли игру и запустили заново — старый запуск сам останавливается
+async function playPubg(pool, winnerLogin, winnerName) {
+  const runId = ++pubgRunId;
+  const alive = () => runId === pubgRunId && !spinCancel;
+  const wait = async (ms) => { await sleep(ms); return alive(); };
+  [els.spinRoulette, els.spinDrum, els.spinCase, els.spinCards, els.spinWheel, els.spinBingo, els.spinHotPotato,
+   els.spinLaser, els.spinZeus, els.spinElevator, els.spinSpotlight, els.spinClock, els.spinClaw, els.spinBomb]
+    .forEach((el) => { if (el) el.hidden = true; });
+  els.spinPubg.hidden = false; await sleep(50);
+  if (!alive()) return;
+
+  const S = 640; const svgNS = 'http://www.w3.org/2000/svg'; const $ = (id) => document.getElementById(id);
+  const mapEl = $('pg-map'); const playersEl = $('pg-players'); const planeEl = $('pg-plane'); const airdropEl = $('pg-airdrop');
+  const aliveEl = $('pg-alive'); const zoneInfoEl = $('pg-zone-info'); const feedEl = $('pg-feed'); const bannerEl = $('pg-banner'); const fx = $('pg-fx');
+  const zHole = $('pg-zone-hole'); const zEdge = $('pg-zone-edge'); const zNext = $('pg-zone-next');
+  const world = pubgBuildMap($('pg-map-svg'));
+
+  // Сброс
+  playersEl.innerHTML = ''; fx.innerHTML = ''; feedEl.innerHTML = ''; bannerEl.className = 'pg-banner'; bannerEl.textContent = '';
+  airdropEl.className = 'pg-airdrop'; planeEl.style.transition = 'none'; planeEl.style.opacity = '0';
+  let cur = { cx: 320, cy: 320, r: 470 };
+  const setZone = (cx, cy, r) => { [zHole, zEdge].forEach((c) => { c.setAttribute('cx', cx); c.setAttribute('cy', cy); c.setAttribute('r', r); }); cur = { cx, cy, r }; };
+  setZone(320, 320, 470); zNext.setAttribute('opacity', '0');
+  const info = (t) => { zoneInfoEl.textContent = t; };
+  const rnd = (a, b) => a + Math.random() * (b - a);
+
+  // 20–25 участников (если в списке меньше — все), победитель обязательно среди них
+  const uniq = [...new Set(pool)]; if (!uniq.includes(winnerLogin)) uniq.push(winnerLogin);
+  const want = Math.min(uniq.length, 20 + Math.floor(Math.random() * 6));
+  const chosen = [winnerLogin, ...uniq.filter((l) => l !== winnerLogin).sort(() => Math.random() - 0.5).slice(0, want - 1)];
+  const players = chosen.map((login) => {
+    const name = state.users.get(login) || login;
+    const el = document.createElement('div'); el.className = 'pg-player';
+    const chute = document.createElement('div'); chute.className = 'pg-chute'; chute.textContent = '🪂';
+    const av = document.createElement('div'); av.className = 'pg-av'; av.style.background = avatarGradient(login); av.textContent = (name || '?').charAt(0).toUpperCase();
+    const nick = document.createElement('div'); nick.className = 'pg-nick'; nick.textContent = name;
+    el.appendChild(chute); el.appendChild(av); el.appendChild(nick); playersEl.appendChild(el);
+    return { login, name, el, av, x: 160, y: 160, alive: true, role: null, land: null };
+  });
+  const W = players[0]; W.role = 'W';
+  const rest0 = players.slice(1);
+  const Zp = rest0.length >= 2 ? rest0[0] : null;                 // тот, кого съест зона
+  const Sp = rest0.length >= 2 ? rest0[1] : (rest0[0] || null);  // тот, кого застрелит победитель
+  if (Zp) Zp.role = 'Z'; if (Sp) Sp.role = 'S';
+
+  const place = (p, x, y, ms, ease) => { p.x = x; p.y = y; p.el.style.transition = ms ? 'left ' + ms + 'ms ' + (ease || 'linear') + ', top ' + ms + 'ms ' + (ease || 'linear') : 'none'; p.el.style.left = (x / S * 100) + '%'; p.el.style.top = (y / S * 100) + '%'; };
+  const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+  const refreshAlive = () => { aliveEl.textContent = '👥 ' + players.filter((p) => p.alive).length; };
+  refreshAlive();
+  const feedLine = (a, sym, b) => {
+    const d = document.createElement('div'); d.className = 'pg-feed-line';
+    const sa = document.createElement('span'); sa.className = 'k'; sa.textContent = a; const m = document.createElement('span'); m.textContent = ' ' + sym + ' '; const sb = document.createElement('span'); sb.className = 'v'; sb.textContent = b;
+    d.appendChild(sa); d.appendChild(m); d.appendChild(sb); feedEl.appendChild(d); while (feedEl.children.length > 5) feedEl.firstChild.remove(); setTimeout(() => d.remove(), 5200);
+  };
+  const kill = (p, killer) => {
+    if (!p.alive) return; p.alive = false; p.el.classList.remove('running', 'danger'); p.el.classList.add('dead'); refreshAlive();
+    if (killer) feedLine(killer.name, '🔫', p.name); else feedLine('🔷 Зона', '☠', p.name);
+    setTimeout(() => { if (alive()) { p.el.style.transition = 'opacity 0.6s'; p.el.style.opacity = '0'; } }, 1300);
+  };
+  const tracer = (a, b) => {
+    const ln = document.createElementNS(svgNS, 'line'); ln.setAttribute('x1', a.x); ln.setAttribute('y1', a.y); ln.setAttribute('x2', b.x); ln.setAttribute('y2', b.y);
+    ln.setAttribute('stroke', '#ffe27a'); ln.setAttribute('stroke-width', '2.4'); ln.setAttribute('stroke-linecap', 'round'); fx.appendChild(ln);
+    ln.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300 }).onfinish = () => ln.remove();
+    const hit = document.createElementNS(svgNS, 'circle'); hit.setAttribute('cx', b.x); hit.setAttribute('cy', b.y); hit.setAttribute('r', 9); hit.setAttribute('fill', '#ffb03a'); hit.setAttribute('class', 'pg-hit'); fx.appendChild(hit); setTimeout(() => hit.remove(), 480);
+    a.av.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.3)' }, { transform: 'scale(1)' }], { duration: 180 });
+  };
+  const shoot = (a, b) => { tracer(a, b); kill(b, a); };
+  const randomShot = () => {   // случайно застрелить соседа
+    const pairs = [];
+    players.filter((p) => p.alive && !p.role).forEach((v) => {
+      const nb = players.filter((o) => o.alive && o !== v && dist(o, v) < 120).sort((a, b) => dist(a, v) - dist(b, v))[0];
+      if (nb) pairs.push([nb, v]);
+    });
+    if (!pairs.length) return false; const [sh, vi] = pairs[Math.floor(Math.random() * pairs.length)]; shoot(sh, vi); return true;
+  };
+  const animateZone = (to, ms) => new Promise((resolve) => {
+    const from = { ...cur }; const t0 = performance.now();
+    const step = (now) => { if (!alive()) { resolve(); return; } const t = Math.min((now - t0) / ms, 1); setZone(from.cx + (to.cx - from.cx) * t, from.cy + (to.cy - from.cy) * t, from.r + (to.r - from.r) * t); if (t < 1) requestAnimationFrame(step); else resolve(); };
+    requestAnimationFrame(step);
+  });
+
+  // Точки приземления: тройка финалистов — рядом с будущим аирдропом, остальные по острову (часть — у городов)
+  let D = { x: 320, y: 320 };
+  for (let i = 0; i < 300; i++) { const a = rnd(0, 6.283), r = rnd(30, 130); const x = 320 + Math.cos(a) * r, y = 320 + Math.sin(a) * r; if (world.inside(x, y, 0.6)) { D = { x, y }; break; } }
+  const spots = []; const farEnough = (x, y, md) => spots.every((s) => Math.hypot(s.x - x, s.y - y) >= md);
+  const nearD = (rmin, rmax) => { for (let i = 0; i < 300; i++) { const a = rnd(0, 6.283), r = rnd(rmin, rmax); const x = D.x + Math.cos(a) * r, y = D.y + Math.sin(a) * r; if (world.inside(x, y, 0.86) && farEnough(x, y, 55)) return { x, y }; } return { x: D.x + rnd(-40, 40), y: D.y + rnd(-40, 40) }; };
+  [W, Zp, Sp].forEach((p) => { if (p) { p.land = nearD(60, 125); spots.push(p.land); } });
+  players.filter((p) => !p.land).forEach((p) => {
+    let pt = null;
+    for (let md = 54; md >= 30 && !pt; md -= 8) for (let i = 0; i < 250 && !pt; i++) {
+      let x, y; if (Math.random() < 0.55) { const l = world.locs[Math.floor(Math.random() * world.locs.length)]; x = l.x + rnd(-42, 42); y = l.y + rnd(-42, 42); } else { x = rnd(70, 570); y = rnd(70, 570); }
+      if (world.inside(x, y, 0.86) && farEnough(x, y, md)) pt = { x, y };
+    }
+    p.land = pt || { x: 320 + rnd(-70, 70), y: 320 + rnd(-70, 70) }; spots.push(p.land);
+  });
+
+  // ===== 1. Самолёт летит над островом и сбрасывает игроков =====
+  info('✈ Самолёт над островом — десант!');
+  const ang = rnd(0, 6.283); const dir = { x: Math.cos(ang), y: Math.sin(ang) }; const perp = { x: -dir.y, y: dir.x };
+  const off = rnd(-60, 60); const Qp = { x: 320 + perp.x * off, y: 320 + perp.y * off }; const HALF = 440; const FLIGHT = 6500;
+  const pStart = { x: Qp.x - dir.x * HALF, y: Qp.y - dir.y * HALF }; const pEnd = { x: Qp.x + dir.x * HALF, y: Qp.y + dir.y * HALF };
+  const route = document.createElementNS(svgNS, 'line'); route.setAttribute('x1', pStart.x); route.setAttribute('y1', pStart.y); route.setAttribute('x2', pEnd.x); route.setAttribute('y2', pEnd.y);
+  route.setAttribute('stroke', 'rgba(255,255,255,0.55)'); route.setAttribute('stroke-width', '2'); route.setAttribute('stroke-dasharray', '7 7'); fx.appendChild(route);
+  planeEl.style.transform = 'rotate(' + (ang * 180 / Math.PI + 90) + 'deg)';
+  planeEl.style.left = (pStart.x / S * 100) + '%'; planeEl.style.top = (pStart.y / S * 100) + '%'; planeEl.style.opacity = '1'; void planeEl.offsetWidth;
+  planeEl.style.transition = 'left ' + FLIGHT + 'ms linear, top ' + FLIGHT + 'ms linear';
+  planeEl.style.left = (pEnd.x / S * 100) + '%'; planeEl.style.top = (pEnd.y / S * 100) + '%';
+  setTimeout(() => { if (alive()) { planeEl.style.opacity = '0'; route.remove(); } }, FLIGHT + 200);
+
+  let lastLand = 0;
+  players.forEach((p) => {
+    const t = Math.max(0.12, Math.min(0.9, ((p.land.x - pStart.x) * dir.x + (p.land.y - pStart.y) * dir.y) / (2 * HALF)));   // прыгает, когда самолёт ближе всего к его точке
+    const jumpAt = t * FLIGHT; const pp = { x: pStart.x + (pEnd.x - pStart.x) * t, y: pStart.y + (pEnd.y - pStart.y) * t };
+    const glide = 800 + Math.hypot(p.land.x - pp.x, p.land.y - pp.y) * 4.5; lastLand = Math.max(lastLand, jumpAt + glide);
+    setTimeout(() => {
+      if (!alive()) return;
+      p.el.classList.add('dropping'); p.el.style.opacity = '1'; place(p, pp.x, pp.y, 0); void p.el.offsetWidth;
+      place(p, p.land.x, p.land.y, glide, 'cubic-bezier(0.25, 0.6, 0.35, 1)');
+      setTimeout(() => { if (alive()) p.el.classList.remove('dropping'); }, glide);
+    }, jumpAt);
+  });
+  if (!(await wait(lastLand + 500))) return;
+
+  // ===== 2. Бой на земле =====
+  info('🔫 Бой на земле');
+  for (let i = 0; i < 2; i++) { if (randomShot()) { if (!(await wait(700))) return; } }
+  await wait(500); if (!alive()) return;
+
+  // ===== 3. Сужение зоны: 3–5 этапов, последний — финал у аирдропа =====
+  const P = 3 + Math.floor(Math.random() * 3);
+  let prevR = 470;
+  const runTarget = (p, c, R) => {
+    const dx = c.cx - p.x, dy = c.cy - p.y; const d = Math.hypot(dx, dy) || 1;
+    if (d > R - 6) { const need = d - (R - 14 - Math.random() * 8); const mv = need * (p.role ? 1 : 0.35 + Math.random() * 0.5); return { x: p.x + dx / d * mv, y: p.y + dy / d * mv, out: !p.role }; }
+    const mv = Math.min(d * 0.35, 8 + Math.random() * 26); return { x: p.x + dx / d * mv, y: p.y + dy / d * mv, out: false };
+  };
+  for (let k = 1; k < P; k++) {
+    if (!alive()) return;
+    if (k === P - 1) {   // перед последними зонами падает аирдроп
+      airdropEl.style.left = (D.x / S * 100) + '%'; airdropEl.style.top = (D.y / S * 100) + '%'; airdropEl.classList.add('show');
+      setTimeout(() => { if (alive()) airdropEl.classList.add('landed'); }, 2200); feedLine('📦', '', 'Аирдроп приземлился!');
+    }
+    const t = k / P * 0.9; const c = { cx: 320 + (D.x - 320) * t, cy: 320 + (D.y - 320) * t };
+    const np = players.filter((p) => p.alive && !p.role).map((p) => ({ p, d: Math.hypot(p.x - c.cx, p.y - c.cy) })).sort((a, b) => a.d - b.d);
+    const keep = Math.round(np.length * (k === P - 1 ? 0.45 : 0.6 + Math.random() * 0.12));
+    let R = keep > 0 ? np[Math.min(keep, np.length) - 1].d + 10 : 90;
+    R = Math.min(Math.max(R, 84 + (P - 1 - k) * 22), prevR * 0.88);
+
+    // пунктирная линия новой зоны
+    zNext.setAttribute('cx', c.cx); zNext.setAttribute('cy', c.cy); zNext.setAttribute('r', R); zNext.setAttribute('opacity', '1');
+    info('🔷 Зона ' + k + '/' + P + ': новая зона отмечена');
+    if (Math.random() < 0.6) randomShot();
+    if (!(await wait(1500))) return;
+
+    // зона сужается, игроки бегут в центр
+    info('🔷 Зона ' + k + '/' + P + ': сужается — бегите в круг!');
+    const SH = 2800;
+    players.filter((p) => p.alive).forEach((p) => { const tg = runTarget(p, c, R); place(p, tg.x, tg.y, SH); p.el.classList.add('running'); if (tg.out) p.el.classList.add('danger'); });
+    await animateZone({ cx: c.cx, cy: c.cy, r: R }, SH);
+    if (!alive()) return;
+    zNext.setAttribute('opacity', '0'); players.forEach((p) => p.el.classList.remove('running'));
+    const out = players.filter((p) => p.alive && !p.role && Math.hypot(p.x - c.cx, p.y - c.cy) > R + 0.5);
+    for (const p of out) { kill(p, null); if (!(await wait(140))) return; }
+    players.forEach((p) => p.el.classList.remove('danger'));
+    prevR = R;
+
+    // перестрелки между соседями
+    const shots = 1 + (Math.random() < 0.5 ? 1 : 0);
+    for (let i = 0; i < shots; i++) { if (randomShot()) { if (!(await wait(450))) return; } }
+    if (!(await wait(500))) return;
+  }
+
+  // ===== 4. Финал у аирдропа =====
+  info('⚔ Финал у аирдропа!');
+  zNext.setAttribute('opacity', '0');
+  players.filter((p) => p.alive).forEach((p) => {   // все стягиваются к аирдропу
+    const d = dist(p, D); const k = Math.min(1, 70 / (d || 1)); place(p, D.x + (p.x - D.x) * k, D.y + (p.y - D.y) * k, 1000); p.el.classList.add('running');
+  });
+  if (!(await wait(1100))) return;
+  players.forEach((p) => p.el.classList.remove('running'));
+  let left = players.filter((p) => p.alive && !p.role);
+  const gap = Math.max(240, Math.min(620, 3200 / Math.max(left.length, 1)));
+  while ((left = players.filter((p) => p.alive && !p.role)).length) {   // лишние выбывают в перестрелке
+    if (!alive()) return;
+    const v = left[Math.floor(Math.random() * left.length)];
+    const sh = players.filter((o) => o.alive && o !== v).sort((a, b) => dist(a, v) - dist(b, v))[0];
+    if (sh) shoot(sh, v); else kill(v, null);
+    if (!(await wait(gap))) return;
+  }
+  // трое у аирдропа: Z — чуть за будущей границей, W и S — внутри
+  const Rf = 56; const form = [[W, 200, Rf - 26], [Sp, 340, Rf - 26], [Zp, 90, Rf + 28]];
+  form.forEach(([p, deg, d]) => { if (p && p.alive) place(p, D.x + Math.cos(deg * Math.PI / 180) * d, D.y + Math.sin(deg * Math.PI / 180) * d, 900); });
+  if (!(await wait(1000))) return;
+  zNext.setAttribute('cx', D.x); zNext.setAttribute('cy', D.y); zNext.setAttribute('r', Rf); zNext.setAttribute('opacity', '1');
+  info('🔷 Последняя зона ' + P + '/' + P + ' — кто-то не успеет');
+  if (!(await wait(1400))) return;
+  if (Zp && Zp.alive) { const tg = runTarget(Zp, { cx: D.x, cy: D.y }, Rf); place(Zp, Zp.x + (tg.x - Zp.x) * 0.3, Zp.y + (tg.y - Zp.y) * 0.3, 2800); Zp.el.classList.add('running', 'danger'); }
+  await animateZone({ cx: D.x, cy: D.y, r: Rf }, 2800);
+  if (!alive()) return;
+  zNext.setAttribute('opacity', '0');
+  if (Zp && Zp.alive) kill(Zp, null);                    // первого съела зона
+  if (!(await wait(1000))) return;
+  if (Sp && Sp.alive) {                                  // второго убивает победитель
+    info('🔫 Дуэль за победу!');
+    for (let i = 0; i < 3; i++) { tracer(W, Sp); if (!(await wait(240))) return; }
+    kill(Sp, W);
+    if (!(await wait(800))) return;
+  }
+
+  // ===== 5. Победа =====
+  info('🏆 Победитель определён!');
+  W.el.classList.add('winner');
+  bannerEl.textContent = '🍗 ПОБЕДИТЕЛЬ: ' + (winnerName || W.name); void bannerEl.offsetWidth; bannerEl.classList.add('show');
+  try { burstConfetti(mapEl, W.x / S * mapEl.clientWidth, W.y / S * mapEl.clientHeight, 44); } catch (e) {}
+  if (!(await wait(2800))) return;
+  els.spinPubg.hidden = true;
+}
+
 /* === КАРТЫ: раздача → показ ников → переворот → перемешивание → выбор === */
 async function playCards(pool) {
   [els.spinRoulette, els.spinDrum, els.spinCase, els.spinWheel, els.spinBingo, els.spinHotPotato,
-   els.spinLaser, els.spinZeus, els.spinElevator, els.spinSpotlight, els.spinClock, els.spinClaw, els.spinBomb]
+   els.spinLaser, els.spinZeus, els.spinElevator, els.spinSpotlight, els.spinClock, els.spinClaw, els.spinPubg, els.spinBomb]
     .forEach((el) => { if (el) el.hidden = true; });
   els.spinCards.hidden = false;
 

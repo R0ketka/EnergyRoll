@@ -131,6 +131,11 @@
             <div class="minigame-info"><div class="minigame-title">Кран-машина</div></div>
             <span class="minigame-check">✓</span>
           </button>
+          <button class="minigame-item" data-mode="pubg">
+            <span class="minigame-icon">🪂</span>
+            <div class="minigame-info"><div class="minigame-title">PUBG</div></div>
+            <span class="minigame-check">✓</span>
+          </button>
           <button class="minigame-item" data-mode="bomb">
             <span class="minigame-icon">💣</span>
             <div class="minigame-info"><div class="minigame-title">Бомба</div></div>
@@ -468,6 +473,7 @@
                   <div class="claw-trolley"></div>
                   <div class="claw-cable" id="claw-cable">
                     <div class="claw-head open" id="claw-head">
+                      <div class="claw-prong p-m"></div>
                       <div class="claw-hub"></div>
                       <div class="claw-prong p-l"></div>
                       <div class="claw-prong p-r"></div>
@@ -483,6 +489,35 @@
                 <div class="claw-btn" id="claw-btn"></div>
               </div>
               <div class="claw-tray" id="claw-tray"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="spin-view" id="spin-pubg" hidden>
+          <div class="pg-wrap">
+            <div class="pg-map" id="pg-map">
+              <svg class="pg-layer" id="pg-map-svg" viewBox="0 0 640 640"></svg>
+              <svg class="pg-layer" id="pg-zone-svg" viewBox="0 0 640 640">
+                <defs>
+                  <mask id="pgZoneMask">
+                    <rect width="640" height="640" fill="#fff"/>
+                    <circle id="pg-zone-hole" cx="320" cy="320" r="470" fill="#000"/>
+                  </mask>
+                </defs>
+                <rect width="640" height="640" fill="rgba(40,90,255,0.34)" mask="url(#pgZoneMask)"/>
+                <circle id="pg-zone-edge" cx="320" cy="320" r="470" fill="none" stroke="#8fd0ff" stroke-width="3"/>
+                <circle id="pg-zone-next" cx="320" cy="320" r="200" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-dasharray="9 7" opacity="0"/>
+              </svg>
+              <svg class="pg-layer" id="pg-fx" viewBox="0 0 640 640"></svg>
+              <div class="pg-airdrop" id="pg-airdrop"><div class="pg-smoke"></div><div class="pg-crate">📦</div><div class="pg-crate-chute">🪂</div></div>
+              <div class="pg-players" id="pg-players"></div>
+              <div class="pg-plane" id="pg-plane">
+                <svg viewBox="0 0 64 64"><path d="M34 6 L40 26 L62 38 L62 44 L40 40 L38 54 L46 60 L46 64 L32 61 L18 64 L18 60 L26 54 L24 40 L2 44 L2 38 L24 26 L30 6 Z" fill="rgba(0,0,0,0.35)" transform="translate(2,3)"/><path d="M32 2 L38 24 L62 36 L62 42 L38 38 L36 52 L44 58 L44 62 L32 59 L20 62 L20 58 L28 52 L26 38 L2 42 L2 36 L26 24 Z" fill="#eef1f6" stroke="#5b6475" stroke-width="1.5" stroke-linejoin="round"/></svg>
+              </div>
+              <div class="pg-hud pg-hud-alive" id="pg-alive">👥 0</div>
+              <div class="pg-hud pg-hud-zone" id="pg-zone-info">✈ Самолёт над островом</div>
+              <div class="pg-feed" id="pg-feed"></div>
+              <div class="pg-banner" id="pg-banner"></div>
             </div>
           </div>
         </div>
