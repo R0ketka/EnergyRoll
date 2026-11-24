@@ -2132,22 +2132,30 @@ async function playPubg(pool, winnerLogin, winnerName) {
   await wait(500); if (!alive()) return;
 
   // ===== 3. Сужение зоны: 3–5 этапов, последний — финал у аирдропа =====
-  const P = 3 + Math.floor(Math.random() * 3);
+  const P = 4 + Math.floor(Math.random() * 2);   // 4–5 этапов — игроки выбывают постепенно
   let prevR = 470;
   const runTarget = (p, c, R) => {
     const dx = c.cx - p.x, dy = c.cy - p.y; const d = Math.hypot(dx, dy) || 1;
     if (d > R - 6) { const need = d - (R - 14 - Math.random() * 8); const mv = need * (p.role ? 1 : 0.35 + Math.random() * 0.5); return { x: p.x + dx / d * mv, y: p.y + dy / d * mv, out: !p.role }; }
     const mv = Math.min(d * 0.35, 8 + Math.random() * 26); return { x: p.x + dx / d * mv, y: p.y + dy / d * mv, out: false };
   };
+  const N0 = players.filter((p) => p.alive && !p.role).length;   // сколько «лишних» надо постепенно убрать до финала
+  const finishShot = () => {   // застрелить случайного «лишнего»: стреляет ближайший живой
+    const left = players.filter((p) => p.alive && !p.role); if (!left.length) return false;
+    const v = left[Math.floor(Math.random() * left.length)];
+    const sh = players.filter((o) => o.alive && o !== v).sort((a, b) => dist(a, v) - dist(b, v))[0];
+    if (sh) shoot(sh, v); else kill(v, null); return true;
+  };
   for (let k = 1; k < P; k++) {
     if (!alive()) return;
+    const target = Math.round(N0 * (1 - k / (P - 1)));   // сколько «лишних» останется после этой зоны (на последней — 0)
     if (k === P - 1) {   // перед последними зонами падает аирдроп
       airdropEl.style.left = (D.x / S * 100) + '%'; airdropEl.style.top = (D.y / S * 100) + '%'; airdropEl.classList.add('show');
       setTimeout(() => { if (alive()) airdropEl.classList.add('landed'); }, 2200); feedLine('📦', '', 'Аирдроп приземлился!');
     }
     const t = k / P * 0.9; const c = { cx: 320 + (D.x - 320) * t, cy: 320 + (D.y - 320) * t };
     const np = players.filter((p) => p.alive && !p.role).map((p) => ({ p, d: Math.hypot(p.x - c.cx, p.y - c.cy) })).sort((a, b) => a.d - b.d);
-    const keep = Math.round(np.length * (k === P - 1 ? 0.45 : 0.6 + Math.random() * 0.12));
+    const keep = Math.min(np.length, target + Math.ceil((np.length - target) * 0.5));   // половину «лишних» забирает зона, остальных — перестрелки
     let R = keep > 0 ? np[Math.min(keep, np.length) - 1].d + 10 : 90;
     R = Math.min(Math.max(R, 84 + (P - 1 - k) * 22), prevR * 0.88);
 
@@ -2167,36 +2175,23 @@ async function playPubg(pool, winnerLogin, winnerName) {
     if (!alive()) return;
     zNext.setAttribute('opacity', '0'); players.forEach((p) => p.el.classList.remove('running'));
     const out = players.filter((p) => p.alive && !p.role && Math.hypot(p.x - c.cx, p.y - c.cy) > R + 0.5);
-    for (const p of out) { kill(p, null); if (!(await wait(140))) return; }
+    for (const p of out) { kill(p, null); if (!(await wait(330))) return; }
     players.forEach((p) => p.el.classList.remove('danger'));
     prevR = R;
 
-    // перестрелки между соседями
-    const shots = 1 + (Math.random() < 0.5 ? 1 : 0);
-    for (let i = 0; i < shots; i++) { if (randomShot()) { if (!(await wait(450))) return; } }
+    // перестрелки: добиваем до нужного количества, по одному
+    let extra = players.filter((p) => p.alive && !p.role).length - target;
+    const gapS = Math.max(380, Math.min(650, 3000 / Math.max(extra, 1)));
+    while (extra-- > 0) { if (!(randomShot() || finishShot())) break; if (!(await wait(gapS))) return; }
     if (!(await wait(500))) return;
   }
 
-  // ===== 4. Финал у аирдропа =====
+  // ===== 4. Финал у аирдропа: остались трое =====
   info('⚔ Финал у аирдропа!');
   zNext.setAttribute('opacity', '0');
-  players.filter((p) => p.alive).forEach((p) => {   // все стягиваются к аирдропу
-    const d = dist(p, D); const k = Math.min(1, 70 / (d || 1)); place(p, D.x + (p.x - D.x) * k, D.y + (p.y - D.y) * k, 1000); p.el.classList.add('running');
-  });
-  if (!(await wait(1100))) return;
-  players.forEach((p) => p.el.classList.remove('running'));
-  let left = players.filter((p) => p.alive && !p.role);
-  const gap = Math.max(240, Math.min(620, 3200 / Math.max(left.length, 1)));
-  while ((left = players.filter((p) => p.alive && !p.role)).length) {   // лишние выбывают в перестрелке
-    if (!alive()) return;
-    const v = left[Math.floor(Math.random() * left.length)];
-    const sh = players.filter((o) => o.alive && o !== v).sort((a, b) => dist(a, v) - dist(b, v))[0];
-    if (sh) shoot(sh, v); else kill(v, null);
-    if (!(await wait(gap))) return;
-  }
-  // Трое у аирдропа — все на ОДИНАКОВОМ расстоянии, каждый со своей стороны (без перебегания).
-  // Если двое пришли почти с одной стороны — расходятся, порядок по кругу сохраняется.
-  const FD = 46;   // расстояние финалистов до аирдропа
+  while (players.some((p) => p.alive && !p.role)) { if (!finishShot()) break; if (!(await wait(400))) return; }   // на всякий случай
+  // Трое встают на ОДИНАКОВОЕ расстояние от аирдропа, каждый со своей стороны (без перебегания)
+  const FD = 70;
   const form = [W, Sp, Zp].filter((p) => p && p.alive).map((p) => ({ p, a: Math.atan2(p.y - D.y, p.x - D.x) }));
   const MIN_SEP = (form.length >= 3 ? 105 : 120) * Math.PI / 180;
   const wrap = (x) => { while (x > Math.PI) x -= 2 * Math.PI; while (x <= -Math.PI) x += 2 * Math.PI; return x; };
@@ -2206,32 +2201,52 @@ async function playPubg(pool, winnerLogin, winnerName) {
       if (Math.abs(diff) < MIN_SEP) { const push = (MIN_SEP - Math.abs(diff)) / 2 * (diff >= 0 ? 1 : -1); form[i].a -= push; form[j].a += push; }
     }
   }
-  form.forEach(({ p, a }) => place(p, D.x + Math.cos(a) * FD, D.y + Math.sin(a) * FD, 900));
-  setCam(D.x, D.y, 1.5, 1200);   // финальное приближение
-  if (!(await wait(1000))) return;
-
-  // Последняя зона смещена от того, кто не успеет: двое остаются внутри, третий — снаружи.
-  // Заранее этого не видно: все трое стоят одинаково, решает только круг новой зоны.
-  let fz = { cx: D.x, cy: D.y, r: FD + 14 };
-  const zf = form.find((f) => f.p === Zp);
-  if (zf) {
-    const ux = Math.cos(zf.a), uy = Math.sin(zf.a); const SH = 30;
-    const cx = D.x - ux * SH, cy = D.y - uy * SH;
-    const inMax = Math.max(...form.filter((f) => f !== zf).map((f) => Math.hypot(D.x + Math.cos(f.a) * FD - cx, D.y + Math.sin(f.a) * FD - cy)), 0);
-    const outD = FD + SH;
-    fz = { cx, cy, r: Math.max(inMax + 10, Math.min(outD - 12, (inMax + outD) / 2)) };
-  }
-  zNext.setAttribute('cx', fz.cx); zNext.setAttribute('cy', fz.cy); zNext.setAttribute('r', fz.r); zNext.setAttribute('opacity', '1');
-  info('🔷 Последняя зона ' + P + '/' + P + ' — кто-то не успеет');
+  form.forEach((f) => { f.p.el.classList.add('running'); place(f.p, D.x + Math.cos(f.a) * FD, D.y + Math.sin(f.a) * FD, 1300); });
+  setCam(D.x, D.y, 1.5, 1300);   // финальное приближение
   if (!(await wait(1400))) return;
-  if (Zp && Zp.alive) {   // пытается добежать, но не успевает (останавливается за границей)
-    const dx = fz.cx - Zp.x, dy = fz.cy - Zp.y; const d = Math.hypot(dx, dy) || 1; const mv = Math.max(0, d - fz.r - 7);
-    place(Zp, Zp.x + dx / d * mv, Zp.y + dy / d * mv, 2800); Zp.el.classList.add('running', 'danger');
-  }
-  await animateZone(fz, 2800);
+  players.forEach((p) => p.el.classList.remove('running'));
+
+  // Последняя зона — ровно вокруг аирдропа: все трое внутри, никого не выделяет
+  const z1 = { cx: D.x, cy: D.y, r: FD + 14 };
+  zNext.setAttribute('cx', z1.cx); zNext.setAttribute('cy', z1.cy); zNext.setAttribute('r', z1.r); zNext.setAttribute('opacity', '1');
+  info('🔷 Последняя зона ' + P + '/' + P);
+  if (!(await wait(1300))) return;
+  await animateZone(z1, 1800);
   if (!alive()) return;
   zNext.setAttribute('opacity', '0');
-  if (Zp && Zp.alive) kill(Zp, null);                    // первого съела зона
+  if (!(await wait(500))) return;
+
+  // Зона сжимается до конца (без пунктира): все бегут к аирдропу, один не успевает — его и накрывает
+  info('⚠ Зона закрывается — бегите к аирдропу!');
+  const zf = form.find((f) => f.p === Zp);
+  const SHIFT = 30, Rend = 52;
+  const zEnd = zf ? { cx: D.x - Math.cos(zf.a) * SHIFT, cy: D.y - Math.sin(zf.a) * SHIFT, r: Rend } : { cx: D.x, cy: D.y, r: Rend };
+  const runners = form.map((f) => ({ ...f, from: FD, to: f.p === Zp ? 52 : 38 }));
+  runners.forEach((r) => { r.p.el.style.transition = 'none'; r.p.el.classList.add('running'); });
+  await new Promise((resolve) => {
+    const t0 = performance.now(); const MS = 3400; let zDead = false;
+    const step = (now) => {
+      if (!alive()) { resolve(); return; }
+      const t = Math.min((now - t0) / MS, 1); const ez = t * t * (3 - 2 * t);
+      setZone(z1.cx + (zEnd.cx - z1.cx) * ez, z1.cy + (zEnd.cy - z1.cy) * ez, z1.r + (zEnd.r - z1.r) * ez);
+      runners.forEach((r) => {
+        if (!r.p.alive) return;
+        const k = r.p === Zp ? Math.min(1, t * 1.05) : 1 - Math.pow(1 - Math.min(1, t * 1.25), 2);   // двое бегут быстрее, третий — ровно и медленнее
+        const d = r.from + (r.to - r.from) * k;
+        place(r.p, D.x + Math.cos(r.a) * d, D.y + Math.sin(r.a) * d, 0);
+      });
+      if (Zp && Zp.alive && !zDead) {
+        const out = Math.hypot(Zp.x - cur.cx, Zp.y - cur.cy) - cur.r;
+        if (out > 0) Zp.el.classList.add('danger');
+        if (out > 5) { zDead = true; Zp.el.classList.remove('running'); kill(Zp, null); }   // первого съела зона
+      }
+      if (t < 1) requestAnimationFrame(step); else resolve();
+    };
+    requestAnimationFrame(step);
+  });
+  if (!alive()) return;
+  players.forEach((p) => p.el.classList.remove('running', 'danger'));
+  if (Zp && Zp.alive) kill(Zp, null);
   if (!(await wait(1000))) return;
   if (Sp && Sp.alive) {                                  // второго убивает победитель
     info('🔫 Дуэль за победу!');
