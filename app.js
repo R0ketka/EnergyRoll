@@ -68,7 +68,7 @@ const els = {
   spinElevator: document.getElementById('spin-elevator'),
   spinSpotlight: document.getElementById('spin-spotlight'),
   spinClock: document.getElementById('spin-clock'), spinClaw: document.getElementById('spin-claw'), spinPubg: document.getElementById('spin-pubg'),
-  spinBomb: document.getElementById('spin-bomb'), spinDark: document.getElementById('spin-dark'),
+  spinBomb: document.getElementById('spin-bomb'), spinDark: document.getElementById('spin-dark'), spinCatch: document.getElementById('spin-catch'),
   bombBody: document.getElementById('bomb-body'),
   bombCodeDisplay: document.getElementById('bomb-code-display'),
   bombCodeHint: document.getElementById('bomb-code-hint'),
@@ -630,7 +630,7 @@ function fillWinnerInfo(login) {
    МИНИ-ИГРЫ
    ========================================================= */
 function initMinigames() {
-  const known = ['instant', 'roulette', 'drum', 'case', 'cards', 'wheel', 'bingo', 'hotpotato', 'laser', 'zeus', 'elevator', 'spotlight', 'clock', 'claw', 'pubg', 'darkshot', 'bomb'];
+  const known = ['instant', 'roulette', 'drum', 'case', 'cards', 'wheel', 'bingo', 'hotpotato', 'laser', 'zeus', 'elevator', 'spotlight', 'clock', 'claw', 'pubg', 'darkshot', 'catchlight', 'bomb'];
   let saved = localStorage.getItem('energyroll_minigame'); if (!known.includes(saved)) saved = 'instant'; state.miniGame = saved;
   const buttons = document.querySelectorAll('.minigame-item');
   buttons.forEach((btn) => {
@@ -1590,7 +1590,7 @@ async function startBombGame() {
   if (els.modalDepInput) els.modalDepInput.value = '';
   updateCommitButton();
   [els.spinRoulette, els.spinDrum, els.spinCase, els.spinCards, els.spinWheel, els.spinBingo,
-   els.spinHotPotato, els.spinLaser, els.spinZeus, els.spinElevator, els.spinSpotlight, els.spinClock, els.spinClaw, els.spinPubg, els.spinDark]
+   els.spinHotPotato, els.spinLaser, els.spinZeus, els.spinElevator, els.spinSpotlight, els.spinClock, els.spinClaw, els.spinPubg, els.spinDark, els.spinCatch]
     .forEach(el => { if (el) el.hidden = true; });
   els.spinBomb.hidden = false;
   const winner = await playBomb();
@@ -1704,7 +1704,8 @@ async function pickWinner() {
   const isCards = state.miniGame === 'cards';
   const isClock = state.miniGame === 'clock';
   const isDark = state.miniGame === 'darkshot';   // стример сам выбирает выстрелом, как в картах
-  let riggedLogin = (isCards || isClock || isDark) ? null : state.rigTarget;
+  const isCatch = state.miniGame === 'catchlight';   // стример сам ловит момент, как в картах
+  let riggedLogin = (isCards || isClock || isDark || isCatch) ? null : state.rigTarget;
 
   if (riggedLogin) {
     state.rigTarget = null;
@@ -1733,6 +1734,7 @@ async function pickWinner() {
 
   if (isCards) { await showCardsPick(pool, null); return; }
   if (isDark) { await showDarkShot(pool); return; }
+  if (isCatch) { await showCatchLight(pool); return; }
   await showWinnerWithSpin(winnerLogin);
 }
 
@@ -1748,7 +1750,7 @@ async function showWinnerWithSpin(login) {
   updateCommitButton();
 
   [els.spinRoulette, els.spinDrum, els.spinCase, els.spinCards, els.spinWheel, els.spinBingo,
-   els.spinHotPotato, els.spinLaser, els.spinZeus, els.spinElevator, els.spinSpotlight, els.spinClock, els.spinClaw, els.spinPubg, els.spinBomb, els.spinDark]
+   els.spinHotPotato, els.spinLaser, els.spinZeus, els.spinElevator, els.spinSpotlight, els.spinClock, els.spinClaw, els.spinPubg, els.spinBomb, els.spinDark, els.spinCatch]
     .forEach(el => { if (el) el.hidden = true; });
 
   if (state.miniGame === 'roulette') await playRoulette(displayName);
@@ -2273,7 +2275,7 @@ async function playDarkShot(pool) {
   const alive = () => runId === darkRunId && !spinCancel;
   const wait = async (ms) => { await sleep(ms); return alive(); };
   [els.spinRoulette, els.spinDrum, els.spinCase, els.spinCards, els.spinWheel, els.spinBingo, els.spinHotPotato, els.spinLaser,
-   els.spinZeus, els.spinElevator, els.spinSpotlight, els.spinClock, els.spinClaw, els.spinPubg, els.spinBomb]
+   els.spinZeus, els.spinElevator, els.spinSpotlight, els.spinClock, els.spinClaw, els.spinPubg, els.spinBomb, els.spinCatch]
     .forEach((el) => { if (el) el.hidden = true; });
   els.spinDark.hidden = false; await sleep(50);
   if (!alive()) return null;
@@ -2387,10 +2389,128 @@ async function showDarkShot(pool) {
   fillWinnerInfo(pickedLogin);
 }
 
+/* === ПОЙМАЙ ОГОНЁК: огонёк бежит по кругу из ников, стример жмёт «СТОП», огонёк по инерции проезжает ещё немного === */
+let catchRunId = 0;   // номер запуска: закрыли игру и запустили заново — старый запуск сам останавливается
+async function playCatchLight(pool) {
+  const runId = ++catchRunId;
+  const alive = () => runId === catchRunId && !spinCancel;
+  const wait = async (ms) => { await sleep(ms); return alive(); };
+  [els.spinRoulette, els.spinDrum, els.spinCase, els.spinCards, els.spinWheel, els.spinBingo, els.spinHotPotato, els.spinLaser,
+   els.spinZeus, els.spinElevator, els.spinSpotlight, els.spinClock, els.spinClaw, els.spinPubg, els.spinBomb, els.spinDark]
+    .forEach((el) => { if (el) el.hidden = true; });
+  els.spinCatch.hidden = false; await sleep(50);
+  if (!alive()) return null;
+
+  const $ = (id) => document.getElementById(id);
+  const machine = $('catch-machine'); const ring = $('catch-ring'); const bulbs = $('catch-bulbs');
+  const btn = $('catch-btn'); const btnText = $('catch-btn-text'); const result = $('catch-result'); const header = $('catch-header');
+  const setHeader = (t, pulse) => { header.textContent = t; header.classList.toggle('pulse', !!pulse); };
+  ring.innerHTML = ''; result.textContent = ''; result.classList.remove('show');
+  machine.classList.remove('ready', 'stopping', 'win'); btn.classList.remove('pressed'); btn.disabled = true; btnText.textContent = 'СТОП';
+  if (!bulbs.children.length) for (let i = 0; i < 28; i++) { const b = document.createElement('i'); const a = i / 28 * Math.PI * 2; b.style.left = (50 + Math.cos(a) * 47.5) + '%'; b.style.top = (50 + Math.sin(a) * 47.5) + '%'; bulbs.appendChild(b); }
+
+  // Ники по кругу: до 16; если участников мало — повторяем, чтобы круг был полным
+  const uniq = [...new Set(pool)];
+  for (let i = uniq.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [uniq[i], uniq[j]] = [uniq[j], uniq[i]]; }
+  if (!uniq.length) return null;
+  const N = uniq.length >= 12 ? Math.min(16, uniq.length) : 12;
+  const slotsLogins = [];
+  for (let i = 0; i < N; i++) slotsLogins.push(uniq[i % uniq.length]);
+  if (uniq.length > 1 && slotsLogins[N - 1] === slotsLogins[0]) { [slotsLogins[N - 1], slotsLogins[N - 2]] = [slotsLogins[N - 2], slotsLogins[N - 1]]; }
+
+  const size = machine.clientWidth || 560; const R = size * 0.385;
+  const plateW = Math.min(100, Math.max(64, 2 * R * Math.sin(Math.PI / N) - 6));
+  const slots = slotsLogins.map((login, i) => {
+    const name = state.users.get(login) || login; const a = -Math.PI / 2 + i / N * Math.PI * 2;
+    const el = document.createElement('div'); el.className = 'catch-slot';
+    el.style.left = (size / 2 + Math.cos(a) * R) + 'px'; el.style.top = (size / 2 + Math.sin(a) * R) + 'px'; el.style.width = plateW + 'px';
+    const av = document.createElement('div'); av.className = 'catch-av'; av.style.background = avatarGradient(login); av.textContent = (name || '?').charAt(0).toUpperCase();
+    const nick = document.createElement('div'); nick.className = 'catch-nick'; nick.textContent = name;
+    el.appendChild(av); el.appendChild(nick); ring.appendChild(el);
+    return { login, name, el };
+  });
+
+  let idx = secureRandomInt(N);
+  const light = (i) => {
+    slots.forEach((s) => s.el.classList.remove('on', 't1', 't2'));
+    slots[i].el.classList.add('on'); slots[(i - 1 + N) % N].el.classList.add('t1'); slots[(i - 2 + N) % N].el.classList.add('t2');
+  };
+  const step = () => { idx = (idx + 1) % N; light(idx); };
+  light(idx);
+
+  // Ждём нажатия: клик по кнопке или пробел (или авто-стоп через 10 с)
+  let pressed = false; let autoStop = false;
+  const press = () => { if (pressed || btn.disabled) return; pressed = true; btn.classList.add('pressed'); setTimeout(() => btn.classList.remove('pressed'), 180); };
+  const onKey = (e) => { if (e.code === 'Space' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); press(); } };
+  btn.onclick = press; document.addEventListener('keydown', onKey, true);
+  const cleanup = () => { btn.onclick = null; document.removeEventListener('keydown', onKey, true); };
+
+  // Разгон и кручение на полной скорости
+  setHeader('💡 Огонёк разгоняется…');
+  const t0 = performance.now(); let readyAt = 0;
+  await new Promise((resolve) => {
+    let next = t0;
+    const tick = (now) => {
+      if (!alive()) { resolve(); return; }
+      const el = now - t0;
+      const interval = el < 1000 ? 230 - 170 * (el / 1000) : 60;   // 230 мс → 60 мс за секунду
+      if (el >= 1000 && !readyAt) { readyAt = now; btn.disabled = false; machine.classList.add('ready'); btnText.textContent = 'ЖМИ!'; setHeader('🔴 Жми СТОП!', true); }
+      if (readyAt && now - readyAt > 10000 && !pressed) { autoStop = true; pressed = true; }
+      if (pressed) { resolve(); return; }
+      if (now >= next) { step(); next = now + interval; }
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+  if (!alive()) { cleanup(); return null; }
+  cleanup(); btn.disabled = true; machine.classList.remove('ready'); machine.classList.add('stopping'); btnText.textContent = 'СТОП';
+  setHeader(autoStop ? '⏱ Время вышло! Тормозим…' : '✋ Стоп! Тормозим…');
+
+  // Торможение по инерции: 4–9 шагов, каждый медленнее
+  const K = 4 + secureRandomInt(6);
+  for (let j = 1; j <= K; j++) {
+    const p = j / K; const d = 70 + Math.pow(p, 2.2) * 480;
+    if (!(await wait(d))) return null;
+    step(); slots[idx].el.animate([{ transform: 'translate(-50%,-50%) scale(1.18)' }, { transform: 'translate(-50%,-50%) scale(1.1)' }], { duration: 180 });
+  }
+  // Интрига: огонёк «зависает» на границе — перескочит или нет?
+  if (Math.random() < 0.55) {
+    const nextEl = slots[(idx + 1) % N].el; nextEl.classList.add('tease');
+    if (!(await wait(900))) { nextEl.classList.remove('tease'); return null; }
+    nextEl.classList.remove('tease');
+    if (Math.random() < 0.5) { step(); if (!(await wait(120))) return null; }
+  }
+
+  // Победа
+  const win = slots[idx];
+  slots.forEach((s) => s.el.classList.remove('t1', 't2'));
+  win.el.classList.add('win'); machine.classList.remove('stopping'); machine.classList.add('win');
+  result.textContent = win.name; result.classList.add('show');
+  setHeader('🏆 Огонёк пойман!');
+  try { burstConfetti(machine, size / 2, size / 2, 40); } catch (e) {}
+  if (!(await wait(2000))) return null;
+  return win.login;
+}
+
+async function showCatchLight(pool) {
+  clearWinnerTimer(); state.winnerHasResponded = false; state.isSpinning = true; spinCancel = false; state.currentWinner = null;
+  els.modal.classList.add('active'); els.modalContent.classList.add('spinning');
+  els.winnerMessages.innerHTML = ''; els.winnerTimer.textContent = '0:00'; els.winnerTimer.classList.remove('timer-done');
+  els.modalPayoutInput.value = ''; els.modalSpin.hidden = false;
+  if (els.modalDepInput) els.modalDepInput.value = '';
+  updateCommitButton();
+  const pickedLogin = await playCatchLight(pool);
+  if (spinCancel || !pickedLogin) { els.modal.classList.remove('active'); els.modalContent.classList.remove('spinning'); els.modalSpin.hidden = true; els.spinCatch.hidden = true; state.currentWinner = null; state.isSpinning = false; return; }
+  state.currentWinner = pickedLogin; state.winnerSelectedAt = Date.now();
+  els.winnerName.textContent = state.users.get(pickedLogin) || pickedLogin;
+  els.modalContent.classList.remove('spinning'); els.modalSpin.hidden = true; els.spinCatch.hidden = true; state.isSpinning = false;
+  fillWinnerInfo(pickedLogin);
+}
+
 /* === КАРТЫ: раздача → показ ников → переворот → перемешивание → выбор === */
 async function playCards(pool) {
   [els.spinRoulette, els.spinDrum, els.spinCase, els.spinWheel, els.spinBingo, els.spinHotPotato,
-   els.spinLaser, els.spinZeus, els.spinElevator, els.spinSpotlight, els.spinClock, els.spinClaw, els.spinPubg, els.spinBomb, els.spinDark]
+   els.spinLaser, els.spinZeus, els.spinElevator, els.spinSpotlight, els.spinClock, els.spinClaw, els.spinPubg, els.spinBomb, els.spinDark, els.spinCatch]
     .forEach((el) => { if (el) el.hidden = true; });
   els.spinCards.hidden = false;
 
@@ -2517,7 +2637,7 @@ function closeWinnerModal() {
   }
   els.modal.classList.remove('active'); els.modalContent.classList.remove('spinning'); els.modalSpin.hidden = true;
   els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true; els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true; els.spinElevator.hidden = true; els.spinSpotlight.hidden = true; els.spinClock.hidden = true; els.spinBomb.hidden = true;
-  [els.spinClaw, els.spinPubg, els.spinDark].forEach((el) => { if (el) el.hidden = true; });
+  [els.spinClaw, els.spinPubg, els.spinDark, els.spinCatch].forEach((el) => { if (el) el.hidden = true; });
   els.modalPayoutInput.value = ''; clearWinnerTimer(); state.currentWinner = null;
   if (els.modalDepInput) els.modalDepInput.value = '';
   if (els.copyWinnerBtn) { els.copyWinnerBtn.classList.remove('copied'); els.copyWinnerBtn.textContent = '📋'; }

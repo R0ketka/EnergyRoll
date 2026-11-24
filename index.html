@@ -141,6 +141,11 @@
             <div class="minigame-info"><div class="minigame-title">Выстрел в темноте</div></div>
             <span class="minigame-check">✓</span>
           </button>
+          <button class="minigame-item" data-mode="catchlight">
+            <span class="minigame-icon">💡</span>
+            <div class="minigame-info"><div class="minigame-title">Поймай огонёк</div></div>
+            <span class="minigame-check">✓</span>
+          </button>
           <button class="minigame-item" data-mode="bomb">
             <span class="minigame-icon">💣</span>
             <div class="minigame-info"><div class="minigame-title">Бомба</div></div>
@@ -564,6 +569,17 @@
             </svg>
           </div>
           <div class="dark-hint">Наведите прицел мышкой · клик — выстрел · промах — все перебегают</div>
+        </div>
+
+        <div class="spin-view" id="spin-catch" hidden>
+          <div class="catch-header" id="catch-header">💡 Поймай огонёк</div>
+          <div class="catch-machine" id="catch-machine">
+            <div class="catch-bulbs" id="catch-bulbs"></div>
+            <div class="catch-ring" id="catch-ring"></div>
+            <button class="catch-btn" id="catch-btn" type="button"><span class="catch-btn-text" id="catch-btn-text">СТОП</span></button>
+            <div class="catch-result" id="catch-result"></div>
+          </div>
+          <div class="catch-hint">Клик по кнопке или <b>пробел</b> — стоп · огонёк проедет ещё немного по инерции</div>
         </div>
 
         <div class="spin-view" id="spin-bomb" hidden>
