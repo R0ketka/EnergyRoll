@@ -2183,8 +2183,20 @@ async function playPubg(pool, winnerLogin, winnerName) {
     if (!(await wait(gap))) return;
   }
   // трое у аирдропа: Z — чуть за будущей границей, W и S — внутри
-  const Rf = 56; const form = [[W, 200, Rf - 26], [Sp, 340, Rf - 26], [Zp, 90, Rf + 28]];
-  form.forEach(([p, deg, d]) => { if (p && p.alive) place(p, D.x + Math.cos(deg * Math.PI / 180) * d, D.y + Math.sin(deg * Math.PI / 180) * d, 900); });
+  // Каждый встаёт с той стороны, откуда пришёл (без перебегания друг через друга);
+  // если двое пришли почти с одной стороны — слегка расходятся, порядок по кругу сохраняется
+  const Rf = 56;
+  const form = [[W, Rf - 26], [Sp, Rf - 26], [Zp, Rf + 28]].filter(([p]) => p && p.alive)
+    .map(([p, d]) => ({ p, d, a: Math.atan2(p.y - D.y, p.x - D.x) }));
+  const MIN_SEP = 75 * Math.PI / 180;
+  const wrap = (x) => { while (x > Math.PI) x -= 2 * Math.PI; while (x <= -Math.PI) x += 2 * Math.PI; return x; };
+  for (let it = 0; it < 30; it++) {
+    for (let i = 0; i < form.length; i++) for (let j = i + 1; j < form.length; j++) {
+      const diff = wrap(form[j].a - form[i].a);
+      if (Math.abs(diff) < MIN_SEP) { const push = (MIN_SEP - Math.abs(diff)) / 2 * (diff >= 0 ? 1 : -1); form[i].a -= push; form[j].a += push; }
+    }
+  }
+  form.forEach(({ p, d, a }) => place(p, D.x + Math.cos(a) * d, D.y + Math.sin(a) * d, 900));
   if (!(await wait(1000))) return;
   zNext.setAttribute('cx', D.x); zNext.setAttribute('cy', D.y); zNext.setAttribute('r', Rf); zNext.setAttribute('opacity', '1');
   info('🔷 Последняя зона ' + P + '/' + P + ' — кто-то не успеет');
