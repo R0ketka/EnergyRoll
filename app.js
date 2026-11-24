@@ -68,7 +68,7 @@ const els = {
   spinElevator: document.getElementById('spin-elevator'),
   spinSpotlight: document.getElementById('spin-spotlight'),
   spinClock: document.getElementById('spin-clock'), spinClaw: document.getElementById('spin-claw'), spinPubg: document.getElementById('spin-pubg'),
-  spinBomb: document.getElementById('spin-bomb'),
+  spinBomb: document.getElementById('spin-bomb'), spinDark: document.getElementById('spin-dark'),
   bombBody: document.getElementById('bomb-body'),
   bombCodeDisplay: document.getElementById('bomb-code-display'),
   bombCodeHint: document.getElementById('bomb-code-hint'),
@@ -630,7 +630,7 @@ function fillWinnerInfo(login) {
    МИНИ-ИГРЫ
    ========================================================= */
 function initMinigames() {
-  const known = ['instant', 'roulette', 'drum', 'case', 'cards', 'wheel', 'bingo', 'hotpotato', 'laser', 'zeus', 'elevator', 'spotlight', 'clock', 'claw', 'pubg', 'bomb'];
+  const known = ['instant', 'roulette', 'drum', 'case', 'cards', 'wheel', 'bingo', 'hotpotato', 'laser', 'zeus', 'elevator', 'spotlight', 'clock', 'claw', 'pubg', 'darkshot', 'bomb'];
   let saved = localStorage.getItem('energyroll_minigame'); if (!known.includes(saved)) saved = 'instant'; state.miniGame = saved;
   const buttons = document.querySelectorAll('.minigame-item');
   buttons.forEach((btn) => {
@@ -1590,7 +1590,7 @@ async function startBombGame() {
   if (els.modalDepInput) els.modalDepInput.value = '';
   updateCommitButton();
   [els.spinRoulette, els.spinDrum, els.spinCase, els.spinCards, els.spinWheel, els.spinBingo,
-   els.spinHotPotato, els.spinLaser, els.spinZeus, els.spinElevator, els.spinSpotlight, els.spinClock, els.spinClaw, els.spinPubg]
+   els.spinHotPotato, els.spinLaser, els.spinZeus, els.spinElevator, els.spinSpotlight, els.spinClock, els.spinClaw, els.spinPubg, els.spinDark]
     .forEach(el => { if (el) el.hidden = true; });
   els.spinBomb.hidden = false;
   const winner = await playBomb();
@@ -1703,7 +1703,8 @@ async function pickWinner() {
 
   const isCards = state.miniGame === 'cards';
   const isClock = state.miniGame === 'clock';
-  let riggedLogin = (isCards || isClock) ? null : state.rigTarget;
+  const isDark = state.miniGame === 'darkshot';   // стример сам выбирает выстрелом, как в картах
+  let riggedLogin = (isCards || isClock || isDark) ? null : state.rigTarget;
 
   if (riggedLogin) {
     state.rigTarget = null;
@@ -1731,6 +1732,7 @@ async function pickWinner() {
   }
 
   if (isCards) { await showCardsPick(pool, null); return; }
+  if (isDark) { await showDarkShot(pool); return; }
   await showWinnerWithSpin(winnerLogin);
 }
 
@@ -1746,7 +1748,7 @@ async function showWinnerWithSpin(login) {
   updateCommitButton();
 
   [els.spinRoulette, els.spinDrum, els.spinCase, els.spinCards, els.spinWheel, els.spinBingo,
-   els.spinHotPotato, els.spinLaser, els.spinZeus, els.spinElevator, els.spinSpotlight, els.spinClock, els.spinClaw, els.spinPubg, els.spinBomb]
+   els.spinHotPotato, els.spinLaser, els.spinZeus, els.spinElevator, els.spinSpotlight, els.spinClock, els.spinClaw, els.spinPubg, els.spinBomb, els.spinDark]
     .forEach(el => { if (el) el.hidden = true; });
 
   if (state.miniGame === 'roulette') await playRoulette(displayName);
@@ -2264,10 +2266,131 @@ async function playPubg(pool, winnerLogin, winnerName) {
   els.spinPubg.hidden = true;
 }
 
+/* === ВЫСТРЕЛ В ТЕМНОТЕ: игроки спрятаны в темноте, стример целится мышкой, клик — вспышка, в кого попал — тот победил === */
+let darkRunId = 0;   // номер запуска: закрыли игру и запустили заново — старый запуск сам останавливается
+async function playDarkShot(pool) {
+  const runId = ++darkRunId;
+  const alive = () => runId === darkRunId && !spinCancel;
+  const wait = async (ms) => { await sleep(ms); return alive(); };
+  [els.spinRoulette, els.spinDrum, els.spinCase, els.spinCards, els.spinWheel, els.spinBingo, els.spinHotPotato, els.spinLaser,
+   els.spinZeus, els.spinElevator, els.spinSpotlight, els.spinClock, els.spinClaw, els.spinPubg, els.spinBomb]
+    .forEach((el) => { if (el) el.hidden = true; });
+  els.spinDark.hidden = false; await sleep(50);
+  if (!alive()) return null;
+
+  const $ = (id) => document.getElementById(id);
+  const field = $('dark-field'); const layer = $('dark-people'); const cross = $('dark-cross'); const header = $('dark-header');
+  const setHeader = (t, pick) => { header.textContent = t; header.classList.toggle('pick', !!pick); };
+  layer.innerHTML = ''; field.classList.remove('lit', 'done'); field.querySelectorAll('.dark-burst, .dark-eyes').forEach((e) => e.remove());
+  cross.style.opacity = '0';
+
+  // До 14 участников, прячем в темноте
+  const logins = [...new Set(pool)];
+  for (let i = logins.length - 1; i > 0; i--) { const j = secureRandomInt(i + 1); [logins[i], logins[j]] = [logins[j], logins[i]]; }
+  logins.length = Math.min(logins.length, 14);
+  if (!logins.length) return null;
+  const people = logins.map((login) => {
+    const name = state.users.get(login) || login;
+    const el = document.createElement('div'); el.className = 'dark-person';
+    const av = document.createElement('div'); av.className = 'dark-av'; av.style.background = avatarGradient(login); av.textContent = (name || '?').charAt(0).toUpperCase();
+    const nick = document.createElement('div'); nick.className = 'dark-nick'; nick.textContent = name;
+    el.appendChild(av); el.appendChild(nick); layer.appendChild(el);
+    return { login, name, el, x: 0, y: 0 };
+  });
+
+  // Случайные позиции без наложений
+  const placeAll = () => {
+    const W = field.clientWidth || 800, H = field.clientHeight || 500; const padX = 70, padTop = 45, padBottom = 70;
+    const minD = Math.max(85, Math.min(150, Math.sqrt(W * H / people.length) * 0.6)); const pts = [];
+    people.forEach((p) => {
+      let best = null, bestD = -1;
+      for (let i = 0; i < 80; i++) {
+        const x = padX + Math.random() * (W - 2 * padX), y = padTop + Math.random() * (H - padTop - padBottom);
+        const d = pts.length ? Math.min(...pts.map((q) => Math.hypot(q.x - x, q.y - y))) : Infinity;
+        if (d >= minD) { best = { x, y }; break; } if (d > bestD) { bestD = d; best = { x, y }; }
+      }
+      pts.push(best); p.x = best.x; p.y = best.y; p.el.style.left = best.x + 'px'; p.el.style.top = best.y + 'px';
+    });
+  };
+  placeAll();
+
+  // Прицел ходит за мышкой
+  const onMove = (e) => { const r = field.getBoundingClientRect(); cross.style.transform = `translate(${e.clientX - r.left}px, ${e.clientY - r.top}px)`; cross.style.opacity = '1'; };
+  const onLeave = () => { cross.style.opacity = '0'; };
+  field.addEventListener('mousemove', onMove); field.addEventListener('mouseleave', onLeave);
+
+  // Иногда в темноте мерцают чьи-то глаза
+  const ambient = setInterval(() => {
+    if (!alive() || field.classList.contains('lit') || field.classList.contains('done')) return;
+    const p = people[Math.floor(Math.random() * people.length)];
+    const e = document.createElement('div'); e.className = 'dark-eyes'; e.style.left = p.x + 'px'; e.style.top = (p.y - 5) + 'px';
+    field.appendChild(e); setTimeout(() => e.remove(), 1300);
+  }, 1200);
+  const cleanup = () => { clearInterval(ambient); field.removeEventListener('mousemove', onMove); field.removeEventListener('mouseleave', onLeave); field.onclick = null; };
+
+  const HIT = 50;   // радиус попадания (px) от центра аватарки
+  let winner = null; let shotsFired = 0;
+  setHeader('🔦 Целься мышкой и стреляй!', true);
+  while (!winner) {
+    const shot = await new Promise((resolve) => {
+      let done = false; let poll = null;
+      const finish = (v) => { if (done) return; done = true; clearInterval(poll); field.onclick = null; resolve(v); };
+      field.onclick = (e) => { const r = field.getBoundingClientRect(); finish({ x: e.clientX - r.left, y: e.clientY - r.top }); };
+      poll = setInterval(() => { if (!alive()) finish(null); }, 150);
+    });
+    if (!shot || !alive()) { cleanup(); return null; }
+    shotsFired++;
+    field.querySelectorAll('.dark-eyes').forEach((e) => e.remove());
+
+    // Вспышка выстрела: свет из точки попадания на секунду освещает всех
+    const burst = document.createElement('div'); burst.className = 'dark-burst'; burst.style.left = shot.x + 'px'; burst.style.top = shot.y + 'px';
+    field.appendChild(burst); setTimeout(() => burst.remove(), 700);
+    field.style.setProperty('--fx', shot.x + 'px'); field.style.setProperty('--fy', shot.y + 'px');
+    field.classList.remove('lit'); void field.offsetWidth; field.classList.add('lit');
+    field.animate([{ transform: 'translate(0,0)' }, { transform: 'translate(-4px,3px)' }, { transform: 'translate(3px,-2px)' }, { transform: 'translate(0,0)' }], { duration: 220 });
+
+    const hit = people.map((p) => ({ p, d: Math.hypot(p.x - shot.x, p.y - shot.y) })).filter((o) => o.d <= HIT).sort((a, b) => a.d - b.d)[0];
+    if (hit) { winner = hit.p; break; }
+
+    // Промах — все перебегают в темноте
+    setHeader('💨 Промах! Все перебегают…');
+    if (!(await wait(1400))) { cleanup(); return null; }
+    field.classList.remove('lit');
+    placeAll();
+    if (!(await wait(250))) { cleanup(); return null; }
+    setHeader(shotsFired >= 3 ? '🔦 Ещё попытка! Следи за глазами в темноте' : '🔦 Ещё выстрел!', true);
+  }
+
+  // Попадание
+  cleanup(); cross.style.opacity = '0';
+  field.style.setProperty('--fx', winner.x + 'px'); field.style.setProperty('--fy', winner.y + 'px');
+  winner.el.classList.add('hit'); field.classList.add('done');
+  setHeader('🎯 Попадание: ' + winner.name);
+  try { burstConfetti(field, winner.x, winner.y, 36); } catch (e) {}
+  if (!(await wait(2300))) return null;
+  return winner.login;
+}
+
+async function showDarkShot(pool) {
+  clearWinnerTimer(); state.winnerHasResponded = false; state.isSpinning = true; spinCancel = false; state.currentWinner = null;
+  els.modal.classList.add('active'); els.modalContent.classList.add('spinning');
+  els.winnerMessages.innerHTML = ''; els.winnerTimer.textContent = '0:00'; els.winnerTimer.classList.remove('timer-done');
+  els.modalPayoutInput.value = ''; els.modalSpin.hidden = false;
+  if (els.modalDepInput) els.modalDepInput.value = '';
+  updateCommitButton();
+  const pickedLogin = await playDarkShot(pool);
+  const abort = () => { els.modal.classList.remove('active'); els.modalContent.classList.remove('spinning'); els.modalSpin.hidden = true; els.spinDark.hidden = true; state.currentWinner = null; state.isSpinning = false; };
+  if (spinCancel || !pickedLogin) { abort(); return; }
+  state.currentWinner = pickedLogin; state.winnerSelectedAt = Date.now();
+  els.winnerName.textContent = state.users.get(pickedLogin) || pickedLogin;
+  els.modalContent.classList.remove('spinning'); els.modalSpin.hidden = true; els.spinDark.hidden = true; state.isSpinning = false;
+  fillWinnerInfo(pickedLogin);
+}
+
 /* === КАРТЫ: раздача → показ ников → переворот → перемешивание → выбор === */
 async function playCards(pool) {
   [els.spinRoulette, els.spinDrum, els.spinCase, els.spinWheel, els.spinBingo, els.spinHotPotato,
-   els.spinLaser, els.spinZeus, els.spinElevator, els.spinSpotlight, els.spinClock, els.spinClaw, els.spinPubg, els.spinBomb]
+   els.spinLaser, els.spinZeus, els.spinElevator, els.spinSpotlight, els.spinClock, els.spinClaw, els.spinPubg, els.spinBomb, els.spinDark]
     .forEach((el) => { if (el) el.hidden = true; });
   els.spinCards.hidden = false;
 
@@ -2394,6 +2517,7 @@ function closeWinnerModal() {
   }
   els.modal.classList.remove('active'); els.modalContent.classList.remove('spinning'); els.modalSpin.hidden = true;
   els.spinRoulette.hidden = true; els.spinDrum.hidden = true; els.spinCase.hidden = true; els.spinCards.hidden = true; els.spinWheel.hidden = true; els.spinBingo.hidden = true; els.spinHotPotato.hidden = true; els.spinLaser.hidden = true; els.spinZeus.hidden = true; els.spinElevator.hidden = true; els.spinSpotlight.hidden = true; els.spinClock.hidden = true; els.spinBomb.hidden = true;
+  [els.spinClaw, els.spinPubg, els.spinDark].forEach((el) => { if (el) el.hidden = true; });
   els.modalPayoutInput.value = ''; clearWinnerTimer(); state.currentWinner = null;
   if (els.modalDepInput) els.modalDepInput.value = '';
   if (els.copyWinnerBtn) { els.copyWinnerBtn.classList.remove('copied'); els.copyWinnerBtn.textContent = '📋'; }

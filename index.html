@@ -136,6 +136,11 @@
             <div class="minigame-info"><div class="minigame-title">PUBG</div></div>
             <span class="minigame-check">✓</span>
           </button>
+          <button class="minigame-item" data-mode="darkshot">
+            <span class="minigame-icon">🔦</span>
+            <div class="minigame-info"><div class="minigame-title">Выстрел в темноте</div></div>
+            <span class="minigame-check">✓</span>
+          </button>
           <button class="minigame-item" data-mode="bomb">
             <span class="minigame-icon">💣</span>
             <div class="minigame-info"><div class="minigame-title">Бомба</div></div>
@@ -545,6 +550,20 @@
               <div class="pg-banner" id="pg-banner"></div>
             </div>
           </div>
+        </div>
+
+        <div class="spin-view" id="spin-dark" hidden>
+          <div class="dark-header" id="dark-header">🔦 Целься и стреляй</div>
+          <div class="dark-field" id="dark-field">
+            <div class="dark-people" id="dark-people"></div>
+            <svg class="dark-cross" id="dark-cross" viewBox="0 0 60 60">
+              <circle cx="30" cy="30" r="17" fill="none" stroke="rgba(0,0,0,0.6)" stroke-width="4"/>
+              <circle cx="30" cy="30" r="17" fill="none" stroke="#ff4040" stroke-width="2"/>
+              <g stroke="#ff4040" stroke-width="2" stroke-linecap="round"><line x1="30" y1="4" x2="30" y2="20"/><line x1="30" y1="40" x2="30" y2="56"/><line x1="4" y1="30" x2="20" y2="30"/><line x1="40" y1="30" x2="56" y2="30"/></g>
+              <circle cx="30" cy="30" r="2.2" fill="#ff4040"/>
+            </svg>
+          </div>
+          <div class="dark-hint">Наведите прицел мышкой · клик — выстрел · промах — все перебегают</div>
         </div>
 
         <div class="spin-view" id="spin-bomb" hidden>
