@@ -1789,6 +1789,7 @@ main {
   position: relative; width: min(940px, 100%, 88vh); aspect-ratio: 1; margin: 0 auto; overflow: hidden; border-radius: 14px;
   border: 3px solid #26382b; background: #153f66; box-shadow: 0 12px 30px rgba(0,0,0,0.55);
 }
+.pg-cam { position: absolute; inset: 0; transform-origin: 0 0; will-change: transform; }
 .pg-layer { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
 
 /* Игроки: аватарка + ник на тёмной плашке (читаются на любой местности) */
@@ -1833,15 +1834,15 @@ main {
 
 /* Аирдроп */
 .pg-airdrop { position: absolute; width: 0; height: 0; z-index: 4; opacity: 0; pointer-events: none; }
-.pg-crate { position: absolute; left: -22px; top: -24px; font-size: 42px; line-height: 1; text-shadow: 0 3px 6px rgba(0,0,0,0.5); }
-.pg-crate-chute { position: absolute; left: -22px; top: -62px; width: 44px; text-align: center; font-size: 40px; line-height: 1; opacity: 0; }
+.pg-crate { position: absolute; left: -25px; top: -24px; width: 50px; height: 44px; display: block; overflow: visible; filter: drop-shadow(0 3px 4px rgba(0,0,0,0.45)); transform-origin: 25px 24px; }
+.pg-crate-chute { position: absolute; left: -39px; top: -82px; width: 78px; height: 64px; display: block; opacity: 0; transform-origin: 39px 82px; }
 .pg-smoke { position: absolute; left: -10px; top: -10px; width: 20px; height: 20px; border-radius: 50%; background: radial-gradient(circle, rgba(255,70,70,0.9), rgba(255,70,70,0) 70%); opacity: 0; }
 .pg-airdrop.show { opacity: 1; }
 .pg-airdrop.show .pg-crate { animation: pgCrateDrop 2.2s cubic-bezier(0.3, 0.7, 0.4, 1) both; }
 .pg-airdrop.show .pg-crate-chute { animation: pgChuteDrop 2.2s cubic-bezier(0.3, 0.7, 0.4, 1) both; }
 .pg-airdrop.landed .pg-smoke { animation: pgSmoke 2.2s ease-out infinite; }
 @keyframes pgCrateDrop { from { transform: translateY(-420px) scale(1.5); } to { transform: none; } }
-@keyframes pgChuteDrop { 0% { transform: translateY(-420px) scale(1.5); opacity: 1; } 85% { opacity: 1; } 100% { transform: none; opacity: 0; } }
+@keyframes pgChuteDrop { 0% { transform: translateY(-420px) scale(1.5); opacity: 1; } 82% { transform: translateY(-6px) scale(1.02); opacity: 1; } 100% { transform: translateY(14px) scale(0.9, 0.25); opacity: 0; } }
 @keyframes pgSmoke { 0% { transform: translateY(0) scale(1); opacity: 0.9; } 100% { transform: translateY(-70px) scale(5); opacity: 0; } }
 
 /* Интерфейс поверх карты */

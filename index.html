@@ -496,23 +496,48 @@
         <div class="spin-view" id="spin-pubg" hidden>
           <div class="pg-wrap">
             <div class="pg-map" id="pg-map">
-              <svg class="pg-layer" id="pg-map-svg" viewBox="0 0 640 640"></svg>
-              <svg class="pg-layer" id="pg-zone-svg" viewBox="0 0 640 640">
-                <defs>
-                  <mask id="pgZoneMask">
-                    <rect width="640" height="640" fill="#fff"/>
-                    <circle id="pg-zone-hole" cx="320" cy="320" r="470" fill="#000"/>
-                  </mask>
-                </defs>
-                <rect width="640" height="640" fill="rgba(40,90,255,0.34)" mask="url(#pgZoneMask)"/>
-                <circle id="pg-zone-edge" cx="320" cy="320" r="470" fill="none" stroke="#8fd0ff" stroke-width="3"/>
-                <circle id="pg-zone-next" cx="320" cy="320" r="200" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-dasharray="9 7" opacity="0"/>
-              </svg>
-              <svg class="pg-layer" id="pg-fx" viewBox="0 0 640 640"></svg>
-              <div class="pg-airdrop" id="pg-airdrop"><div class="pg-smoke"></div><div class="pg-crate">📦</div><div class="pg-crate-chute">🪂</div></div>
-              <div class="pg-players" id="pg-players"></div>
-              <div class="pg-plane" id="pg-plane">
-                <svg viewBox="0 0 64 64"><path d="M34 6 L40 26 L62 38 L62 44 L40 40 L38 54 L46 60 L46 64 L32 61 L18 64 L18 60 L26 54 L24 40 L2 44 L2 38 L24 26 L30 6 Z" fill="rgba(0,0,0,0.35)" transform="translate(2,3)"/><path d="M32 2 L38 24 L62 36 L62 42 L38 38 L36 52 L44 58 L44 62 L32 59 L20 62 L20 58 L28 52 L26 38 L2 42 L2 36 L26 24 Z" fill="#eef1f6" stroke="#5b6475" stroke-width="1.5" stroke-linejoin="round"/></svg>
+              <div class="pg-cam" id="pg-cam">
+                <svg class="pg-layer" id="pg-map-svg" viewBox="0 0 640 640"></svg>
+                <svg class="pg-layer" id="pg-zone-svg" viewBox="0 0 640 640">
+                  <defs>
+                    <mask id="pgZoneMask">
+                      <rect width="640" height="640" fill="#fff"/>
+                      <circle id="pg-zone-hole" cx="320" cy="320" r="470" fill="#000"/>
+                    </mask>
+                  </defs>
+                  <rect width="640" height="640" fill="rgba(40,90,255,0.34)" mask="url(#pgZoneMask)"/>
+                  <circle id="pg-zone-edge" cx="320" cy="320" r="470" fill="none" stroke="#8fd0ff" stroke-width="3"/>
+                  <circle id="pg-zone-next" cx="320" cy="320" r="200" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-dasharray="9 7" opacity="0"/>
+                </svg>
+                <svg class="pg-layer" id="pg-fx" viewBox="0 0 640 640"></svg>
+                <div class="pg-airdrop" id="pg-airdrop">
+                  <div class="pg-smoke"></div>
+                  <svg class="pg-crate-chute" viewBox="0 0 80 66">
+                    <defs><clipPath id="pgChuteClip"><path d="M4 26 Q40 -10 76 26 Q67 21 58 26 Q49 21 40 26 Q31 21 22 26 Q13 21 4 26 Z"/></clipPath></defs>
+                    <g clip-path="url(#pgChuteClip)">
+                      <rect x="0" y="0" width="80" height="30" fill="#e23b3b"/>
+                      <rect x="22" y="0" width="9" height="30" fill="#f4f1ea"/><rect x="49" y="0" width="9" height="30" fill="#f4f1ea"/>
+                      <path d="M10 13 Q40 -5 70 13" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="2"/>
+                    </g>
+                    <path d="M4 26 Q40 -10 76 26 Q67 21 58 26 Q49 21 40 26 Q31 21 22 26 Q13 21 4 26 Z" fill="none" stroke="#7a1414" stroke-width="1.5" stroke-linejoin="round"/>
+                    <g stroke="#e9e3d2" stroke-width="1" opacity="0.9"><line x1="4" y1="26" x2="30" y2="64"/><line x1="22" y1="26" x2="34" y2="64"/><line x1="40" y1="26" x2="40" y2="64"/><line x1="58" y1="26" x2="46" y2="64"/><line x1="76" y1="26" x2="50" y2="64"/></g>
+                  </svg>
+                  <svg class="pg-crate" viewBox="0 0 52 46">
+                    <rect x="3" y="5" width="46" height="38" rx="3" fill="rgba(0,0,0,0.35)" transform="translate(2,3)"/>
+                    <rect x="3" y="5" width="46" height="38" rx="3" fill="#2f5d9a" stroke="#14263f" stroke-width="2"/>
+                    <rect x="3" y="5" width="46" height="9" rx="3" fill="#3f78c2" stroke="#14263f" stroke-width="2"/>
+                    <rect x="3" y="24" width="46" height="7" fill="#f2c230"/>
+                    <path d="M7 24 l5 7 M15 24 l5 7 M23 24 l5 7 M31 24 l5 7 M39 24 l5 7" stroke="#1c1c1c" stroke-width="3"/>
+                    <rect x="3" y="24" width="46" height="7" fill="none" stroke="#14263f" stroke-width="1.5"/>
+                    <path d="M3 9 h6 v-4 M49 9 h-6 v-4 M3 38 h6 v5 M49 38 h-6 v5" fill="none" stroke="#c9d3df" stroke-width="2.5"/>
+                    <rect x="21" y="16" width="10" height="5" rx="1" fill="#c9d3df" stroke="#14263f" stroke-width="1"/>
+                    <rect x="20" y="34" width="12" height="6" rx="1" fill="#e23b3b" stroke="#7a1414" stroke-width="1"/>
+                  </svg>
+                </div>
+                <div class="pg-players" id="pg-players"></div>
+                <div class="pg-plane" id="pg-plane">
+                  <svg viewBox="0 0 64 64"><path d="M34 6 L40 26 L62 38 L62 44 L40 40 L38 54 L46 60 L46 64 L32 61 L18 64 L18 60 L26 54 L24 40 L2 44 L2 38 L24 26 L30 6 Z" fill="rgba(0,0,0,0.35)" transform="translate(2,3)"/><path d="M32 2 L38 24 L62 36 L62 42 L38 38 L36 52 L44 58 L44 62 L32 59 L20 62 L20 58 L28 52 L26 38 L2 42 L2 36 L26 24 Z" fill="#eef1f6" stroke="#5b6475" stroke-width="1.5" stroke-linejoin="round"/></svg>
+                </div>
               </div>
               <div class="pg-hud pg-hud-alive" id="pg-alive">👥 0</div>
               <div class="pg-hud pg-hud-zone" id="pg-zone-info">✈ Самолёт над островом</div>

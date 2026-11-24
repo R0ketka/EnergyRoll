@@ -2013,6 +2013,16 @@ async function playPubg(pool, winnerLogin, winnerName) {
   // Сброс
   playersEl.innerHTML = ''; fx.innerHTML = ''; feedEl.innerHTML = ''; bannerEl.className = 'pg-banner'; bannerEl.textContent = '';
   airdropEl.className = 'pg-airdrop'; planeEl.style.transition = 'none'; planeEl.style.opacity = '0';
+  // Камера: плавное несильное приближение к зоне (сдвиг ограничен, чтобы не было видно края карты)
+  const camEl = $('pg-cam');
+  const setCam = (cx, cy, sc, ms) => {
+    if (!camEl) return;
+    const clamp = (v) => Math.min(0, Math.max((1 - sc) * 100, v));
+    const tx = clamp(50 - cx / S * sc * 100), ty = clamp(50 - cy / S * sc * 100);
+    camEl.style.transition = ms ? 'transform ' + ms + 'ms cubic-bezier(0.45, 0, 0.25, 1)' : 'none';
+    camEl.style.transform = 'translate(' + tx.toFixed(2) + '%, ' + ty.toFixed(2) + '%) scale(' + sc + ')';
+  };
+  setCam(320, 320, 1, 0);
   let cur = { cx: 320, cy: 320, r: 470 };
   const setZone = (cx, cy, r) => { [zHole, zEdge].forEach((c) => { c.setAttribute('cx', cx); c.setAttribute('cy', cy); c.setAttribute('r', r); }); cur = { cx, cy, r }; };
   setZone(320, 320, 470); zNext.setAttribute('opacity', '0');
@@ -2143,6 +2153,8 @@ async function playPubg(pool, winnerLogin, winnerName) {
 
     // пунктирная линия новой зоны
     zNext.setAttribute('cx', c.cx); zNext.setAttribute('cy', c.cy); zNext.setAttribute('r', R); zNext.setAttribute('opacity', '1');
+    // мало игроков и зона маленькая — камера чуть приближается к новой зоне
+    if (players.filter((p) => p.alive).length <= 12 || R < 200) setCam(c.cx, c.cy, Math.min(1.35, Math.max(1.12, 290 / R)), 1600);
     info('🔷 Зона ' + k + '/' + P + ': новая зона отмечена');
     if (Math.random() < 0.6) randomShot();
     if (!(await wait(1500))) return;
@@ -2182,27 +2194,41 @@ async function playPubg(pool, winnerLogin, winnerName) {
     if (sh) shoot(sh, v); else kill(v, null);
     if (!(await wait(gap))) return;
   }
-  // трое у аирдропа: Z — чуть за будущей границей, W и S — внутри
-  // Каждый встаёт с той стороны, откуда пришёл (без перебегания друг через друга);
-  // если двое пришли почти с одной стороны — слегка расходятся, порядок по кругу сохраняется
-  const Rf = 56;
-  const form = [[W, Rf - 26], [Sp, Rf - 26], [Zp, Rf + 28]].filter(([p]) => p && p.alive)
-    .map(([p, d]) => ({ p, d, a: Math.atan2(p.y - D.y, p.x - D.x) }));
-  const MIN_SEP = 75 * Math.PI / 180;
+  // Трое у аирдропа — все на ОДИНАКОВОМ расстоянии, каждый со своей стороны (без перебегания).
+  // Если двое пришли почти с одной стороны — расходятся, порядок по кругу сохраняется.
+  const FD = 46;   // расстояние финалистов до аирдропа
+  const form = [W, Sp, Zp].filter((p) => p && p.alive).map((p) => ({ p, a: Math.atan2(p.y - D.y, p.x - D.x) }));
+  const MIN_SEP = (form.length >= 3 ? 105 : 120) * Math.PI / 180;
   const wrap = (x) => { while (x > Math.PI) x -= 2 * Math.PI; while (x <= -Math.PI) x += 2 * Math.PI; return x; };
-  for (let it = 0; it < 30; it++) {
+  for (let it = 0; it < 40; it++) {
     for (let i = 0; i < form.length; i++) for (let j = i + 1; j < form.length; j++) {
       const diff = wrap(form[j].a - form[i].a);
       if (Math.abs(diff) < MIN_SEP) { const push = (MIN_SEP - Math.abs(diff)) / 2 * (diff >= 0 ? 1 : -1); form[i].a -= push; form[j].a += push; }
     }
   }
-  form.forEach(({ p, d, a }) => place(p, D.x + Math.cos(a) * d, D.y + Math.sin(a) * d, 900));
+  form.forEach(({ p, a }) => place(p, D.x + Math.cos(a) * FD, D.y + Math.sin(a) * FD, 900));
+  setCam(D.x, D.y, 1.5, 1200);   // финальное приближение
   if (!(await wait(1000))) return;
-  zNext.setAttribute('cx', D.x); zNext.setAttribute('cy', D.y); zNext.setAttribute('r', Rf); zNext.setAttribute('opacity', '1');
+
+  // Последняя зона смещена от того, кто не успеет: двое остаются внутри, третий — снаружи.
+  // Заранее этого не видно: все трое стоят одинаково, решает только круг новой зоны.
+  let fz = { cx: D.x, cy: D.y, r: FD + 14 };
+  const zf = form.find((f) => f.p === Zp);
+  if (zf) {
+    const ux = Math.cos(zf.a), uy = Math.sin(zf.a); const SH = 30;
+    const cx = D.x - ux * SH, cy = D.y - uy * SH;
+    const inMax = Math.max(...form.filter((f) => f !== zf).map((f) => Math.hypot(D.x + Math.cos(f.a) * FD - cx, D.y + Math.sin(f.a) * FD - cy)), 0);
+    const outD = FD + SH;
+    fz = { cx, cy, r: Math.max(inMax + 10, Math.min(outD - 12, (inMax + outD) / 2)) };
+  }
+  zNext.setAttribute('cx', fz.cx); zNext.setAttribute('cy', fz.cy); zNext.setAttribute('r', fz.r); zNext.setAttribute('opacity', '1');
   info('🔷 Последняя зона ' + P + '/' + P + ' — кто-то не успеет');
   if (!(await wait(1400))) return;
-  if (Zp && Zp.alive) { const tg = runTarget(Zp, { cx: D.x, cy: D.y }, Rf); place(Zp, Zp.x + (tg.x - Zp.x) * 0.3, Zp.y + (tg.y - Zp.y) * 0.3, 2800); Zp.el.classList.add('running', 'danger'); }
-  await animateZone({ cx: D.x, cy: D.y, r: Rf }, 2800);
+  if (Zp && Zp.alive) {   // пытается добежать, но не успевает (останавливается за границей)
+    const dx = fz.cx - Zp.x, dy = fz.cy - Zp.y; const d = Math.hypot(dx, dy) || 1; const mv = Math.max(0, d - fz.r - 7);
+    place(Zp, Zp.x + dx / d * mv, Zp.y + dy / d * mv, 2800); Zp.el.classList.add('running', 'danger');
+  }
+  await animateZone(fz, 2800);
   if (!alive()) return;
   zNext.setAttribute('opacity', '0');
   if (Zp && Zp.alive) kill(Zp, null);                    // первого съела зона
@@ -2218,7 +2244,7 @@ async function playPubg(pool, winnerLogin, winnerName) {
   info('🏆 Победитель определён!');
   W.el.classList.add('winner');
   bannerEl.textContent = '🍗 ПОБЕДИТЕЛЬ: ' + (winnerName || W.name); void bannerEl.offsetWidth; bannerEl.classList.add('show');
-  try { burstConfetti(mapEl, W.x / S * mapEl.clientWidth, W.y / S * mapEl.clientHeight, 44); } catch (e) {}
+  try { const box = camEl || mapEl; burstConfetti(box, W.x / S * box.clientWidth, W.y / S * box.clientHeight, 44); } catch (e) {}
   if (!(await wait(2800))) return;
   els.spinPubg.hidden = true;
 }
